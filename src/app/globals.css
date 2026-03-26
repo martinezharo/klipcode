@@ -84,6 +84,18 @@ body {
   color: rgba(237, 237, 237, 0.32) !important;
 }
 
+/* Reserve space for up to 4-digit line numbers to avoid layout jumps */
+.cm-editor .cm-lineNumbers {
+  min-width: calc(4ch + 0.75rem) !important;
+}
+
+.cm-editor .cm-lineNumbers .cm-gutterElement {
+  min-width: 4ch;
+  padding-right: 0.5rem;
+  text-align: right;
+  box-sizing: content-box;
+}
+
 /* VS Code Style Fold Gutters */
 .cm-editor .cm-foldGutter {
   width: 16px;
