@@ -206,7 +206,7 @@ export function SnippetEditor({
       </div>
 
       {/* ── Editor ─────────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-hidden [&>div]:h-full">
+      <div className="flex-1 min-h-0 overflow-hidden pl-6 [&>div]:h-full">
         <Editor
           value={code}
           onChange={handleCodeChange}
