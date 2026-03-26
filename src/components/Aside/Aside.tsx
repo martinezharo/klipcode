@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ChevronsLeft,
+  Menu,
   Home,
   Layers,
   Plus,
@@ -166,114 +167,162 @@ function SnippetNode({
   );
 }
 
+const MOBILE_BP = 1024; // matches Tailwind `lg`
+
 export function Aside({ folders, snippets, copy }: AsideProps) {
+  const [isOpen, setIsOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BP - 1}px)`);
+
+    const apply = (matches: boolean) => {
+      setIsMobile(matches);
+      if (matches) setIsOpen(false);
+    };
+
+    apply(mq.matches);
+
+    const handler = (e: MediaQueryListEvent) => apply(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   const rootFolders = folders.filter((f) => f.parentId === null);
   const rootSnippets = snippets.filter((s) => s.folderId === null);
 
   // Order: pinned folders → pinned snippets → unpinned folders → unpinned snippets
-  const pinnedFolders   = sortByPinThenAlpha(rootFolders.filter((f) => f.isPinned),   (f) => f.name);
-  const pinnedSnippets  = sortByPinThenAlpha(rootSnippets.filter((s) => s.isPinned),  (s) => s.title ?? "");
-  const unpinnedFolders = sortByPinThenAlpha(rootFolders.filter((f) => !f.isPinned),  (f) => f.name);
+  const pinnedFolders    = sortByPinThenAlpha(rootFolders.filter((f) => f.isPinned),   (f) => f.name);
+  const pinnedSnippets   = sortByPinThenAlpha(rootSnippets.filter((s) => s.isPinned),  (s) => s.title ?? "");
+  const unpinnedFolders  = sortByPinThenAlpha(rootFolders.filter((f) => !f.isPinned),  (f) => f.name);
   const unpinnedSnippets = sortByPinThenAlpha(rootSnippets.filter((s) => !s.isPinned), (s) => s.title ?? "");
 
   const isEmpty = rootFolders.length === 0 && rootSnippets.length === 0;
 
   return (
-    <aside className="flex h-screen w-[240px] shrink-0 flex-col border-r border-white/[0.06] bg-background">
-      {/* ── Logo + Collapse ─────────────────────── */}
-      <div className="flex items-center justify-between px-4 py-4">
-        <div className="flex items-center gap-2">
-          <Logo className="h-5 w-5 text-foreground" />
-          <span className="text-[13px] font-semibold tracking-tight text-foreground">
-            KodeBoard
-          </span>
-        </div>
+    <>
+      {/* ── Hamburger — visible when aside is closed ── */}
+      {!isOpen && (
         <button
           type="button"
-          title={copy.aside.collapse}
-          className="rounded-md p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
+          title={copy.aside.open}
+          onClick={() => setIsOpen(true)}
+          className="fixed left-4 top-4 z-50 rounded-md p-1.5 text-white/40 transition-colors hover:bg-white/[0.06] hover:text-muted"
         >
-          <ChevronsLeft size={15} />
+          <Menu size={16} />
         </button>
-      </div>
+      )}
 
-      {/* ── Home ────────────────────────────────── */}
-      <div className="px-2">
-        <button
-          type="button"
-          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-white/[0.04] hover:text-foreground"
+      {/* ── Mobile backdrop ── */}
+      {isOpen && isMobile && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* ── Aside panel ── */}
+      {isOpen && (
+        <aside
+          className={`flex h-screen w-[240px] shrink-0 flex-col border-r border-white/[0.06] bg-background${isMobile ? " fixed inset-y-0 left-0 z-50" : ""}`}
         >
-          <Home size={14} className="shrink-0" />
-          <span>{copy.aside.home}</span>
-        </button>
-      </div>
-
-      <div className="mx-4 my-3 border-t border-white/[0.05]" />
-
-      {/* ── My Space ────────────────────────────── */}
-      <div className="flex flex-1 flex-col overflow-hidden px-2">
-        {/* Section header */}
-        <div className="mb-2 flex items-center justify-between px-2">
-          <div className="flex items-center gap-1.5">
-            <Layers size={12} className="text-white/25" />
-            <span className="text-[11px] font-medium uppercase tracking-wider text-white/35">
-              {copy.aside.mySpace}
-            </span>
-          </div>
-          <div className="flex items-center gap-0.5">
-            <button
-              type="button"
-              title={copy.aside.addSnippet}
-              className="rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
-            >
-              <Plus size={13} />
-            </button>
-            <button
-              type="button"
-              title={copy.aside.addFolder}
-              className="rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
-            >
-              <FolderPlus size={13} />
-            </button>
-          </div>
-        </div>
-
-        {/* Tree */}
-        <div className="flex-1 overflow-y-auto pb-4">
-          {isEmpty ? (
-            <p className="px-3 pt-1 text-xs text-white/20">
-              {copy.aside.emptySpace}
-            </p>
-          ) : (
-            <div>
-              {pinnedFolders.map((folder) => (
-                <FolderNode
-                  key={folder.id}
-                  folder={folder}
-                  folders={folders}
-                  snippets={snippets}
-                  depth={0}
-                />
-              ))}
-              {pinnedSnippets.map((snippet) => (
-                <SnippetNode key={snippet.id} snippet={snippet} depth={0} />
-              ))}
-              {unpinnedFolders.map((folder) => (
-                <FolderNode
-                  key={folder.id}
-                  folder={folder}
-                  folders={folders}
-                  snippets={snippets}
-                  depth={0}
-                />
-              ))}
-              {unpinnedSnippets.map((snippet) => (
-                <SnippetNode key={snippet.id} snippet={snippet} depth={0} />
-              ))}
+          {/* ── Logo + Collapse ─────────────────────── */}
+          <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center gap-2">
+              <Logo className="h-5 w-5 text-foreground" />
+              <span className="text-[13px] font-semibold tracking-tight text-foreground">
+                KodeBoard
+              </span>
             </div>
-          )}
-        </div>
-      </div>
-    </aside>
+            <button
+              type="button"
+              title={copy.aside.collapse}
+              onClick={() => setIsOpen(false)}
+              className="rounded-md p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
+            >
+              <ChevronsLeft size={15} />
+            </button>
+          </div>
+
+          {/* ── Home ────────────────────────────────── */}
+          <div className="px-2">
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-white/[0.04] hover:text-foreground"
+            >
+              <Home size={14} className="shrink-0" />
+              <span>{copy.aside.home}</span>
+            </button>
+          </div>
+
+          <div className="mx-4 my-3 border-t border-white/[0.05]" />
+
+          {/* ── My Space ────────────────────────────── */}
+          <div className="flex flex-1 flex-col overflow-hidden px-2">
+            {/* Section header */}
+            <div className="mb-2 flex items-center justify-between px-2">
+              <div className="flex items-center gap-1.5">
+                <Layers size={12} className="text-white/25" />
+                <span className="text-[11px] font-medium uppercase tracking-wider text-white/35">
+                  {copy.aside.mySpace}
+                </span>
+              </div>
+              <div className="flex items-center gap-0.5">
+                <button
+                  type="button"
+                  title={copy.aside.addSnippet}
+                  className="rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
+                >
+                  <Plus size={13} />
+                </button>
+                <button
+                  type="button"
+                  title={copy.aside.addFolder}
+                  className="rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
+                >
+                  <FolderPlus size={13} />
+                </button>
+              </div>
+            </div>
+
+            {/* Tree */}
+            <div className="flex-1 overflow-y-auto pb-4">
+              {isEmpty ? (
+                <p className="px-3 pt-1 text-xs text-white/20">
+                  {copy.aside.emptySpace}
+                </p>
+              ) : (
+                <div>
+                  {pinnedFolders.map((folder) => (
+                    <FolderNode
+                      key={folder.id}
+                      folder={folder}
+                      folders={folders}
+                      snippets={snippets}
+                      depth={0}
+                    />
+                  ))}
+                  {pinnedSnippets.map((snippet) => (
+                    <SnippetNode key={snippet.id} snippet={snippet} depth={0} />
+                  ))}
+                  {unpinnedFolders.map((folder) => (
+                    <FolderNode
+                      key={folder.id}
+                      folder={folder}
+                      folders={folders}
+                      snippets={snippets}
+                      depth={0}
+                    />
+                  ))}
+                  {unpinnedSnippets.map((snippet) => (
+                    <SnippetNode key={snippet.id} snippet={snippet} depth={0} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+      )}
+    </>
   );
 }

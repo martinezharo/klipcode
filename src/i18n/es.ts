@@ -64,6 +64,7 @@ export const es = {
   },
   aside: {
     collapse: "Colapsar panel",
+    open: "Abrir panel",
     home: "Inicio",
     mySpace: "Mi Espacio",
     addSnippet: "Nuevo snippet",
