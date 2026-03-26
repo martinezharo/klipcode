@@ -170,9 +170,9 @@ export function Aside({ folders, snippets, copy }: AsideProps) {
   const rootFolders = folders.filter((f) => f.parentId === null);
   const rootSnippets = snippets.filter((s) => s.folderId === null);
 
-  // Order: pinned snippets → pinned folders → unpinned folders → unpinned snippets
-  const pinnedSnippets  = sortByPinThenAlpha(rootSnippets.filter((s) => s.isPinned),  (s) => s.title ?? "");
+  // Order: pinned folders → pinned snippets → unpinned folders → unpinned snippets
   const pinnedFolders   = sortByPinThenAlpha(rootFolders.filter((f) => f.isPinned),   (f) => f.name);
+  const pinnedSnippets  = sortByPinThenAlpha(rootSnippets.filter((s) => s.isPinned),  (s) => s.title ?? "");
   const unpinnedFolders = sortByPinThenAlpha(rootFolders.filter((f) => !f.isPinned),  (f) => f.name);
   const unpinnedSnippets = sortByPinThenAlpha(rootSnippets.filter((s) => !s.isPinned), (s) => s.title ?? "");
 
@@ -246,9 +246,6 @@ export function Aside({ folders, snippets, copy }: AsideProps) {
             </p>
           ) : (
             <div>
-              {pinnedSnippets.map((snippet) => (
-                <SnippetNode key={snippet.id} snippet={snippet} depth={0} />
-              ))}
               {pinnedFolders.map((folder) => (
                 <FolderNode
                   key={folder.id}
@@ -257,6 +254,9 @@ export function Aside({ folders, snippets, copy }: AsideProps) {
                   snippets={snippets}
                   depth={0}
                 />
+              ))}
+              {pinnedSnippets.map((snippet) => (
+                <SnippetNode key={snippet.id} snippet={snippet} depth={0} />
               ))}
               {unpinnedFolders.map((folder) => (
                 <FolderNode
