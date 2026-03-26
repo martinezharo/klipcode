@@ -245,7 +245,7 @@ export function Aside({ folders, snippets, copy, onSelectSnippet }: AsideProps) 
       {/* ── Aside panel ── */}
       {isOpen && (
         <aside
-          className={`flex h-screen w-[240px] shrink-0 flex-col border-r border-white/[0.06] bg-background${isMobile ? " fixed inset-y-0 left-0 z-50" : ""}`}
+          className={`flex h-screen w-[240px] shrink-0 flex-col border-r border-white/[0.06] bg-surface${isMobile ? " fixed inset-y-0 left-0 z-50" : ""}`}
         >
           {/* ── Logo + Collapse ─────────────────────── */}
           <div className="flex items-center justify-between px-4 py-4">
