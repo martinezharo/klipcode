@@ -42,6 +42,8 @@ Descripción: Aplicación web de gestión de fragmentos de código (snippets) mu
 
 - Fuentes: Cascadia Code (con ligaduras activas) para bloques de código.
 
+- Tema 'VS Code Dark' para bloques de código.
+
 - Paleta: Fondo #0a0a0a, bordes #262626 (o white/10), acentos en blanco puro o gris suave.
 
 - Componentes: Menús y Selects totalmente personalizados (evitar nativos HTML).
