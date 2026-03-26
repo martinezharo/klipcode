@@ -3,7 +3,17 @@
 import { useState, useEffect } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { vscodeDark } from "@uiw/codemirror-theme-vscode";
+import { foldGutter } from "@codemirror/language";
 import type { Extension } from "@codemirror/state";
+
+// Custom fold gutter with VS Code-style SVG markers (our own classes so CSS can target them)
+const customFoldGutter = foldGutter({
+  markerDOM: (open) => {
+    const el = document.createElement("span");
+    el.className = open ? "cm-fold-open" : "cm-fold-closed";
+    return el;
+  },
+});
 
 // Module-level cache so repeated language loads are instant
 const extensionCache = new Map<string, Extension[]>();
@@ -155,7 +165,7 @@ const EDIT_SETUP = {
   bracketMatching: true,
   closeBrackets: true,
   autocompletion: false,
-  foldGutter: true,
+  foldGutter: false, // handled manually via customFoldGutter extension
   indentOnInput: true,
   tabSize: 2,
 } as const;
@@ -215,7 +225,7 @@ export function Editor({
       value={value}
       onChange={onChange}
       theme={vscodeDark}
-      extensions={extensions}
+      extensions={readOnly ? extensions : [...extensions, customFoldGutter]}
       editable={!readOnly}
       readOnly={readOnly}
       placeholder={placeholder}
