@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
-import { Plus } from "lucide-react";
+import { ChevronDown, FileCode2, Folder, Plus } from "lucide-react";
 import { Editor } from "@/components/Editor/Editor";
 import { LANGUAGES, DEFAULT_LANGUAGE, type LanguageId } from "@/lib/constants/languages";
 import type { Dictionary } from "@/i18n";
@@ -58,11 +58,13 @@ export function NewSnippet({ copy, folderOptions, onCreateSnippet }: NewSnippetP
             placeholder={copy.forms.snippetTitlePlaceholder}
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-white/30 outline-none"
           />
-          <div className="flex items-center gap-3">
+          {/* Language selector */}
+          <div className="relative flex items-center">
+            <FileCode2 size={13} className="pointer-events-none absolute left-2.5 text-white/30" />
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value as LanguageId)}
-              className="rounded-md border border-white/[0.08] bg-background px-2.5 py-1.5 text-xs text-muted outline-none transition-colors hover:border-white/15 hover:text-foreground"
+              className="appearance-none rounded-md border border-white/[0.08] bg-background pl-[26px] pr-6 py-1.5 text-xs text-muted outline-none transition-colors hover:border-white/15 hover:text-foreground cursor-pointer"
             >
               {LANGUAGES.map((lang) => (
                 <option key={lang.id} value={lang.id}>
@@ -70,17 +72,7 @@ export function NewSnippet({ copy, folderOptions, onCreateSnippet }: NewSnippetP
                 </option>
               ))}
             </select>
-            <select
-              value={folderId}
-              onChange={(e) => setFolderId(e.target.value)}
-              className="rounded-md border border-white/[0.08] bg-background px-2.5 py-1.5 text-xs text-muted outline-none transition-colors hover:border-white/15 hover:text-foreground"
-            >
-              {folderOptions.map((option) => (
-                <option key={option.label} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <ChevronDown size={11} className="pointer-events-none absolute right-2 text-white/30" />
           </div>
         </div>
 
@@ -96,8 +88,25 @@ export function NewSnippet({ copy, folderOptions, onCreateSnippet }: NewSnippetP
           />
         </div>
 
-        {/* Footer with create button */}
-        <div className="flex items-center justify-end border-t border-white/[0.06] px-4 py-2.5">
+        {/* Footer: folder selector + create button */}
+        <div className="flex items-center justify-between border-t border-white/[0.06] px-4 py-2.5">
+          {/* Folder selector */}
+          <div className="relative flex items-center">
+            <Folder size={13} className="pointer-events-none absolute left-2.5 text-white/30" />
+            <select
+              value={folderId}
+              onChange={(e) => setFolderId(e.target.value)}
+              className="appearance-none rounded-md border border-white/[0.08] bg-background pl-[26px] pr-6 py-1.5 text-xs text-muted outline-none transition-colors hover:border-white/15 hover:text-foreground cursor-pointer"
+            >
+              {folderOptions.map((option) => (
+                <option key={option.label} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={11} className="pointer-events-none absolute right-2 text-white/30" />
+          </div>
+
           <button
             type="submit"
             disabled={!code.trim()}
