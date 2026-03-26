@@ -17,11 +17,13 @@ import {
 import { Logo } from "@/ui/Logo";
 import type { FolderRecord, SnippetRecord } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
+import { LANGUAGES } from "@/lib/constants/languages";
 
 interface AsideProps {
   folders: FolderRecord[];
   snippets: SnippetRecord[];
   copy: Dictionary;
+  onSelectSnippet: (snippetId: string) => void;
 }
 
 // Indent step per depth level in px
@@ -74,11 +76,13 @@ function FolderNode({
   folders,
   snippets,
   depth,
+  copy,
 }: {
   folder: FolderRecord;
   folders: FolderRecord[];
   snippets: SnippetRecord[];
   depth: number;
+  copy: Dictionary;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -130,10 +134,11 @@ function FolderNode({
               folders={folders}
               snippets={snippets}
               depth={depth + 1}
+              copy={copy}
             />
           ))}
           {childSnippets.map((snippet) => (
-            <SnippetNode key={snippet.id} snippet={snippet} depth={depth + 1} />
+            <SnippetNode key={snippet.id} snippet={snippet} depth={depth + 1} copy={copy} />
           ))}
         </div>
       )}
@@ -144,10 +149,16 @@ function FolderNode({
 function SnippetNode({
   snippet,
   depth,
+  copy,
 }: {
   snippet: SnippetRecord;
   depth: number;
+  copy: Dictionary;
 }) {
+  const ext = LANGUAGES.find((l) => l.id === snippet.language)?.extension || "";
+  const baseName = snippet.title || copy.snippetCard.untitled;
+  const displayName = baseName.endsWith(ext) ? baseName : `${baseName}${ext}`;
+
   return (
     <button
       type="button"
@@ -156,9 +167,7 @@ function SnippetNode({
       style={{ paddingLeft: `${10 + depth * STEP + 19}px` }}
     >
       <FileCode2 size={13} className="shrink-0 text-white/20" />
-      <span className="flex-1 truncate leading-none">
-        {snippet.title || "Untitled"}
-      </span>
+      <span className="flex-1 truncate leading-none">{displayName}</span>
       <ItemActions onMore={(e) => e.stopPropagation()} />
       {snippet.isPinned && (
         <Pin size={10} className="shrink-0 text-white/30" />
@@ -300,10 +309,11 @@ export function Aside({ folders, snippets, copy }: AsideProps) {
                       folders={folders}
                       snippets={snippets}
                       depth={0}
+                      copy={copy}
                     />
                   ))}
                   {pinnedSnippets.map((snippet) => (
-                    <SnippetNode key={snippet.id} snippet={snippet} depth={0} />
+                    <SnippetNode key={snippet.id} snippet={snippet} depth={0} copy={copy} />
                   ))}
                   {unpinnedFolders.map((folder) => (
                     <FolderNode
@@ -312,10 +322,11 @@ export function Aside({ folders, snippets, copy }: AsideProps) {
                       folders={folders}
                       snippets={snippets}
                       depth={0}
+                      copy={copy}
                     />
                   ))}
                   {unpinnedSnippets.map((snippet) => (
-                    <SnippetNode key={snippet.id} snippet={snippet} depth={0} />
+                    <SnippetNode key={snippet.id} snippet={snippet} depth={0} copy={copy} />
                   ))}
                 </div>
               )}
