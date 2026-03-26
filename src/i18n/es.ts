@@ -4,17 +4,17 @@ export const es = {
     subtitle: "Gestor de snippets multidispositivo.",
   },
   auth: {
-    statusLabel: "Estado de sesion",
-    signedIn: "Sesion iniciada",
-    signedOut: "Sin sesion",
-    signIn: "Iniciar Sesion",
-    signOut: "Cerrar sesion",
+    statusLabel: "Estado de sesión",
+    signedIn: "Sesión iniciada",
+    signedOut: "Sin sesión",
+    signIn: "Iniciar Sesión",
+    signOut: "Cerrar sesión",
     localMode: "Modo local activo. Los cambios se guardan en IndexedDB.",
     notConfigured:
       "Supabase no esta configurado. La aplicacion funciona solo en local hasta definir las variables NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY.",
     syncingSession:
       "Sincronizando los datos de IndexedDB con Supabase y descargando el contenido de la cuenta.",
-    syncedSession: "Sesion sincronizada con la nube.",
+    syncedSession: "Sesión sincronizada con la nube.",
     cloudSyncRunning: "Sincronizando cambios con la nube.",
     syncFailed: "No se pudo sincronizar con la nube.",
     signedInAs: "Usuario",
