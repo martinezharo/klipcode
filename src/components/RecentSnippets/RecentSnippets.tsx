@@ -11,6 +11,7 @@ interface RecentSnippetsProps {
   snippets: SnippetRecord[];
   folders: FolderRecord[];
   copy: Dictionary;
+  onSelectSnippet: (snippetId: string) => void;
 }
 
 function getFolderName(folderId: string | null, folders: FolderRecord[]): string | null {
@@ -22,10 +23,12 @@ function SnippetPreviewCard({
   snippet,
   folderName,
   copy,
+  onSelect,
 }: {
   snippet: SnippetRecord;
   folderName: string | null;
   copy: Dictionary;
+  onSelect: () => void;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -42,8 +45,10 @@ function SnippetPreviewCard({
   const displayName = baseName.endsWith(ext) ? baseName : `${baseName}${ext}`;
 
   return (
-    <article className="group flex flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-surface transition-colors hover:border-white/[0.12] hover:bg-surface-hover">
-      {/* Card header */}
+    <article
+      onClick={onSelect}
+      className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-surface transition-colors hover:border-white/[0.12] hover:bg-surface-hover"
+    >      {/* Card header */}
       <div className="flex items-center justify-between gap-3 px-4 pt-3.5 pb-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 min-w-0">
@@ -88,7 +93,7 @@ function SnippetPreviewCard({
   );
 }
 
-export function RecentSnippets({ snippets, folders, copy }: RecentSnippetsProps) {
+export function RecentSnippets({ snippets, folders, copy, onSelectSnippet }: RecentSnippetsProps) {
   const recentSnippets = [...snippets]
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, 6);
@@ -112,6 +117,7 @@ export function RecentSnippets({ snippets, folders, copy }: RecentSnippetsProps)
               snippet={snippet}
               folderName={getFolderName(snippet.folderId, folders)}
               copy={copy}
+              onSelect={() => onSelectSnippet(snippet.id)}
             />
           ))}
         </div>

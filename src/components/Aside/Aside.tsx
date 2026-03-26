@@ -77,12 +77,14 @@ function FolderNode({
   snippets,
   depth,
   copy,
+  onSelectSnippet,
 }: {
   folder: FolderRecord;
   folders: FolderRecord[];
   snippets: SnippetRecord[];
   depth: number;
   copy: Dictionary;
+  onSelectSnippet: (snippetId: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -135,10 +137,17 @@ function FolderNode({
               snippets={snippets}
               depth={depth + 1}
               copy={copy}
+              onSelectSnippet={onSelectSnippet}
             />
           ))}
           {childSnippets.map((snippet) => (
-            <SnippetNode key={snippet.id} snippet={snippet} depth={depth + 1} copy={copy} />
+            <SnippetNode
+              key={snippet.id}
+              snippet={snippet}
+              depth={depth + 1}
+              copy={copy}
+              onSelectSnippet={onSelectSnippet}
+            />
           ))}
         </div>
       )}
@@ -150,10 +159,12 @@ function SnippetNode({
   snippet,
   depth,
   copy,
+  onSelectSnippet,
 }: {
   snippet: SnippetRecord;
   depth: number;
   copy: Dictionary;
+  onSelectSnippet: (snippetId: string) => void;
 }) {
   const ext = LANGUAGES.find((l) => l.id === snippet.language)?.extension || "";
   const baseName = snippet.title || copy.snippetCard.untitled;
@@ -162,6 +173,7 @@ function SnippetNode({
   return (
     <button
       type="button"
+      onClick={() => onSelectSnippet(snippet.id)}
       className="group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] text-muted transition-colors hover:bg-white/[0.04] hover:text-foreground"
       // Align with folder text: skip chevron area (13px) + gap (6px)
       style={{ paddingLeft: `${10 + depth * STEP + 19}px` }}
@@ -178,7 +190,7 @@ function SnippetNode({
 
 const MOBILE_BP = 1024; // matches Tailwind `lg`
 
-export function Aside({ folders, snippets, copy }: AsideProps) {
+export function Aside({ folders, snippets, copy, onSelectSnippet }: AsideProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -310,10 +322,17 @@ export function Aside({ folders, snippets, copy }: AsideProps) {
                       snippets={snippets}
                       depth={0}
                       copy={copy}
+                      onSelectSnippet={onSelectSnippet}
                     />
                   ))}
                   {pinnedSnippets.map((snippet) => (
-                    <SnippetNode key={snippet.id} snippet={snippet} depth={0} copy={copy} />
+                    <SnippetNode
+                      key={snippet.id}
+                      snippet={snippet}
+                      depth={0}
+                      copy={copy}
+                      onSelectSnippet={onSelectSnippet}
+                    />
                   ))}
                   {unpinnedFolders.map((folder) => (
                     <FolderNode
@@ -323,10 +342,17 @@ export function Aside({ folders, snippets, copy }: AsideProps) {
                       snippets={snippets}
                       depth={0}
                       copy={copy}
+                      onSelectSnippet={onSelectSnippet}
                     />
                   ))}
                   {unpinnedSnippets.map((snippet) => (
-                    <SnippetNode key={snippet.id} snippet={snippet} depth={0} copy={copy} />
+                    <SnippetNode
+                      key={snippet.id}
+                      snippet={snippet}
+                      depth={0}
+                      copy={copy}
+                      onSelectSnippet={onSelectSnippet}
+                    />
                   ))}
                 </div>
               )}

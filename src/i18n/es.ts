@@ -76,4 +76,17 @@ export const es = {
     title: "Editados recientemente",
     empty: "Aun no tienes snippets. Crea tu primero arriba.",
   },
+  snippetEditor: {
+    back: "Volver",
+    titlePlaceholder: "Sin título",
+    syncEditing: "Cambiando...",
+    syncSaving: "Guardando...",
+    syncSavedLocal: "Guardado en local",
+    syncSavedCloud: "Guardado en la nube",
+    syncError: "Error al guardar",
+    syncIdle: "Sin cambios",
+    folderRoot: "Raiz",
+    copyCode: "Copiar código",
+    codeCopied: "¡Copiado!",
+  },
 } as const;
