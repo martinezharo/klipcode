@@ -341,7 +341,7 @@ export default function KodeBoardApp() {
   const folderOptions = buildFolderOptions(folders, copy.workspace.rootOption);
 
   return (
-    <div className="flex h-full min-h-screen">
+    <div className="flex h-screen overflow-hidden">
       <Aside folders={folders} snippets={snippets} copy={copy} />
 
       <div className="flex flex-1 flex-col overflow-hidden">

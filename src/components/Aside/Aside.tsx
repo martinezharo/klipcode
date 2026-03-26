@@ -23,15 +23,49 @@ interface AsideProps {
   copy: Dictionary;
 }
 
-function sortItems<T extends { isPinned: boolean; name?: string; title?: string }>(
-  items: T[]
+// Indent step per depth level in px
+const STEP = 14;
+
+function sortByPinThenAlpha<T extends { isPinned: boolean }>(
+  items: T[],
+  key: (item: T) => string
 ): T[] {
   return [...items].sort((a, b) => {
     if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
-    const nameA = ("name" in a ? a.name : (a as unknown as SnippetRecord).title) ?? "";
-    const nameB = ("name" in b ? b.name : (b as unknown as SnippetRecord).title) ?? "";
-    return nameA.localeCompare(nameB);
+    return key(a).localeCompare(key(b));
   });
+}
+
+// The action icons that appear on hover, to the LEFT of the pin icon
+function ItemActions({
+  showAdd,
+  onAdd,
+  onMore,
+}: {
+  showAdd?: boolean;
+  onAdd?: (e: React.MouseEvent) => void;
+  onMore?: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <span className="invisible flex shrink-0 items-center gap-px group-hover:visible">
+      {showAdd && (
+        <span
+          role="button"
+          className="rounded p-0.5 text-white/35 transition-colors hover:bg-white/[0.08] hover:text-white/70"
+          onClick={onAdd}
+        >
+          <Plus size={12} />
+        </span>
+      )}
+      <span
+        role="button"
+        className="rounded p-0.5 text-white/35 transition-colors hover:bg-white/[0.08] hover:text-white/70"
+        onClick={onMore}
+      >
+        <MoreHorizontal size={12} />
+      </span>
+    </span>
+  );
 }
 
 function FolderNode({
@@ -46,54 +80,48 @@ function FolderNode({
   depth: number;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
 
-  const childFolders = sortItems(
-    folders.filter((f) => f.parentId === folder.id)
+  const childFolders = sortByPinThenAlpha(
+    folders.filter((f) => f.parentId === folder.id),
+    (f) => f.name
   );
-  const childSnippets = sortItems(
-    snippets.filter((s) => s.folderId === folder.id)
+  const childSnippets = sortByPinThenAlpha(
+    snippets.filter((s) => s.folderId === folder.id),
+    (s) => s.title ?? ""
   );
+  const hasChildren = childFolders.length > 0 || childSnippets.length > 0;
 
   return (
     <div>
       <button
         type="button"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         onClick={() => setIsOpen(!isOpen)}
-        className="group flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-sm text-muted transition-colors hover:bg-white/[0.04] hover:text-foreground"
-        style={{ paddingLeft: `${8 + depth * 12}px` }}
+        className="group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] text-muted transition-colors hover:bg-white/[0.04] hover:text-foreground"
+        style={{ paddingLeft: `${10 + depth * STEP}px` }}
       >
         <ChevronRight
-          size={14}
-          className={`shrink-0 text-white/30 transition-transform ${isOpen ? "rotate-90" : ""}`}
+          size={13}
+          className={`shrink-0 text-white/25 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
         />
-        <Folder size={14} className="shrink-0 text-white/20" />
-        <span className="flex-1 truncate">{folder.name}</span>
-        {folder.isPinned ? (
-          <Pin size={10} className="shrink-0 text-white/25" />
-        ) : null}
-        {isHovered ? (
-          <span className="flex shrink-0 items-center gap-0.5">
-            <span
-              className="rounded p-0.5 transition-colors hover:bg-white/[0.08]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Plus size={12} className="text-white/40" />
-            </span>
-            <span
-              className="rounded p-0.5 transition-colors hover:bg-white/[0.08]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreHorizontal size={12} className="text-white/40" />
-            </span>
-          </span>
-        ) : null}
+        <Folder size={13} className="shrink-0 text-white/25" />
+        <span className="flex-1 truncate leading-none">{folder.name}</span>
+        <ItemActions
+          showAdd
+          onAdd={(e) => e.stopPropagation()}
+          onMore={(e) => e.stopPropagation()}
+        />
+        {folder.isPinned && (
+          <Pin size={10} className="shrink-0 text-white/30" />
+        )}
       </button>
 
-      {isOpen ? (
-        <div>
+      {isOpen && hasChildren && (
+        <div className="relative">
+          {/* Vertical guide line aligned to chevron center */}
+          <div
+            className="absolute top-0 bottom-1 w-px bg-white/[0.05]"
+            style={{ left: `${10 + depth * STEP + 6}px` }}
+          />
           {childFolders.map((child) => (
             <FolderNode
               key={child.id}
@@ -104,14 +132,10 @@ function FolderNode({
             />
           ))}
           {childSnippets.map((snippet) => (
-            <SnippetNode
-              key={snippet.id}
-              snippet={snippet}
-              depth={depth + 1}
-            />
+            <SnippetNode key={snippet.id} snippet={snippet} depth={depth + 1} />
           ))}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
@@ -123,118 +147,108 @@ function SnippetNode({
   snippet: SnippetRecord;
   depth: number;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
     <button
       type="button"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="group flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-sm text-muted transition-colors hover:bg-white/[0.04] hover:text-foreground"
-      style={{ paddingLeft: `${8 + depth * 12 + 18}px` }}
+      className="group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] text-muted transition-colors hover:bg-white/[0.04] hover:text-foreground"
+      // Align with folder text: skip chevron area (13px) + gap (6px)
+      style={{ paddingLeft: `${10 + depth * STEP + 19}px` }}
     >
-      <FileCode2 size={14} className="shrink-0 text-white/20" />
-      <span className="flex-1 truncate">{snippet.title || "Untitled"}</span>
-      {snippet.isPinned ? (
-        <Pin size={10} className="shrink-0 text-white/25" />
-      ) : null}
-      {isHovered ? (
-        <span
-          className="shrink-0 rounded p-0.5 transition-colors hover:bg-white/[0.08]"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <MoreHorizontal size={12} className="text-white/40" />
-        </span>
-      ) : null}
+      <FileCode2 size={13} className="shrink-0 text-white/20" />
+      <span className="flex-1 truncate leading-none">
+        {snippet.title || "Untitled"}
+      </span>
+      <ItemActions onMore={(e) => e.stopPropagation()} />
+      {snippet.isPinned && (
+        <Pin size={10} className="shrink-0 text-white/30" />
+      )}
     </button>
   );
 }
 
 export function Aside({ folders, snippets, copy }: AsideProps) {
-  // Root-level: pinned items first, then folders before snippets, alphabetical within same tier
   const rootFolders = folders.filter((f) => f.parentId === null);
   const rootSnippets = snippets.filter((s) => s.folderId === null);
 
-  // Combine pinned items first (sorted alpha), then unpinned folders (alpha), then unpinned snippets (alpha)
-  const pinnedFolders = rootFolders.filter((f) => f.isPinned).sort((a, b) => a.name.localeCompare(b.name));
-  const pinnedSnippets = rootSnippets.filter((s) => s.isPinned).sort((a, b) => (a.title ?? "").localeCompare(b.title ?? ""));
-  const unpinnedFolders = rootFolders.filter((f) => !f.isPinned).sort((a, b) => a.name.localeCompare(b.name));
-  const unpinnedSnippets = rootSnippets.filter((s) => !s.isPinned).sort((a, b) => (a.title ?? "").localeCompare(b.title ?? ""));
+  // Order: pinned snippets → pinned folders → unpinned folders → unpinned snippets
+  const pinnedSnippets  = sortByPinThenAlpha(rootSnippets.filter((s) => s.isPinned),  (s) => s.title ?? "");
+  const pinnedFolders   = sortByPinThenAlpha(rootFolders.filter((f) => f.isPinned),   (f) => f.name);
+  const unpinnedFolders = sortByPinThenAlpha(rootFolders.filter((f) => !f.isPinned),  (f) => f.name);
+  const unpinnedSnippets = sortByPinThenAlpha(rootSnippets.filter((s) => !s.isPinned), (s) => s.title ?? "");
 
-  const isEmpty =
-    rootFolders.length === 0 && rootSnippets.length === 0;
+  const isEmpty = rootFolders.length === 0 && rootSnippets.length === 0;
 
   return (
-    <aside className="flex h-full w-[260px] shrink-0 flex-col border-r border-white/[0.06] bg-background">
-      {/* Header: Logo + Collapse */}
-      <div className="flex items-center justify-between px-4 py-3">
+    <aside className="flex h-screen w-[240px] shrink-0 flex-col border-r border-white/[0.06] bg-background">
+      {/* ── Logo + Collapse ─────────────────────── */}
+      <div className="flex items-center justify-between px-4 py-4">
         <div className="flex items-center gap-2">
-          <Logo className="h-6 w-6 text-foreground" />
-          <span className="text-sm font-semibold text-foreground tracking-tight">
+          <Logo className="h-5 w-5 text-foreground" />
+          <span className="text-[13px] font-semibold tracking-tight text-foreground">
             KodeBoard
           </span>
         </div>
         <button
           type="button"
-          className="rounded-md p-1 text-muted transition-colors hover:bg-white/[0.06] hover:text-foreground"
           title={copy.aside.collapse}
+          className="rounded-md p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
         >
-          <ChevronsLeft size={16} />
+          <ChevronsLeft size={15} />
         </button>
       </div>
 
-      {/* Home */}
-      <div className="px-2 pb-1">
+      {/* ── Home ────────────────────────────────── */}
+      <div className="px-2">
         <button
           type="button"
-          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted transition-colors hover:bg-white/[0.04] hover:text-foreground"
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-white/[0.04] hover:text-foreground"
         >
-          <Home size={15} />
+          <Home size={14} className="shrink-0" />
           <span>{copy.aside.home}</span>
         </button>
       </div>
 
-      <div className="mx-3 my-1 border-t border-white/[0.06]" />
+      <div className="mx-4 my-3 border-t border-white/[0.05]" />
 
-      {/* My Space */}
-      <div className="flex flex-1 flex-col overflow-hidden px-2 pt-1">
-        <div className="mb-1 flex items-center justify-between px-2">
+      {/* ── My Space ────────────────────────────── */}
+      <div className="flex flex-1 flex-col overflow-hidden px-2">
+        {/* Section header */}
+        <div className="mb-2 flex items-center justify-between px-2">
           <div className="flex items-center gap-1.5">
-            <Layers size={13} className="text-white/30" />
-            <span className="text-xs font-medium text-white/40 uppercase tracking-wider">
+            <Layers size={12} className="text-white/25" />
+            <span className="text-[11px] font-medium uppercase tracking-wider text-white/35">
               {copy.aside.mySpace}
             </span>
           </div>
           <div className="flex items-center gap-0.5">
             <button
               type="button"
-              className="rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
               title={copy.aside.addSnippet}
+              className="rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
             >
               <Plus size={13} />
             </button>
             <button
               type="button"
-              className="rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
               title={copy.aside.addFolder}
+              className="rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
             >
               <FolderPlus size={13} />
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto pb-3">
+        {/* Tree */}
+        <div className="flex-1 overflow-y-auto pb-4">
           {isEmpty ? (
-            <p className="px-2 pt-2 text-xs text-white/25">
+            <p className="px-3 pt-1 text-xs text-white/20">
               {copy.aside.emptySpace}
             </p>
           ) : (
-            <div className="flex flex-col gap-px">
-              {/* Pinned snippets first */}
+            <div>
               {pinnedSnippets.map((snippet) => (
                 <SnippetNode key={snippet.id} snippet={snippet} depth={0} />
               ))}
-              {/* Pinned folders */}
               {pinnedFolders.map((folder) => (
                 <FolderNode
                   key={folder.id}
@@ -244,7 +258,6 @@ export function Aside({ folders, snippets, copy }: AsideProps) {
                   depth={0}
                 />
               ))}
-              {/* Unpinned folders */}
               {unpinnedFolders.map((folder) => (
                 <FolderNode
                   key={folder.id}
@@ -254,7 +267,6 @@ export function Aside({ folders, snippets, copy }: AsideProps) {
                   depth={0}
                 />
               ))}
-              {/* Unpinned snippets */}
               {unpinnedSnippets.map((snippet) => (
                 <SnippetNode key={snippet.id} snippet={snippet} depth={0} />
               ))}
