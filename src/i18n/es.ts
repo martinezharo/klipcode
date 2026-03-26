@@ -1,13 +1,13 @@
 export const es = {
   app: {
     title: "KodeBoard",
-    subtitle: "Prueba funcional offline-first para carpetas, snippets y sincronizacion.",
+    subtitle: "Gestor de snippets multidispositivo.",
   },
   auth: {
     statusLabel: "Estado de sesion",
     signedIn: "Sesion iniciada",
     signedOut: "Sin sesion",
-    signIn: "Iniciar sesion con GitHub",
+    signIn: "Iniciar Sesion",
     signOut: "Cerrar sesion",
     localMode: "Modo local activo. Los cambios se guardan en IndexedDB.",
     notConfigured:
@@ -25,11 +25,13 @@ export const es = {
     folderParent: "Carpeta padre",
     folderPinned: "Fijada",
     snippetTitle: "Nuevo snippet",
+    snippetTitlePlaceholder: "Titulo del snippet",
     snippetName: "Titulo",
     snippetLanguage: "Lenguaje",
     snippetFolder: "Carpeta",
     snippetPinned: "Fijado",
     snippetCode: "Codigo",
+    snippetCodePlaceholder: "Escribe o pega tu codigo aqui...",
     submitFolder: "Crear carpeta",
     submitSnippet: "Crear snippet",
   },
@@ -50,6 +52,7 @@ export const es = {
     folder: "Carpeta",
     code: "Codigo",
     status: "Estado",
+    untitled: "Sin titulo",
   },
   sync: {
     editing: "Cambiando...",
@@ -58,5 +61,18 @@ export const es = {
     savedCloud: "Guardado en la nube",
     error: "Error de sincronizacion",
     idle: "Sin cambios pendientes",
+  },
+  aside: {
+    collapse: "Colapsar panel",
+    home: "Inicio",
+    mySpace: "Mi Espacio",
+    addSnippet: "Nuevo snippet",
+    addFolder: "Nueva carpeta",
+    emptySpace: "No hay archivos todavia.",
+    root: "Raiz",
+  },
+  recentSnippets: {
+    title: "Editados recientemente",
+    empty: "Aun no tienes snippets. Crea tu primero arriba.",
   },
 } as const;
