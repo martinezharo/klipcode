@@ -47,6 +47,10 @@ body {
   background: #555;
 }
 
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* CodeMirror overrides */
 .cm-editor {
   background: transparent !important;
@@ -64,5 +68,5 @@ body {
 
 .cm-editor .cm-gutters {
   background: transparent !important;
-  border-right: 1px solid var(--border) !important;
+  border-right: none !important;
 }
