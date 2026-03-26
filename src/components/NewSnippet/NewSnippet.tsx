@@ -2,11 +2,8 @@
 
 import { type FormEvent, useState } from "react";
 import { Plus } from "lucide-react";
-import CodeMirror from "@uiw/react-codemirror";
-import { javascript } from "@codemirror/lang-javascript";
-import { html } from "@codemirror/lang-html";
-import { python } from "@codemirror/lang-python";
-import { vscodeDark } from "@uiw/codemirror-theme-vscode";
+import { Editor } from "@/components/Editor/Editor";
+import { LANGUAGES, DEFAULT_LANGUAGE, type LanguageId } from "@/lib/constants/languages";
 import type { Dictionary } from "@/i18n";
 
 interface FolderOption {
@@ -25,52 +22,9 @@ interface NewSnippetProps {
   }) => void;
 }
 
-const LANGUAGES = [
-  "javascript",
-  "typescript",
-  "html",
-  "css",
-  "python",
-  "json",
-  "markdown",
-  "sql",
-  "bash",
-  "go",
-  "rust",
-  "java",
-  "c",
-  "cpp",
-  "csharp",
-  "php",
-  "ruby",
-  "swift",
-  "kotlin",
-  "yaml",
-  "xml",
-  "plaintext",
-];
-
-function getLanguageExtension(language: string) {
-  switch (language) {
-    case "javascript":
-    case "json":
-      return javascript();
-    case "typescript":
-      return javascript({ typescript: true });
-    case "html":
-    case "xml":
-    case "markdown":
-      return html();
-    case "python":
-      return python();
-    default:
-      return javascript();
-  }
-}
-
 export function NewSnippet({ copy, folderOptions, onCreateSnippet }: NewSnippetProps) {
   const [title, setTitle] = useState("");
-  const [language, setLanguage] = useState("javascript");
+  const [language, setLanguage] = useState<LanguageId>(DEFAULT_LANGUAGE);
   const [folderId, setFolderId] = useState("");
   const [code, setCode] = useState("");
 
@@ -107,12 +61,12 @@ export function NewSnippet({ copy, folderOptions, onCreateSnippet }: NewSnippetP
           <div className="flex items-center gap-3">
             <select
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              onChange={(e) => setLanguage(e.target.value as LanguageId)}
               className="rounded-md border border-white/[0.08] bg-background px-2.5 py-1.5 text-xs text-muted outline-none transition-colors hover:border-white/15 hover:text-foreground"
             >
               {LANGUAGES.map((lang) => (
-                <option key={lang} value={lang}>
-                  {lang}
+                <option key={lang.id} value={lang.id}>
+                  {lang.label}
                 </option>
               ))}
             </select>
@@ -130,27 +84,15 @@ export function NewSnippet({ copy, folderOptions, onCreateSnippet }: NewSnippetP
           </div>
         </div>
 
-        {/* CodeMirror editor */}
+        {/* Editor */}
         <div className="min-h-[200px]">
-          <CodeMirror
+          <Editor
             value={code}
             onChange={setCode}
-            theme={vscodeDark}
-            extensions={[getLanguageExtension(language)]}
+            language={language}
             placeholder={copy.forms.snippetCodePlaceholder}
-            basicSetup={{
-              lineNumbers: true,
-              highlightActiveLineGutter: true,
-              highlightActiveLine: true,
-              bracketMatching: true,
-              closeBrackets: true,
-              autocompletion: false,
-              foldGutter: true,
-              indentOnInput: true,
-              tabSize: 2,
-            }}
             height="200px"
-            style={{ fontSize: "13px" }}
+            fontSize={13}
           />
         </div>
 

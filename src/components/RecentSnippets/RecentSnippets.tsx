@@ -1,11 +1,7 @@
 "use client";
 
 import { Clock } from "lucide-react";
-import CodeMirror from "@uiw/react-codemirror";
-import { javascript } from "@codemirror/lang-javascript";
-import { html } from "@codemirror/lang-html";
-import { python } from "@codemirror/lang-python";
-import { vscodeDark } from "@uiw/codemirror-theme-vscode";
+import { Editor } from "@/components/Editor/Editor";
 import type { SnippetRecord, FolderRecord } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 
@@ -13,24 +9,6 @@ interface RecentSnippetsProps {
   snippets: SnippetRecord[];
   folders: FolderRecord[];
   copy: Dictionary;
-}
-
-function getLanguageExtension(language: string) {
-  switch (language) {
-    case "javascript":
-    case "json":
-      return javascript();
-    case "typescript":
-      return javascript({ typescript: true });
-    case "html":
-    case "xml":
-    case "markdown":
-      return html();
-    case "python":
-      return python();
-    default:
-      return javascript();
-  }
 }
 
 function getFolderName(folderId: string | null, folders: FolderRecord[]): string | null {
@@ -72,30 +50,12 @@ function SnippetPreviewCard({
       {/* Code preview */}
       <div className="overflow-hidden px-1 pb-1">
         <div className="max-h-[140px] overflow-hidden rounded-lg">
-          <CodeMirror
+          <Editor
             value={snippet.code}
-            theme={vscodeDark}
-            extensions={[getLanguageExtension(snippet.language)]}
-            editable={false}
+            language={snippet.language}
             readOnly
-            basicSetup={{
-              lineNumbers: true,
-              highlightActiveLine: false,
-              highlightActiveLineGutter: false,
-              foldGutter: false,
-              dropCursor: false,
-              allowMultipleSelections: false,
-              indentOnInput: false,
-              bracketMatching: false,
-              closeBrackets: false,
-              autocompletion: false,
-              rectangularSelection: false,
-              crosshairCursor: false,
-              highlightSelectionMatches: false,
-              searchKeymap: false,
-            }}
             height="140px"
-            style={{ fontSize: "12px", pointerEvents: "none" }}
+            fontSize={12}
           />
         </div>
       </div>
