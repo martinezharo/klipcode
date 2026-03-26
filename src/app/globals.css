@@ -71,6 +71,19 @@ body {
   border-right: none !important;
 }
 
+.cm-editor .cm-lineNumbers .cm-gutterElement {
+  color: rgba(237, 237, 237, 0.22) !important;
+}
+
+.cm-editor .cm-lineNumbers .cm-activeLineGutter {
+  color: rgba(237, 237, 237, 0.45) !important;
+  background: transparent !important;
+}
+
+.cm-editor .cm-gutters:hover .cm-lineNumbers .cm-gutterElement {
+  color: rgba(237, 237, 237, 0.32) !important;
+}
+
 /* VS Code Style Fold Gutters */
 .cm-editor .cm-foldGutter {
   width: 16px;
