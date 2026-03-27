@@ -99,7 +99,7 @@ function sortByPinThenAlpha<T extends { isPinnedAside: boolean }>(
 /* ─────────────────────────── NewFolderInput ─────────────────────────────── */
 
 function NewFolderInput({ depth, parentId }: { depth: number; parentId: string | null }) {
-  const { cancelCreateFolder, submitCreateFolder } = useContext(AsideCtx);
+  const { cancelCreateFolder, submitCreateFolder, copy } = useContext(AsideCtx);
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -131,7 +131,7 @@ function NewFolderInput({ depth, parentId }: { depth: number; parentId: string |
           if (e.key === "Enter") commit();
           if (e.key === "Escape") cancelCreateFolder();
         }}
-        placeholder="Nombre…"
+        placeholder={copy.forms.folderName}
         className="min-w-0 flex-1 rounded bg-white/[0.07] px-2 py-0.5 text-[13px] text-foreground placeholder:text-white/20 outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
       />
     </div>
@@ -640,7 +640,7 @@ export function Aside({
             <div className="flex items-center gap-2">
               <Logo className="h-5 w-5 text-foreground" />
               <span className="text-[13px] font-semibold tracking-tight text-foreground">
-                KlipCode
+                {copy.app.title}
               </span>
             </div>
             <button
