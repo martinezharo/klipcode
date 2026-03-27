@@ -5,7 +5,7 @@ let browserClient: SupabaseClient | null | undefined;
 export function isSupabaseConfigured() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY
   );
 }
 
@@ -17,7 +17,7 @@ export function getSupabaseBrowserClient() {
   if (browserClient === undefined) {
     browserClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
       {
         auth: {
           autoRefreshToken: true,
