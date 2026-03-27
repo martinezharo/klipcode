@@ -73,7 +73,7 @@ export const es = {
     root: "Raiz",
   },
   pinnedToHome: {
-    title: "Fijados en inicio",
+    title: "Fijados",
   },
   recentSnippets: {
     title: "Editados recientemente",
