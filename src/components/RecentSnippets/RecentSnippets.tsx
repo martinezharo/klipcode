@@ -90,11 +90,11 @@ function SnippetPreviewCard({
 
       {/* Code preview */}
       <div className="relative overflow-hidden px-1 pb-1">
-        <div className="max-h-[140px] overflow-hidden rounded-lg border border-white/[0.04] bg-[#0b0b0b] px-3 py-2 font-mono text-[12px] leading-5 text-white/70">
-          <div className="pointer-events-none select-none text-white/20">
+        <div className="max-h-[140px] overflow-hidden rounded-lg border border-white/[0.04] bg-[#0b0b0b] px-3 py-2 font-mono text-[12px] leading-5 text-white/90">
+          <div className="pointer-events-none select-none text-white/40">
             {previewLines.map((line, index) => (
               <div key={`${snippet.id}-${index}`} className="flex gap-3">
-                <span className="w-5 shrink-0 text-right tabular-nums text-white/18">
+                <span className="w-5 shrink-0 text-right tabular-nums text-white/25">
                   {index + 1}
                 </span>
                 <span className="min-w-0 flex-1 truncate whitespace-pre">{line || " "}</span>
