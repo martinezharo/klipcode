@@ -121,16 +121,20 @@ interface SnippetScrollRowProps {
 
 function SnippetScrollRow({ snippets, folders, copy, onSelectSnippet }: SnippetScrollRowProps) {
   return (
-    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
-      {snippets.map((snippet) => (
-        <SnippetPreviewCard
-          key={snippet.id}
-          snippet={snippet}
-          folderName={getFolderName(snippet.folderId, folders)}
-          copy={copy}
-          onSelect={() => onSelectSnippet(snippet.id)}
-        />
-      ))}
+    <div className="relative">
+      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10 pr-20">
+        {snippets.map((snippet) => (
+          <SnippetPreviewCard
+            key={snippet.id}
+            snippet={snippet}
+            folderName={getFolderName(snippet.folderId, folders)}
+            copy={copy}
+            onSelect={() => onSelectSnippet(snippet.id)}
+          />
+        ))}
+      </div>
+      {/* Right fade overlay */}
+      <div className="pointer-events-none absolute top-0 right-0 bottom-2 w-20 bg-gradient-to-l from-background to-transparent z-10" />
     </div>
   );
 }
