@@ -18,7 +18,7 @@ import { getDictionary } from "@/i18n";
 import { Header } from "@/components/Header/Header";
 import { Aside } from "@/components/Aside/Aside";
 import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
-import { RecentSnippets, PinnedToHome } from "@/components/RecentSnippets/RecentSnippets";
+import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
 import { SnippetEditor } from "@/components/SnippetEditor/SnippetEditor";
 
 export default function KodeBoardApp() {
@@ -520,14 +520,7 @@ export default function KodeBoardApp() {
                 onCreateSnippet={handleCreateSnippet}
               />
 
-              <PinnedToHome
-                snippets={snippets}
-                folders={folders}
-                copy={copy}
-                onSelectSnippet={setSelectedSnippetId}
-              />
-
-              <RecentSnippets
+              <SnippetCards
                 snippets={snippets}
                 folders={folders}
                 copy={copy}
