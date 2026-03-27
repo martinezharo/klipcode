@@ -16,6 +16,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "KodeBoard",
   description: "Gestor offline-first de snippets con sincronizacion en Supabase.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
