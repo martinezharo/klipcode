@@ -389,6 +389,7 @@ export default function KodeBoardApp() {
         snippets={snippets}
         copy={copy}
         onSelectSnippet={setSelectedSnippetId}
+        onGoHome={() => setSelectedSnippetId(null)}
       />
 
       <div className="flex flex-1 flex-col overflow-hidden">

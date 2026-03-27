@@ -24,6 +24,7 @@ interface AsideProps {
   snippets: SnippetRecord[];
   copy: Dictionary;
   onSelectSnippet: (snippetId: string) => void;
+  onGoHome: () => void;
 }
 
 // Indent step per depth level in px
@@ -190,7 +191,7 @@ function SnippetNode({
 
 const MOBILE_BP = 1024; // matches Tailwind `lg`
 
-export function Aside({ folders, snippets, copy, onSelectSnippet }: AsideProps) {
+export function Aside({ folders, snippets, copy, onSelectSnippet, onGoHome }: AsideProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -269,6 +270,7 @@ export function Aside({ folders, snippets, copy, onSelectSnippet }: AsideProps) 
           <div className="px-2">
             <button
               type="button"
+              onClick={onGoHome}
               className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-white/[0.04] hover:text-foreground"
             >
               <Home size={14} className="shrink-0" />

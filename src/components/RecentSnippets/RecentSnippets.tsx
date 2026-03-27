@@ -2,7 +2,6 @@
 
 import { Clock, Folder, Copy, Check } from "lucide-react";
 import { useState } from "react";
-import { Editor } from "@/components/Editor/Editor";
 import type { SnippetRecord, FolderRecord } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 import { LANGUAGES } from "@/lib/constants/languages";
@@ -17,6 +16,16 @@ interface RecentSnippetsProps {
 function getFolderName(folderId: string | null, folders: FolderRecord[]): string | null {
   if (!folderId) return null;
   return folders.find((f) => f.id === folderId)?.name ?? null;
+}
+
+function buildPreviewLines(code: string) {
+  const lines = code.split("\n").slice(0, 8);
+
+  if (lines.length === 0) {
+    return [""];
+  }
+
+  return lines.map((line) => (line.length > 92 ? `${line.slice(0, 92)}…` : line));
 }
 
 function SnippetPreviewCard({
@@ -43,12 +52,14 @@ function SnippetPreviewCard({
   const ext = LANGUAGES.find((l) => l.id === snippet.language)?.extension || "";
   const baseName = snippet.title || copy.snippetCard.untitled;
   const displayName = baseName.endsWith(ext) ? baseName : `${baseName}${ext}`;
+  const previewLines = buildPreviewLines(snippet.code);
 
   return (
     <article
       onClick={onSelect}
       className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-surface transition-colors hover:border-white/[0.12] hover:bg-surface-hover"
-    >      {/* Card header */}
+    >
+      {/* Card header */}
       <div className="flex items-center justify-between gap-3 px-4 pt-3.5 pb-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 min-w-0">
@@ -78,14 +89,17 @@ function SnippetPreviewCard({
 
       {/* Code preview */}
       <div className="relative overflow-hidden px-1 pb-1">
-        <div className="max-h-[140px] overflow-hidden rounded-lg [&_.cm-scroller]:!overflow-hidden">
-          <Editor
-            value={snippet.code}
-            language={snippet.language}
-            readOnly
-            height="140px"
-            fontSize={12}
-          />
+        <div className="max-h-[140px] overflow-hidden rounded-lg border border-white/[0.04] bg-[#0b0b0b] px-3 py-2 font-mono text-[12px] leading-5 text-white/70">
+          <div className="pointer-events-none select-none text-white/20">
+            {previewLines.map((line, index) => (
+              <div key={`${snippet.id}-${index}`} className="flex gap-3">
+                <span className="w-5 shrink-0 text-right tabular-nums text-white/18">
+                  {index + 1}
+                </span>
+                <span className="min-w-0 flex-1 truncate whitespace-pre">{line || " "}</span>
+              </div>
+            ))}
+          </div>
         </div>
         <div className="pointer-events-none absolute bottom-1 left-1 right-1 h-12 bg-gradient-to-t from-surface group-hover:from-surface-hover to-transparent rounded-b-lg" />
       </div>
