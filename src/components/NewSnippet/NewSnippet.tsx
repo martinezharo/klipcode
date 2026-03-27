@@ -1,19 +1,18 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
-import { ChevronDown, FileCode2, Folder, Plus } from "lucide-react";
+import { type FormEvent, useEffect, useState } from "react";
+import { Plus } from "lucide-react";
 import { Editor } from "@/components/Editor/Editor";
-import { LANGUAGES, DEFAULT_LANGUAGE, type LanguageId } from "@/lib/constants/languages";
+import { LanguageSelect } from "@/ui/LanguageSelect";
+import { FolderSelect } from "@/ui/FolderSelect";
+import { DEFAULT_LANGUAGE, type LanguageId } from "@/lib/constants/languages";
+import type { FolderRecord } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
-
-interface FolderOption {
-  value: string;
-  label: string;
-}
 
 interface NewSnippetProps {
   copy: Dictionary;
-  folderOptions: FolderOption[];
+  folders: FolderRecord[];
+  defaultFolderId?: string | null;
   onCreateSnippet: (data: {
     title: string;
     language: string;
@@ -22,15 +21,21 @@ interface NewSnippetProps {
   }) => void;
 }
 
-export function NewSnippet({ copy, folderOptions, onCreateSnippet }: NewSnippetProps) {
+export function NewSnippet({ copy, folders, defaultFolderId, onCreateSnippet }: NewSnippetProps) {
   const [title, setTitle] = useState("");
   const [language, setLanguage] = useState<LanguageId>(DEFAULT_LANGUAGE);
-  const [folderId, setFolderId] = useState("");
+  const [folderId, setFolderId] = useState(defaultFolderId ?? "");
   const [code, setCode] = useState("");
+
+  /* Sync pre-selected folder from aside context menu */
+  useEffect(() => {
+    if (defaultFolderId !== undefined && defaultFolderId !== null) {
+      setFolderId(defaultFolderId);
+    }
+  }, [defaultFolderId]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     if (!code.trim()) return;
 
     onCreateSnippet({
@@ -41,8 +46,8 @@ export function NewSnippet({ copy, folderOptions, onCreateSnippet }: NewSnippetP
     });
 
     setTitle("");
-    setLanguage("javascript");
-    setFolderId("");
+    setLanguage(DEFAULT_LANGUAGE);
+    setFolderId(defaultFolderId ?? "");
     setCode("");
   }
 
@@ -58,22 +63,11 @@ export function NewSnippet({ copy, folderOptions, onCreateSnippet }: NewSnippetP
             placeholder={copy.forms.snippetTitlePlaceholder}
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-white/30 outline-none"
           />
-          {/* Language selector */}
-          <div className="relative flex items-center">
-            <FileCode2 size={13} className="pointer-events-none absolute left-2.5 text-white/30" />
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value as LanguageId)}
-              className="appearance-none rounded-md border border-white/[0.08] bg-background pl-[26px] pr-6 py-1.5 text-xs text-muted outline-none transition-colors hover:border-white/15 hover:text-foreground cursor-pointer"
-            >
-              {LANGUAGES.map((lang) => (
-                <option key={lang.id} value={lang.id}>
-                  {lang.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={11} className="pointer-events-none absolute right-2 text-white/30" />
-          </div>
+          <LanguageSelect
+            value={language}
+            onChange={setLanguage}
+            copy={copy.languageSelect}
+          />
         </div>
 
         {/* Editor */}
@@ -90,22 +84,13 @@ export function NewSnippet({ copy, folderOptions, onCreateSnippet }: NewSnippetP
 
         {/* Footer: folder selector + create button */}
         <div className="flex items-center justify-between border-t border-white/[0.06] px-4 py-2.5">
-          {/* Folder selector */}
-          <div className="relative flex items-center">
-            <Folder size={13} className="pointer-events-none absolute left-2.5 text-white/30" />
-            <select
-              value={folderId}
-              onChange={(e) => setFolderId(e.target.value)}
-              className="appearance-none rounded-md border border-white/[0.08] bg-background pl-[26px] pr-6 py-1.5 text-xs text-muted outline-none transition-colors hover:border-white/15 hover:text-foreground cursor-pointer"
-            >
-              {folderOptions.map((option) => (
-                <option key={option.label} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={11} className="pointer-events-none absolute right-2 text-white/30" />
-          </div>
+          <FolderSelect
+            value={folderId}
+            onChange={setFolderId}
+            folders={folders}
+            rootLabel={copy.workspace.rootOption}
+            copy={copy.folderSelect}
+          />
 
           <button
             type="submit"

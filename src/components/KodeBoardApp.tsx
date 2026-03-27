@@ -12,7 +12,7 @@ import {
 import { db, getDirtyWorkspace, readWorkspace } from "@/lib/db";
 import { fetchCloudWorkspace, reconcileWorkspace, syncDirtyWorkspace } from "@/lib/sync";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
-import type { FolderRecord, SyncStatus } from "@/lib/types";
+import type { ClipboardEntry, FolderRecord, SyncStatus } from "@/lib/types";
 import { getDictionary } from "@/i18n";
 
 import { Header } from "@/components/Header/Header";
@@ -20,29 +20,6 @@ import { Aside } from "@/components/Aside/Aside";
 import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
 import { RecentSnippets, PinnedToHome } from "@/components/RecentSnippets/RecentSnippets";
 import { SnippetEditor } from "@/components/SnippetEditor/SnippetEditor";
-
-interface FolderOption {
-  value: string;
-  label: string;
-}
-
-function buildFolderOptions(
-  folders: FolderRecord[],
-  rootLabel: string,
-  parentId: string | null = null,
-  prefix = ""
-): FolderOption[] {
-  const currentFolders = folders.filter((folder) => folder.parentId === parentId);
-  const options = parentId === null ? [{ value: "", label: rootLabel }] : [];
-
-  for (const folder of currentFolders) {
-    const currentLabel = prefix ? `${prefix} / ${folder.name}` : folder.name;
-    options.push({ value: folder.id, label: currentLabel });
-    options.push(...buildFolderOptions(folders, rootLabel, folder.id, currentLabel));
-  }
-
-  return options;
-}
 
 export default function KodeBoardApp() {
   const copy = getDictionary();
@@ -56,6 +33,8 @@ export default function KodeBoardApp() {
   );
   const [snippetStatuses, setSnippetStatuses] = useState<Record<string, SyncStatus>>({});
   const [selectedSnippetId, setSelectedSnippetId] = useState<string | null>(null);
+  const [clipboard, setClipboard] = useState<ClipboardEntry | null>(null);
+  const [defaultNewSnippetFolderId, setDefaultNewSnippetFolderId] = useState<string | null>(null);
   const localStatusTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const updateTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const cloudSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -375,9 +354,113 @@ export default function KodeBoardApp() {
     updateTimersRef.current.set(snippetId, timer);
   }
 
+  /* ── Workspace mutation handlers ──────────────────────────────────────── */
+
+  async function handleCreateFolder(parentId: string | null, name: string) {
+    const id = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    await db.folders.put({
+      id,
+      ownerId: user?.id ?? null,
+      name,
+      parentId,
+      isPinnedAside: false,
+      isPinnedHome: false,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      dirty: true,
+      lastSyncedAt: null,
+    });
+    refreshWorkspace();
+    if (user && supabaseConfigured) scheduleCloudSync();
+  }
+
+  async function handleDeleteFolder(id: string) {
+    const allFolders = await db.folders.toArray();
+    const toDelete = new Set<string>([id]);
+    const queue = [id];
+    while (queue.length > 0) {
+      const cur = queue.shift()!;
+      for (const f of allFolders) {
+        if (f.parentId === cur && !toDelete.has(f.id)) {
+          toDelete.add(f.id);
+          queue.push(f.id);
+        }
+      }
+    }
+    await Promise.all([...toDelete].map((fid) => db.folders.delete(fid)));
+    const allSnippets = await db.snippets.toArray();
+    const snippetIdsToDelete = allSnippets
+      .filter((s) => s.folderId && toDelete.has(s.folderId))
+      .map((s) => s.id);
+    await Promise.all(snippetIdsToDelete.map((sid) => db.snippets.delete(sid)));
+    if (selectedSnippetId && snippetIdsToDelete.includes(selectedSnippetId)) {
+      setSelectedSnippetId(null);
+    }
+    refreshWorkspace();
+  }
+
+  async function handleDeleteSnippet(id: string) {
+    await db.snippets.delete(id);
+    if (selectedSnippetId === id) setSelectedSnippetId(null);
+    refreshWorkspace();
+  }
+
+  async function handleRenameFolder(id: string, name: string) {
+    await db.folders.update(id, { name, updatedAt: new Date().toISOString(), dirty: true });
+    refreshWorkspace();
+    if (user && supabaseConfigured) scheduleCloudSync();
+  }
+
+  async function handleRenameSnippet(id: string, title: string) {
+    await db.snippets.update(id, { title, updatedAt: new Date().toISOString(), dirty: true });
+    refreshWorkspace();
+    if (user && supabaseConfigured) scheduleCloudSync();
+  }
+
+  async function handlePinFolder(id: string, target: "aside" | "home", pinned: boolean) {
+    const field = target === "aside" ? "isPinnedAside" : "isPinnedHome";
+    await db.folders.update(id, { [field]: pinned, updatedAt: new Date().toISOString(), dirty: true });
+    refreshWorkspace();
+    if (user && supabaseConfigured) scheduleCloudSync();
+  }
+
+  async function handlePinSnippet(id: string, target: "aside" | "home", pinned: boolean) {
+    const field = target === "aside" ? "isPinnedAside" : "isPinnedHome";
+    await db.snippets.update(id, { [field]: pinned, updatedAt: new Date().toISOString(), dirty: true });
+    refreshWorkspace();
+    if (user && supabaseConfigured) scheduleCloudSync();
+  }
+
+  async function handlePaste(targetFolderId: string | null) {
+    if (!clipboard) return;
+    const timestamp = new Date().toISOString();
+    if (clipboard.itemType === "snippet") {
+      const snippet = await db.snippets.get(clipboard.id);
+      if (!snippet) return;
+      if (clipboard.type === "cut") {
+        await db.snippets.update(clipboard.id, { folderId: targetFolderId, updatedAt: timestamp, dirty: true });
+        setClipboard(null);
+      } else {
+        await db.snippets.put({ ...snippet, id: crypto.randomUUID(), folderId: targetFolderId, createdAt: timestamp, updatedAt: timestamp, dirty: true, lastSyncedAt: null });
+      }
+    } else {
+      if (clipboard.type === "cut") {
+        await db.folders.update(clipboard.id, { parentId: targetFolderId, updatedAt: timestamp, dirty: true });
+        setClipboard(null);
+      }
+    }
+    refreshWorkspace();
+    if (user && supabaseConfigured) scheduleCloudSync();
+  }
+
+  function handleNewSnippetAt(folderId: string | null) {
+    setSelectedSnippetId(null);
+    setDefaultNewSnippetFolderId(folderId);
+  }
+
   const folders = workspaceQuery.data?.folders ?? [];
   const snippets = workspaceQuery.data?.snippets ?? [];
-  const folderOptions = buildFolderOptions(folders, copy.workspace.rootOption);
 
   const selectedSnippet = selectedSnippetId
     ? (snippets.find((s) => s.id === selectedSnippetId) ?? null)
@@ -389,8 +472,20 @@ export default function KodeBoardApp() {
         folders={folders}
         snippets={snippets}
         copy={copy}
+        clipboard={clipboard}
         onSelectSnippet={setSelectedSnippetId}
         onGoHome={() => setSelectedSnippetId(null)}
+        onNewSnippetAt={handleNewSnippetAt}
+        onCreateFolder={handleCreateFolder}
+        onDeleteFolder={handleDeleteFolder}
+        onDeleteSnippet={handleDeleteSnippet}
+        onRenameFolder={handleRenameFolder}
+        onRenameSnippet={handleRenameSnippet}
+        onPinFolder={handlePinFolder}
+        onPinSnippet={handlePinSnippet}
+        onCut={setClipboard}
+        onCopy={(entry) => setClipboard({ ...entry, type: "copy" })}
+        onPaste={handlePaste}
       />
 
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -420,7 +515,8 @@ export default function KodeBoardApp() {
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8">
               <NewSnippet
                 copy={copy}
-                folderOptions={folderOptions}
+                folders={folders}
+                defaultFolderId={defaultNewSnippetFolderId}
                 onCreateSnippet={handleCreateSnippet}
               />
 

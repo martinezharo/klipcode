@@ -58,6 +58,23 @@ body {
   font-variant-ligatures: common-ligatures;
 }
 
+/* ─── KodeBoard UI Animations ─────────────────────────────────────────────── */
+@keyframes kodeboard-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.kodeboard-menu-animate {
+  animation: kodeboard-menu-in 0.1s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: var(--kb-origin, top left);
+}
+
 .cm-editor .cm-scroller {
   font-family: inherit !important;
 }

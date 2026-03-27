@@ -67,3 +67,9 @@ export interface CloudSnippetRow {
   created_at: string;
   updated_at: string;
 }
+
+export interface ClipboardEntry {
+  type: "cut" | "copy";
+  itemType: "folder" | "snippet";
+  id: string;
+}
