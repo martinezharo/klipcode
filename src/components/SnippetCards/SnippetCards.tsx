@@ -2,6 +2,7 @@
 
 import { Clock, Pin } from "lucide-react";
 import type { ReactNode } from "react";
+import ScrollContainer from "react-indiana-drag-scroll";
 
 import type { Dictionary } from "@/i18n";
 import type { FolderRecord, SnippetRecord } from "@/lib/types";
@@ -64,7 +65,10 @@ function SnippetCardsSection({
       </div>
 
       <div className="relative">
-        <div className="flex gap-3 overflow-x-auto pb-2 pr-20 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+        <ScrollContainer
+          className="flex gap-3 overflow-x-auto pb-2 pr-20 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10"
+          hideScrollbars={false}
+        >
           {snippets.map((snippet) => (
             <SnippetCard
               key={snippet.id}
@@ -74,7 +78,7 @@ function SnippetCardsSection({
               onSelect={() => onSelectSnippet(snippet.id)}
             />
           ))}
-        </div>
+        </ScrollContainer>
 
         <div className="pointer-events-none absolute bottom-2 right-0 top-0 z-10 w-20 bg-gradient-to-l from-background to-transparent" />
       </div>

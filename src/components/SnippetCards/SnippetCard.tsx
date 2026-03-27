@@ -83,7 +83,7 @@ export function SnippetCard({ snippet, folderName, copy, onSelect }: SnippetCard
       tabIndex={0}
       onClick={onSelect}
       onKeyDown={handleKeyDown}
-      className="group flex w-72 shrink-0 cursor-pointer flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-surface transition-colors hover:border-white/[0.12] hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+      className="group flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-surface transition-colors hover:border-white/[0.12] hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 active:cursor-grabbing"
     >
       <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-3.5">
         <div className="min-w-0">
