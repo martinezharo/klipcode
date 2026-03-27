@@ -9,6 +9,7 @@ import {
   FileCode2,
   FilePlus,
   Folder,
+  FolderOpen,
   FolderPlus,
   Home,
   Layers,
@@ -234,7 +235,11 @@ function FolderNode({
             size={13}
             className={`shrink-0 text-white/25 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
           />
-          <Folder size={13} className="shrink-0 text-white/25" />
+          {isOpen && hasChildren ? (
+            <FolderOpen size={13} className="shrink-0 text-white/25" />
+          ) : (
+            <Folder size={13} className="shrink-0 text-white/25" />
+          )}
           <input
             autoFocus
             defaultValue={folder.name}
@@ -260,7 +265,11 @@ function FolderNode({
             size={13}
             className={`shrink-0 text-white/25 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
           />
-          <Folder size={13} className="shrink-0 text-white/25" />
+          {isOpen && hasChildren ? (
+            <FolderOpen size={13} className="shrink-0 text-white/25" />
+          ) : (
+            <Folder size={13} className="shrink-0 text-white/25" />
+          )}
           <span className="flex-1 truncate leading-none">{folder.name}</span>
           <ItemActions
             showAdd
