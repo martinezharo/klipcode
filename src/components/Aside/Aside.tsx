@@ -30,12 +30,12 @@ interface AsideProps {
 // Indent step per depth level in px
 const STEP = 14;
 
-function sortByPinThenAlpha<T extends { isPinned: boolean }>(
+function sortByPinThenAlpha<T extends { isPinnedAside: boolean }>(
   items: T[],
   key: (item: T) => string
 ): T[] {
   return [...items].sort((a, b) => {
-    if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+    if (a.isPinnedAside !== b.isPinnedAside) return a.isPinnedAside ? -1 : 1;
     return key(a).localeCompare(key(b));
   });
 }
@@ -118,7 +118,7 @@ function FolderNode({
           onAdd={(e) => e.stopPropagation()}
           onMore={(e) => e.stopPropagation()}
         />
-        {folder.isPinned && (
+        {folder.isPinnedAside && (
           <Pin size={10} className="shrink-0 text-white/30" />
         )}
       </button>
@@ -182,7 +182,7 @@ function SnippetNode({
       <FileCode2 size={13} className="shrink-0 text-white/20" />
       <span className="flex-1 truncate leading-none">{displayName}</span>
       <ItemActions onMore={(e) => e.stopPropagation()} />
-      {snippet.isPinned && (
+      {snippet.isPinnedAside && (
         <Pin size={10} className="shrink-0 text-white/30" />
       )}
     </button>
@@ -214,10 +214,10 @@ export function Aside({ folders, snippets, copy, onSelectSnippet, onGoHome }: As
   const rootSnippets = snippets.filter((s) => s.folderId === null);
 
   // Order: pinned folders → pinned snippets → unpinned folders → unpinned snippets
-  const pinnedFolders    = sortByPinThenAlpha(rootFolders.filter((f) => f.isPinned),   (f) => f.name);
-  const pinnedSnippets   = sortByPinThenAlpha(rootSnippets.filter((s) => s.isPinned),  (s) => s.title ?? "");
-  const unpinnedFolders  = sortByPinThenAlpha(rootFolders.filter((f) => !f.isPinned),  (f) => f.name);
-  const unpinnedSnippets = sortByPinThenAlpha(rootSnippets.filter((s) => !s.isPinned), (s) => s.title ?? "");
+  const pinnedFolders    = sortByPinThenAlpha(rootFolders.filter((f) => f.isPinnedAside),   (f) => f.name);
+  const pinnedSnippets   = sortByPinThenAlpha(rootSnippets.filter((s) => s.isPinnedAside),  (s) => s.title ?? "");
+  const unpinnedFolders  = sortByPinThenAlpha(rootFolders.filter((f) => !f.isPinnedAside),   (f) => f.name);
+  const unpinnedSnippets = sortByPinThenAlpha(rootSnippets.filter((s) => !s.isPinnedAside),  (s) => s.title ?? "");
 
   const isEmpty = rootFolders.length === 0 && rootSnippets.length === 0;
 

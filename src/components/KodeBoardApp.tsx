@@ -18,7 +18,7 @@ import { getDictionary } from "@/i18n";
 import { Header } from "@/components/Header/Header";
 import { Aside } from "@/components/Aside/Aside";
 import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
-import { RecentSnippets } from "@/components/RecentSnippets/RecentSnippets";
+import { RecentSnippets, PinnedToHome } from "@/components/RecentSnippets/RecentSnippets";
 import { SnippetEditor } from "@/components/SnippetEditor/SnippetEditor";
 
 interface FolderOption {
@@ -322,7 +322,8 @@ export default function KodeBoardApp() {
       title: data.title.trim() || "Untitled",
       language: data.language.trim(),
       code: data.code,
-      isPinned: false,
+      isPinnedAside: false,
+      isPinnedHome: false,
       createdAt: timestamp,
       updatedAt: timestamp,
       dirty: true,
@@ -421,6 +422,13 @@ export default function KodeBoardApp() {
                 copy={copy}
                 folderOptions={folderOptions}
                 onCreateSnippet={handleCreateSnippet}
+              />
+
+              <PinnedToHome
+                snippets={snippets}
+                folders={folders}
+                copy={copy}
+                onSelectSnippet={setSelectedSnippetId}
               />
 
               <RecentSnippets

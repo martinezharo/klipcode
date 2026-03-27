@@ -72,6 +72,9 @@ export const es = {
     emptySpace: "No hay archivos todavia.",
     root: "Raiz",
   },
+  pinnedToHome: {
+    title: "Fijados en inicio",
+  },
   recentSnippets: {
     title: "Editados recientemente",
     empty: "Aun no tienes snippets. Crea tu primero arriba.",

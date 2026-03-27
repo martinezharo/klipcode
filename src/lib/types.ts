@@ -11,7 +11,8 @@ export interface FolderRecord {
   ownerId: string | null;
   name: string;
   parentId: string | null;
-  isPinned: boolean;
+  isPinnedAside: boolean;
+  isPinnedHome: boolean;
   createdAt: string;
   updatedAt: string;
   dirty: boolean;
@@ -25,7 +26,8 @@ export interface SnippetRecord {
   title: string;
   code: string;
   language: string;
-  isPinned: boolean;
+  isPinnedAside: boolean;
+  isPinnedHome: boolean;
   createdAt: string;
   updatedAt: string;
   dirty: boolean;
@@ -47,7 +49,8 @@ export interface CloudFolderRow {
   owner_id: string;
   name: string;
   parent_id: string | null;
-  is_pinned: boolean;
+  is_pinned_aside: boolean;
+  is_pinned_home: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -59,7 +62,8 @@ export interface CloudSnippetRow {
   title: string;
   code: string;
   language: string;
-  is_pinned: boolean;
+  is_pinned_aside: boolean;
+  is_pinned_home: boolean;
   created_at: string;
   updated_at: string;
 }

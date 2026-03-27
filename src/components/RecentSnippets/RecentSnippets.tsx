@@ -1,17 +1,14 @@
 "use client";
 
-import { Clock, Folder, Copy, Check } from "lucide-react";
+import { Clock, Folder, Copy, Check, Pin } from "lucide-react";
 import { useState } from "react";
 import type { SnippetRecord, FolderRecord } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 import { LANGUAGES } from "@/lib/constants/languages";
 
-interface RecentSnippetsProps {
-  snippets: SnippetRecord[];
-  folders: FolderRecord[];
-  copy: Dictionary;
-  onSelectSnippet: (snippetId: string) => void;
-}
+// ──────────────────────────────────────────────────────────────────────────────
+// Shared helpers
+// ──────────────────────────────────────────────────────────────────────────────
 
 function getFolderName(folderId: string | null, folders: FolderRecord[]): string | null {
   if (!folderId) return null;
@@ -27,6 +24,10 @@ function buildPreviewLines(code: string) {
 
   return lines.map((line) => (line.length > 92 ? `${line.slice(0, 92)}…` : line));
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// SnippetPreviewCard
+// ──────────────────────────────────────────────────────────────────────────────
 
 function SnippetPreviewCard({
   snippet,
@@ -57,7 +58,7 @@ function SnippetPreviewCard({
   return (
     <article
       onClick={onSelect}
-      className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-surface transition-colors hover:border-white/[0.12] hover:bg-surface-hover"
+      className="group flex w-72 shrink-0 cursor-pointer flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-surface transition-colors hover:border-white/[0.12] hover:bg-surface-hover"
     >
       {/* Card header */}
       <div className="flex items-center justify-between gap-3 px-4 pt-3.5 pb-2">
@@ -107,6 +108,81 @@ function SnippetPreviewCard({
   );
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// SnippetScrollRow — shared horizontal scroll list
+// ──────────────────────────────────────────────────────────────────────────────
+
+interface SnippetScrollRowProps {
+  snippets: SnippetRecord[];
+  folders: FolderRecord[];
+  copy: Dictionary;
+  onSelectSnippet: (snippetId: string) => void;
+}
+
+function SnippetScrollRow({ snippets, folders, copy, onSelectSnippet }: SnippetScrollRowProps) {
+  return (
+    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+      {snippets.map((snippet) => (
+        <SnippetPreviewCard
+          key={snippet.id}
+          snippet={snippet}
+          folderName={getFolderName(snippet.folderId, folders)}
+          copy={copy}
+          onSelect={() => onSelectSnippet(snippet.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// PinnedToHome
+// ──────────────────────────────────────────────────────────────────────────────
+
+interface PinnedToHomeProps {
+  snippets: SnippetRecord[];
+  folders: FolderRecord[];
+  copy: Dictionary;
+  onSelectSnippet: (snippetId: string) => void;
+}
+
+export function PinnedToHome({ snippets, folders, copy, onSelectSnippet }: PinnedToHomeProps) {
+  const pinned = [...snippets]
+    .filter((s) => s.isPinnedHome)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+
+  if (pinned.length === 0) return null;
+
+  return (
+    <section>
+      <div className="mb-4 flex items-center gap-2">
+        <Pin size={16} className="text-muted" />
+        <h2 className="text-sm font-medium text-muted">
+          {copy.pinnedToHome.title}
+        </h2>
+      </div>
+
+      <SnippetScrollRow
+        snippets={pinned}
+        folders={folders}
+        copy={copy}
+        onSelectSnippet={onSelectSnippet}
+      />
+    </section>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// RecentSnippets
+// ──────────────────────────────────────────────────────────────────────────────
+
+interface RecentSnippetsProps {
+  snippets: SnippetRecord[];
+  folders: FolderRecord[];
+  copy: Dictionary;
+  onSelectSnippet: (snippetId: string) => void;
+}
+
 export function RecentSnippets({ snippets, folders, copy, onSelectSnippet }: RecentSnippetsProps) {
   const recentSnippets = [...snippets]
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
@@ -124,18 +200,15 @@ export function RecentSnippets({ snippets, folders, copy, onSelectSnippet }: Rec
       {recentSnippets.length === 0 ? (
         <p className="text-sm text-white/30">{copy.recentSnippets.empty}</p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {recentSnippets.map((snippet) => (
-            <SnippetPreviewCard
-              key={snippet.id}
-              snippet={snippet}
-              folderName={getFolderName(snippet.folderId, folders)}
-              copy={copy}
-              onSelect={() => onSelectSnippet(snippet.id)}
-            />
-          ))}
-        </div>
+        <SnippetScrollRow
+          snippets={recentSnippets}
+          folders={folders}
+          copy={copy}
+          onSelectSnippet={onSelectSnippet}
+        />
       )}
     </section>
   );
 }
+
+

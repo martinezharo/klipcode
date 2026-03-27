@@ -32,7 +32,8 @@ function mapFolderToCloud(folder: FolderRecord, userId: string) {
     owner_id: userId,
     name: folder.name,
     parent_id: folder.parentId,
-    is_pinned: folder.isPinned,
+    is_pinned_aside: folder.isPinnedAside,
+    is_pinned_home: folder.isPinnedHome,
     created_at: folder.createdAt,
     updated_at: folder.updatedAt,
   };
@@ -46,7 +47,8 @@ function mapSnippetToCloud(snippet: SnippetRecord, userId: string) {
     title: snippet.title,
     code: snippet.code,
     language: snippet.language,
-    is_pinned: snippet.isPinned,
+    is_pinned_aside: snippet.isPinnedAside,
+    is_pinned_home: snippet.isPinnedHome,
     created_at: snippet.createdAt,
     updated_at: snippet.updatedAt,
   };
@@ -58,7 +60,8 @@ function mapFolderToLocal(folder: CloudFolderRow): FolderRecord {
     ownerId: folder.owner_id,
     name: folder.name,
     parentId: folder.parent_id,
-    isPinned: folder.is_pinned,
+    isPinnedAside: folder.is_pinned_aside,
+    isPinnedHome: folder.is_pinned_home,
     createdAt: folder.created_at,
     updatedAt: folder.updated_at,
     dirty: false,
@@ -74,7 +77,8 @@ function mapSnippetToLocal(snippet: CloudSnippetRow): SnippetRecord {
     title: snippet.title,
     code: snippet.code,
     language: snippet.language,
-    isPinned: snippet.is_pinned,
+    isPinnedAside: snippet.is_pinned_aside,
+    isPinnedHome: snippet.is_pinned_home,
     createdAt: snippet.created_at,
     updatedAt: snippet.updated_at,
     dirty: false,
@@ -176,12 +180,12 @@ export async function fetchCloudWorkspace(userId: string) {
     await Promise.all([
       supabase
         .from("folders")
-        .select("id, owner_id, name, parent_id, is_pinned, created_at, updated_at")
+        .select("id, owner_id, name, parent_id, is_pinned_aside, is_pinned_home, created_at, updated_at")
         .eq("owner_id", userId),
       supabase
         .from("snippets")
         .select(
-          "id, owner_id, folder_id, title, code, language, is_pinned, created_at, updated_at"
+          "id, owner_id, folder_id, title, code, language, is_pinned_aside, is_pinned_home, created_at, updated_at"
         )
         .eq("owner_id", userId),
     ]);

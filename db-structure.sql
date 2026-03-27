@@ -249,12 +249,22 @@ grant select, insert, update, delete on public.profiles to authenticated;
 grant select, insert, update, delete on public.folders to authenticated;
 grant select, insert, update, delete on public.snippets to authenticated;
 
--- Añadir soporte para fijar elementos
-alter table public.folders add column is_pinned boolean not null default false;
-alter table public.snippets add column is_pinned boolean not null default false;
+-- Soporte para fijado normal y fijado en inicio, como flags independientes
+alter table public.folders
+  add column if not exists is_pinned_aside boolean not null default false;
 
--- Índices extra para que cargar los "favoritos" sea inmediato
-create index if not exists idx_folders_owner_pinned on public.folders (owner_id, is_pinned);
-create index if not exists idx_snippets_owner_pinned on public.snippets (owner_id, is_pinned);
+alter table public.folders
+  add column if not exists is_pinned_home boolean not null default false;
+
+alter table public.snippets
+  add column if not exists is_pinned_aside boolean not null default false;
+
+alter table public.snippets
+  add column if not exists is_pinned_home boolean not null default false;
+
+create index if not exists idx_folders_owner_pinned on public.folders (owner_id, is_pinned_aside);
+create index if not exists idx_folders_owner_pinned_home on public.folders (owner_id, is_pinned_home);
+create index if not exists idx_snippets_owner_pinned on public.snippets (owner_id, is_pinned_aside);
+create index if not exists idx_snippets_owner_pinned_home on public.snippets (owner_id, is_pinned_home);
 
 commit;
