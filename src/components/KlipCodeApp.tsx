@@ -21,7 +21,7 @@ import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
 import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
 import { SnippetEditor } from "@/components/SnippetEditor/SnippetEditor";
 
-export default function KodeBoardApp() {
+export default function KlipCodeApp() {
   const copy = getDictionary();
   const queryClient = useQueryClient();
   const supabase = getSupabaseBrowserClient();

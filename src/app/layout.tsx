@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KodeBoard",
+  title: "KlipCode",
   description: "Gestor offline-first de snippets con sincronizacion en Supabase.",
   icons: {
     icon: "/favicon.svg",

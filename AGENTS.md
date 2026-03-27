@@ -4,7 +4,7 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-# KodeBoard | Project Specification & Instructions
+# KlipCode | Project Specification & Instructions
 Descripción: Aplicación web de gestión de fragmentos de código (snippets) multidispositivo. Enfoque en velocidad de entrada, minimalismo estético (estilo Vercel) y sincronización invisible.
 
 ## 1. Stack Tecnológico

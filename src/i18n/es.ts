@@ -1,6 +1,6 @@
 export const es = {
   app: {
-    title: "KodeBoard",
+    title: "KlipCode",
     subtitle: "Gestor de snippets multidispositivo.",
   },
   auth: {

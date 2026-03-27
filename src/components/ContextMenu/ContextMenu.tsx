@@ -74,7 +74,7 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
         ref={menuRef}
         role="menu"
         aria-orientation="vertical"
-        className="kodeboard-menu-animate fixed z-[999] min-w-[208px] overflow-hidden rounded-xl p-1"
+        className="klipcode-menu-animate fixed z-[999] min-w-[208px] overflow-hidden rounded-xl p-1"
         style={{
           left: x,
           top: y,

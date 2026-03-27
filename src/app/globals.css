@@ -58,8 +58,8 @@ body {
   font-variant-ligatures: common-ligatures;
 }
 
-/* ─── KodeBoard UI Animations ─────────────────────────────────────────────── */
-@keyframes kodeboard-menu-in {
+/* ─── KlipCode UI Animations ─────────────────────────────────────────────── */
+@keyframes klipcode-menu-in {
   from {
     opacity: 0;
     transform: scale(0.96) translateY(-3px);
@@ -70,8 +70,8 @@ body {
   }
 }
 
-.kodeboard-menu-animate {
-  animation: kodeboard-menu-in 0.1s cubic-bezier(0.16, 1, 0.3, 1);
+.klipcode-menu-animate {
+  animation: klipcode-menu-in 0.1s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: var(--kb-origin, top left);
 }
 

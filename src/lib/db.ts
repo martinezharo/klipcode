@@ -2,12 +2,12 @@ import Dexie, { type Table } from "dexie";
 
 import type { FolderRecord, SnippetRecord, WorkspaceSnapshot } from "@/lib/types";
 
-class KodeBoardDatabase extends Dexie {
+class KlipCodeDatabase extends Dexie {
   folders!: Table<FolderRecord, string>;
   snippets!: Table<SnippetRecord, string>;
 
   constructor() {
-    super("kodeboard");
+    super("klipcode");
 
     this.version(1).stores({
       folders: "id, ownerId, parentId, dirty, updatedAt",
@@ -96,7 +96,7 @@ class KodeBoardDatabase extends Dexie {
   }
 }
 
-export const db = new KodeBoardDatabase();
+export const db = new KlipCodeDatabase();
 
 function matchesOwner(ownerId: string | null, currentUserId: string | null) {
   if (!currentUserId) {
