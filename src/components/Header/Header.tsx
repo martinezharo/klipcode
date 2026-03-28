@@ -19,6 +19,7 @@ interface HeaderProps {
   copy: Dictionary;
   onSignIn: () => void;
   onSignOut: () => void;
+  accountMessage?: string;
 }
 
 export function Header({
@@ -28,48 +29,15 @@ export function Header({
   copy,
   onSignIn,
   onSignOut,
+  accountMessage,
 }: HeaderProps) {
-  if (!authReady) return null;
-
-  if (user) {
-    const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
-
-    return (
-      <div className="fixed top-4 right-4 z-50">
-        <button
-          type="button"
-          onClick={onSignOut}
-          className="group flex items-center gap-2 rounded-full border border-white/[0.08] bg-surface px-1 py-1 transition-colors hover:border-white/20 hover:bg-surface-hover"
-        >
-          {avatarUrl ? (
-            <Image
-              src={avatarUrl}
-              alt=""
-              width={28}
-              height={28}
-              className="rounded-full"
-            />
-          ) : (
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs font-medium text-white">
-              {(user.email?.[0] ?? "U").toUpperCase()}
-            </div>
-          )}
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="fixed top-4 right-4 z-50">
-      <button
-        type="button"
-        disabled={!supabaseConfigured}
-        onClick={onSignIn}
-        className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-surface px-3.5 py-2 text-sm font-medium text-muted transition-colors hover:border-white/20 hover:bg-surface-hover hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-      >
-        <GitHubIcon size={16} />
-        <span>{copy.auth.signIn}</span>
-      </button>
+    <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
+      {accountMessage && (
+        <span className="hidden text-[11px] text-white/20 transition-opacity duration-300 md:block">
+          {accountMessage}
+        </span>
+      )}
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
   FolderPlus,
   Home,
   Layers,
+  LogOut,
   Menu,
   MoreHorizontal,
   PenLine,
@@ -30,10 +31,21 @@ import type { FolderRecord, SnippetRecord, ClipboardEntry } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 import { LANGUAGES } from "@/lib/constants/languages";
 import { SPACE_ROOT_ID } from "@/lib/navigation";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
+import type { User } from "@supabase/supabase-js";
+
+function GitHubIcon({ size = 16, className }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+    </svg>
+  );
+}
 
 /* ─────────────────────────── Props ─────────────────────────────────────── */
 
 export interface AsideProps {
+  user: User | null;
   folders: FolderRecord[];
   snippets: SnippetRecord[];
   copy: Dictionary;
@@ -476,6 +488,7 @@ function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth: number
 /* ─────────────────────────── Aside ──────────────────────────────────────── */
 
 export function Aside({
+  user,
   folders,
   snippets,
   copy,
@@ -507,6 +520,21 @@ export function Aside({
   const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null);
   const [dragging, setDragging] = useState<{ type: "folder" | "snippet"; id: string } | null>(null);
   const [dragOverId, setDragOverId] = useState<string | "root" | null>(null);
+
+  const supabase = getSupabaseBrowserClient();
+
+  const handleSignIn = async () => {
+    if (!supabase) return;
+    await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: { redirectTo: window.location.origin },
+    });
+  };
+
+  const handleSignOut = async () => {
+    if (!supabase) return;
+    await supabase.auth.signOut();
+  };
 
   useEffect(() => {
     const mq = window.matchMedia(`(max-width: ${MOBILE_BP - 1}px)`);
@@ -764,23 +792,55 @@ export function Aside({
             isMobile ? " fixed inset-y-0 left-0 z-50" : ""
           }`}
         >
-          {/* Logo + Collapse */}
-          <div className="flex items-center justify-between px-4 py-4">
+          {/* Auth Section + Logo + Collapse */}
+          <div className="px-3.5 py-4">
             <div className="flex items-center gap-2">
-              <Logo className="h-5 w-5 text-foreground" />
-              <span className="text-[13px] font-semibold tracking-tight text-foreground">
-                {copy.app.title}
-              </span>
+              {user ? (
+                <div className="flex min-w-0 flex-1 items-center gap-2.5 p-1">
+                  <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full ring-1 ring-white/10">
+                    <img
+                      src={user.user_metadata.avatar_url}
+                      alt={user.user_metadata.full_name || user.email || "Avatar"}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-[12px] font-medium text-foreground">
+                      {user.user_metadata.full_name || user.email?.split("@")[0]}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleSignOut}
+                    className="shrink-0 rounded p-1 text-white/25 transition-colors hover:bg-white/[0.1] hover:text-white/60"
+                    title={copy.auth.signOut}
+                  >
+                    <LogOut size={12} />
+                  </button>
+                </div>
+                ) : (
+                <button
+                  onClick={handleSignIn}
+                  className="group flex min-w-0 flex-1 items-center gap-2.5 py-1 pl-1 pr-2 text-left transition-colors hover:text-foreground"
+                >
+                  <GitHubIcon size={16} className="text-white/80 group-hover:text-white" />
+                  <span className="truncate text-[12px] font-medium text-foreground/80 group-hover:text-foreground ml-2">
+                    {copy.auth.signIn}
+                  </span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                title={copy.aside.collapse}
+                onClick={() => setIsOpen(false)}
+                className="shrink-0 rounded-md p-1.5 text-white/20 transition-colors hover:bg-white/[0.06] hover:text-white/60"
+              >
+                <ChevronsLeft size={14} />
+              </button>
             </div>
-            <button
-              type="button"
-              title={copy.aside.collapse}
-              onClick={() => setIsOpen(false)}
-              className="rounded-md p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
-            >
-              <ChevronsLeft size={15} />
-            </button>
           </div>
+
+          <div className="mx-4 mb-2 border-t border-white/[0.05]" />
 
           {/* Home */}
           <div className="px-2">

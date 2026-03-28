@@ -504,6 +504,7 @@ export default function KlipCodeApp() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Aside
+        user={user}
         folders={folders}
         snippets={snippets}
         copy={copy}
@@ -544,6 +545,7 @@ export default function KlipCodeApp() {
           copy={copy}
           onSignIn={handleGitHubSignIn}
           onSignOut={handleSignOut}
+          accountMessage={accountMessage}
         />
 
         {selectedSnippet ? (
