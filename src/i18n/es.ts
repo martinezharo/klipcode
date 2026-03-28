@@ -67,6 +67,7 @@ export const es = {
     open: "Abrir panel",
     home: "Inicio",
     mySpace: "Mi Espacio",
+    toggleFolder: "Alternar carpeta",
     addSnippet: "Nuevo snippet",
     addFolder: "Nueva carpeta",
     emptySpace: "No hay archivos todavia.",
@@ -102,6 +103,15 @@ export const es = {
   recentSnippets: {
     title: "Editados recientemente",
     empty: "Aun no tienes snippets. Crea tu primero arriba.",
+  },
+  folderView: {
+    breadcrumbLabel: "Navegación de carpetas",
+    subFolders: "Carpetas",
+    snippets: "Snippets",
+    snippetLabel: "snippets",
+    subFolderLabel: "carpetas",
+    emptyFolder: "Vacío",
+    empty: "Esta carpeta está vacía.",
   },
   snippetEditor: {
     back: "Volver",

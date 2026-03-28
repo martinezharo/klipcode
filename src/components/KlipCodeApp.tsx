@@ -20,6 +20,7 @@ import { Aside } from "@/components/Aside/Aside";
 import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
 import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
 import { SnippetEditor } from "@/components/SnippetEditor/SnippetEditor";
+import { FolderView } from "@/components/FolderView/FolderView";
 
 export default function KlipCodeApp() {
   const copy = getDictionary();
@@ -33,6 +34,7 @@ export default function KlipCodeApp() {
   );
   const [snippetStatuses, setSnippetStatuses] = useState<Record<string, SyncStatus>>({});
   const [selectedSnippetId, setSelectedSnippetId] = useState<string | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [clipboard, setClipboard] = useState<ClipboardEntry | null>(null);
   const [defaultNewSnippetFolderId, setDefaultNewSnippetFolderId] = useState<string | null>(null);
   const localStatusTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -486,6 +488,14 @@ export default function KlipCodeApp() {
   const folders = workspaceQuery.data?.folders ?? [];
   const snippets = workspaceQuery.data?.snippets ?? [];
 
+  // Clear stale folder selection if the folder no longer exists
+  useEffect(() => {
+    if (!workspaceQuery.isSuccess) return;
+    if (selectedFolderId && !folders.find((f) => f.id === selectedFolderId)) {
+      setSelectedFolderId(null);
+    }
+  }, [folders, selectedFolderId, workspaceQuery.isSuccess]);
+
   const selectedSnippet = selectedSnippetId
     ? (snippets.find((s) => s.id === selectedSnippetId) ?? null)
     : null;
@@ -498,7 +508,10 @@ export default function KlipCodeApp() {
         copy={copy}
         clipboard={clipboard}
         onSelectSnippet={setSelectedSnippetId}
-        onGoHome={() => setSelectedSnippetId(null)}
+        onGoHome={() => {
+          setSelectedSnippetId(null);
+          setSelectedFolderId(null);
+        }}
         onNewSnippetAt={handleNewSnippetAt}
         onCreateFolder={handleCreateFolder}
         onDeleteFolder={handleDeleteFolder}
@@ -512,6 +525,10 @@ export default function KlipCodeApp() {
         onPaste={handlePaste}
         onMoveFolder={handleMoveFolder}
         onMoveSnippet={handleMoveSnippet}
+        onSelectFolder={(folderId) => {
+          setSelectedSnippetId(null);
+          setSelectedFolderId(folderId);
+        }}
       />
 
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -536,6 +553,16 @@ export default function KlipCodeApp() {
               onUpdate={handleUpdateSnippet}
             />
           </div>
+        ) : selectedFolderId ? (
+          <FolderView
+            folderId={selectedFolderId}
+            folders={folders}
+            snippets={snippets}
+            copy={copy}
+            onSelectSnippet={setSelectedSnippetId}
+            onNavigateFolder={setSelectedFolderId}
+            onNavigateHome={() => setSelectedFolderId(null)}
+          />
         ) : (
           <main className="flex-1 overflow-y-auto">
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8">

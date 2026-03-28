@@ -52,6 +52,7 @@ export interface AsideProps {
   onPaste: (targetFolderId: string | null) => Promise<void>;
   onMoveFolder: (id: string, newParentId: string | null) => Promise<void>;
   onMoveSnippet: (id: string, newFolderId: string | null) => Promise<void>;
+  onSelectFolder?: (folderId: string) => void;
 }
 
 /* ─────────────────────────── Internal context ───────────────────────────── */
@@ -77,6 +78,7 @@ interface AsideCtxShape {
   cancelCreateFolder: () => void;
   submitCreateFolder: (parentId: string | null, name: string) => void;
   selectSnippet: (id: string) => void;
+  selectFolder: (id: string) => void;
   /* ── Drag & Drop ── */
   dragging: { type: "folder" | "snippet"; id: string } | null;
   dragOverId: string | "root" | null;
@@ -285,17 +287,10 @@ function FolderNode({
           />
         </div>
       ) : (
-        <button
-          type="button"
-          draggable
-          onClick={() => setIsOpen((v) => !v)}
+        <div
+          className={sharedRowClass}
+          style={{ paddingLeft }}
           onContextMenu={openContextMenu}
-          onDragStart={(e) => {
-            e.stopPropagation();
-            ctx.startDrag("folder", folder.id);
-            e.dataTransfer.effectAllowed = "move";
-          }}
-          onDragEnd={() => ctx.endDrag()}
           onDragEnter={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -311,19 +306,43 @@ function FolderNode({
             e.stopPropagation();
             ctx.dropOnTarget(folder.id);
           }}
-          className={sharedRowClass}
-          style={{ paddingLeft }}
         >
-          <ChevronRight
-            size={13}
-            className={`shrink-0 text-white/25 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
-          />
-          {isOpen && hasChildren ? (
-            <FolderOpen size={13} className="shrink-0 text-white/25" />
-          ) : (
-            <Folder size={13} className="shrink-0 text-white/25" />
-          )}
-          <span className="flex-1 truncate leading-none">{folder.name}</span>
+          <button
+            type="button"
+            className="flex h-4 w-4 shrink-0 items-center justify-center text-white/25 transition-colors hover:text-white/45"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen((value) => !value);
+            }}
+            title={ctx.copy.aside.toggleFolder}
+            aria-label={ctx.copy.aside.toggleFolder}
+          >
+            <ChevronRight
+              size={13}
+              className={`transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
+            />
+          </button>
+
+          <button
+            type="button"
+            draggable
+            onClick={() => ctx.selectFolder(folder.id)}
+            onDragStart={(e) => {
+              e.stopPropagation();
+              ctx.startDrag("folder", folder.id);
+              e.dataTransfer.effectAllowed = "move";
+            }}
+            onDragEnd={() => ctx.endDrag()}
+            className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+          >
+            {isOpen && hasChildren ? (
+              <FolderOpen size={13} className="shrink-0 text-white/25" />
+            ) : (
+              <Folder size={13} className="shrink-0 text-white/25" />
+            )}
+            <span className="flex-1 truncate leading-none">{folder.name}</span>
+          </button>
+
           <ItemActions
             showAdd
             onAdd={(e) => {
@@ -336,7 +355,7 @@ function FolderNode({
           {folder.isPinnedAside && (
             <Pin size={10} className="shrink-0 text-white/30" />
           )}
-        </button>
+        </div>
       )}
 
       {(isOpen || isCreatingHere) && (
@@ -465,6 +484,7 @@ export function Aside({
   onPaste,
   onMoveFolder,
   onMoveSnippet,
+  onSelectFolder,
 }: AsideProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -676,6 +696,7 @@ export function Aside({
       setCreatingFolderParentId(undefined);
     },
     selectSnippet: onSelectSnippet,
+    selectFolder: (id: string) => onSelectFolder?.(id),
     /* DnD */
     dragging,
     dragOverId,
