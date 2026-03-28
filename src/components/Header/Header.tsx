@@ -3,6 +3,7 @@
 import Image from "next/image";
 import type { User } from "@supabase/supabase-js";
 import type { Dictionary } from "@/i18n";
+import { useEffect, useRef, useState } from "react";
 
 function GitHubIcon({ size = 16 }: { size?: number }) {
   return (
@@ -31,12 +32,55 @@ export function Header({
   onSignOut,
   accountMessage,
 }: HeaderProps) {
+  const [visibleMessage, setVisibleMessage] = useState<string | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const removeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    // When a new accountMessage arrives, show it and schedule auto-dismiss
+    if (accountMessage) {
+      // clear any existing timers
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+      }
+      if (removeTimerRef.current) {
+        clearTimeout(removeTimerRef.current);
+      }
+
+      setVisibleMessage(accountMessage);
+      // trigger visible state (for animation)
+      // small tick to ensure transition runs even if same message repeats
+      setTimeout(() => setIsVisible(true), 10);
+
+      // hide after 3s
+      hideTimerRef.current = setTimeout(() => {
+        setIsVisible(false);
+      }, 3000);
+
+      // remove from DOM after transition (300ms)
+      removeTimerRef.current = setTimeout(() => {
+        setVisibleMessage(null);
+      }, 3300);
+    }
+
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      if (removeTimerRef.current) clearTimeout(removeTimerRef.current);
+    };
+  }, [accountMessage]);
+
   return (
-    <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
-      {accountMessage && (
-        <span className="hidden text-[11px] text-white/20 transition-opacity duration-300 md:block">
-          {accountMessage}
-        </span>
+    <div className="fixed bottom-4 left-4 z-50 pointer-events-none">
+      {visibleMessage && (
+        <div
+          aria-live="polite"
+          className={`pointer-events-auto max-w-xs rounded-md px-3 py-1 text-[11px] transition-opacity duration-300 ${
+            isVisible ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          {visibleMessage}
+        </div>
       )}
     </div>
   );
