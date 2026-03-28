@@ -244,7 +244,7 @@ export function FolderView({
             <h2 className="text-xs font-semibold uppercase tracking-wider text-white/30">
               {copy.folderView.subFolders}
             </h2>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-4">
               {childFolders.map((folder) => (
                 <FolderCard
                   key={folder.id}
