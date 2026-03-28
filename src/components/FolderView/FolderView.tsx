@@ -1,11 +1,12 @@
 "use client";
 
-import { ChevronRight, FileCode2, Folder, FolderOpen, Layers } from "lucide-react";
+import { FileCode2, Folder, FolderOpen, Layers } from "lucide-react";
 
 import type { Dictionary } from "@/i18n";
 import type { FolderRecord, SnippetRecord } from "@/lib/types";
 import { SnippetCard } from "@/components/SnippetCards/SnippetCard";
 import { SPACE_ROOT_ID } from "@/lib/navigation";
+import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
 
 /* ─────────────────────────── Utils ──────────────────────────────────────── */
 
@@ -113,50 +114,43 @@ export function FolderView({
       : null,
   ].filter(Boolean);
 
+  // ── Build breadcrumb items ──────────────────────────────────────────────────
+  const breadcrumbItems: BreadcrumbItem[] = isRootSpace
+    ? [
+        {
+          id: "space",
+          label: copy.aside.mySpace,
+          icon: <Layers size={12} aria-hidden="true" />,
+          // No onClick — this is the current page
+        },
+      ]
+    : [
+        {
+          id: "space",
+          label: copy.aside.mySpace,
+          icon: <Layers size={12} aria-hidden="true" />,
+          onClick: onNavigateHome,
+        },
+        ...path.slice(0, -1).map<BreadcrumbItem>((f) => ({
+          id: f.id,
+          label: f.name,
+          icon: <Folder size={12} aria-hidden="true" />,
+          onClick: () => onNavigateFolder(f.id),
+        })),
+        {
+          id: path[path.length - 1].id,
+          label: path[path.length - 1].name,
+          icon: <Folder size={12} aria-hidden="true" />,
+          // No onClick — current folder, display-only
+        },
+      ];
+
   return (
     <main className="flex-1 overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 py-8">
+      {/* ── Sticky breadcrumb bar ───────────────────────────────────────── */}
+      <Breadcrumbs items={breadcrumbItems} />
 
-        {/* ── Breadcrumb ─────────────────────────────────────────────────── */}
-        <nav aria-label={copy.folderView.breadcrumbLabel}>
-          <ol className="flex flex-wrap items-center gap-1 text-sm">
-            <li>
-              <button
-                type="button"
-                onClick={onNavigateHome}
-                className="flex items-center gap-1.5 rounded text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-              >
-                <Layers size={13} aria-hidden="true" />
-                <span>{copy.aside.mySpace}</span>
-              </button>
-            </li>
-
-            {path.map((folder, index) => {
-              const isLast = index === path.length - 1;
-              return (
-                <li key={folder.id} className="flex items-center gap-1">
-                  <ChevronRight size={13} className="text-white/20" aria-hidden="true" />
-                  {isLast ? (
-                    <span className="flex items-center gap-1.5 font-medium text-foreground">
-                      <Folder size={13} aria-hidden="true" />
-                      {folder.name}
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => onNavigateFolder(folder.id)}
-                      className="flex items-center gap-1.5 rounded text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-                    >
-                      <Folder size={13} aria-hidden="true" />
-                      {folder.name}
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
-
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 pb-8 pt-6">
         {/* ── Folder header ──────────────────────────────────────────────── */}
         <div className="flex items-center gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04]">

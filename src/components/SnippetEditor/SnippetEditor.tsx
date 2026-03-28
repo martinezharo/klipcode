@@ -2,8 +2,6 @@
 
 import { useState, useRef } from "react";
 import {
-  ArrowLeft,
-  Folder,
   Copy,
   Check,
   Cloud,
@@ -11,12 +9,32 @@ import {
   Loader2,
   CircleCheck,
   Pencil,
+  FileCode2,
+  Folder,
+  Layers,
 } from "lucide-react";
 
 import { Editor } from "@/components/Editor/Editor";
+import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
 import type { SnippetRecord, FolderRecord, SyncStatus } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 import { LANGUAGES } from "@/lib/constants/languages";
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────────────────────────────────────
+
+function buildFolderPath(folderId: string | null, folders: FolderRecord[]): FolderRecord[] {
+  if (!folderId) return [];
+  const path: FolderRecord[] = [];
+  let current = folders.find((f) => f.id === folderId);
+  while (current) {
+    path.unshift(current);
+    const parentId = current.parentId;
+    current = parentId ? folders.find((f) => f.id === parentId) : undefined;
+  }
+  return path;
+}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Sync status indicator (top-right of header)
@@ -114,9 +132,6 @@ export function SnippetEditor({
   const codeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const langConfig = LANGUAGES.find((l) => l.id === snippet.language);
-  const folderName = snippet.folderId
-    ? (folders.find((f) => f.id === snippet.folderId)?.name ?? editorCopy.folderRoot)
-    : editorCopy.folderRoot;
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -145,65 +160,68 @@ export function SnippetEditor({
     setTimeout(() => setCopied(false), 2000);
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Folder path for breadcrumb ───────────────────────────────────────────
+  const folderPath = buildFolderPath(snippet.folderId, folders);
 
-  return (
-    <div className="flex h-full flex-col overflow-hidden">
-      {/* ── Top bar ──────────────────────────────────────────────────────── */}
-      <div className="flex shrink-0 items-center gap-3 border-b border-white/[0.06] px-4 py-2.5">
-        {/* Back */}
-        <button
-          type="button"
-          title={editorCopy.back}
-          onClick={onClose}
-          className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white/70"
-        >
-          <ArrowLeft size={13} />
-          <span>{editorCopy.back}</span>
-        </button>
-
-        <div className="h-4 w-px shrink-0 bg-white/[0.08]" />
-
-        {/* Title */}
+  const breadcrumbItems: BreadcrumbItem[] = [
+    {
+      id: "root",
+      label: copy.aside.mySpace,
+      icon: <Layers size={12} aria-hidden="true" />,
+      onClick: onClose,
+    },
+    ...folderPath.map<BreadcrumbItem>((f) => ({
+      id: f.id,
+      label: f.name,
+      icon: <Folder size={12} aria-hidden="true" />,
+      onClick: onClose,
+    })),
+    {
+      id: snippet.id,
+      icon: <FileCode2 size={12} className="shrink-0 text-white/40" aria-hidden="true" />,
+      label: (
         <input
           type="text"
           value={title}
           onChange={handleTitleChange}
           placeholder={editorCopy.titlePlaceholder}
-          className="min-w-0 flex-1 bg-transparent text-sm font-medium text-foreground placeholder:text-white/25 focus:outline-none"
+          className="w-full max-w-[240px] bg-transparent font-medium text-foreground placeholder:text-white/25 focus:outline-none"
           spellCheck={false}
         />
+      ),
+      // No onClick — editable title is the "current" item
+    },
+  ];
 
-        {/* Language badge */}
-        {langConfig && (
-          <span className="shrink-0 rounded bg-white/[0.06] px-2 py-0.5 text-[11px] font-medium text-white/50">
-            {langConfig.label}
-          </span>
-        )}
-
-        {/* Folder breadcrumb */}
-        <span className="flex shrink-0 items-center gap-1 text-[11px] text-white/30">
-          <Folder size={11} />
-          <span>{folderName}</span>
+  const breadcrumbActions = (
+    <>
+      {langConfig && (
+        <span className="rounded bg-white/[0.06] px-2 py-0.5 text-[11px] font-medium text-white/50">
+          {langConfig.label}
         </span>
+      )}
+      <div className="h-4 w-px bg-white/[0.08]" />
+      <button
+        type="button"
+        title={editorCopy.copyCode}
+        onClick={handleCopy}
+        className="flex items-center justify-center rounded p-1.5 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-white/70"
+      >
+        {copied ? <Check size={13} /> : <Copy size={13} />}
+      </button>
+    </>
+  );
 
-        <div className="h-4 w-px shrink-0 bg-white/[0.08]" />
+  // ── Render ────────────────────────────────────────────────────────────────
 
-        {/* Sync status */}
-        <SyncIndicator status={syncStatus} copy={editorCopy} />
-
-        <div className="h-4 w-px shrink-0 bg-white/[0.08]" />
-
-        {/* Copy button */}
-        <button
-          type="button"
-          title={editorCopy.copyCode}
-          onClick={handleCopy}
-          className="flex shrink-0 items-center justify-center rounded p-1.5 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-white/70"
-        >
-          {copied ? <Check size={13} /> : <Copy size={13} />}
-        </button>
-      </div>
+  return (
+    <div className="flex h-full flex-col overflow-hidden">
+      {/* ── Breadcrumb top bar ───────────────────────────────────────────── */}
+      <Breadcrumbs
+        items={breadcrumbItems}
+        actions={breadcrumbActions}
+        defaultStuck
+      />
 
       {/* ── Editor ─────────────────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-hidden pl-6 [&>div]:h-full">
@@ -215,6 +233,11 @@ export function SnippetEditor({
           height="100%"
           fontSize={14}
         />
+      </div>
+
+      {/* ── Sync status — fixed bottom-right corner ───────────────────────── */}
+      <div className="fixed bottom-4 right-4 z-50 rounded-full border border-white/[0.08] bg-[#0a0a0a]/80 px-3 py-1.5 backdrop-blur-sm">
+        <SyncIndicator status={syncStatus} copy={editorCopy} />
       </div>
     </div>
   );
