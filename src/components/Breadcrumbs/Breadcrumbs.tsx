@@ -86,15 +86,15 @@ export function Breadcrumbs({
       ref={navRef}
       aria-label="breadcrumb"
       className={cn(
-        "sticky top-0 z-10 flex w-full items-center gap-2 px-6 py-2.5",
+        "sticky top-0 z-10 flex w-full items-center gap-2 px-6 py-2.5 min-h-[44px] border-b border-transparent",
         "transition-[background-color,border-color] duration-200",
         isStuck
-          ? "border-b border-white/[0.06] bg-[#0a0a0a]/90 backdrop-blur-md"
+          ? "border-white/[0.06] bg-[#0a0a0a]/90 backdrop-blur-md"
           : "bg-transparent",
         className
       )}
     >
-      <ol className="flex flex-1 flex-wrap items-center gap-0.5">
+      <ol className="flex flex-1 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           return (
@@ -106,21 +106,20 @@ export function Breadcrumbs({
                   aria-hidden="true"
                 />
               )}
-
               {/* Last item without onClick → static, visually highlighted */}
               {isLast && !item.onClick ? (
-                <span className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
+                <span className="flex items-center gap-1.5 text-[13px] font-medium text-foreground min-w-0 truncate">
                   {item.icon}
-                  {item.label}
+                  <span className="min-w-0 truncate">{item.label}</span>
                 </span>
               ) : (
                 <button
                   type="button"
                   onClick={item.onClick}
-                  className="flex items-center gap-1.5 rounded px-1 py-0.5 text-[13px] text-white/40 transition-colors hover:text-white/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20"
+                  className="flex items-center gap-1.5 rounded px-1 py-0.5 text-[13px] text-white/40 min-w-0 transition-colors hover:text-white/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20"
                 >
                   {item.icon}
-                  <span>{item.label}</span>
+                  <span className="min-w-0 truncate">{item.label}</span>
                 </button>
               )}
             </li>
