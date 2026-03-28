@@ -292,6 +292,16 @@ function FolderNode({
         <div
           className={sharedRowClass}
           style={{ paddingLeft }}
+          role="button"
+          tabIndex={0}
+          onClick={() => ctx.selectFolder(folder.id)}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              ctx.selectFolder(folder.id);
+            }
+          }}
           onContextMenu={openContextMenu}
           onDragEnter={(e) => {
             e.preventDefault();
@@ -328,7 +338,6 @@ function FolderNode({
           <button
             type="button"
             draggable
-            onClick={() => ctx.selectFolder(folder.id)}
             onDragStart={(e) => {
               e.stopPropagation();
               ctx.startDrag("folder", folder.id);
