@@ -329,7 +329,7 @@ export default function KlipCodeApp() {
 
   async function handleUpdateSnippet(
     snippetId: string,
-    changes: { title?: string; code?: string }
+    changes: { title?: string; code?: string; language?: string }
   ) {
     setSnippetStatus(snippetId, "editing");
 

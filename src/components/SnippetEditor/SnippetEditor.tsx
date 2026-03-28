@@ -16,6 +16,8 @@ import {
 
 import { Editor } from "@/components/Editor/Editor";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
+import { LanguageSelect } from "@/ui/LanguageSelect";
+import type { LanguageId } from "@/lib/constants/languages";
 import type { SnippetRecord, FolderRecord, SyncStatus } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 import { LANGUAGES } from "@/lib/constants/languages";
@@ -107,7 +109,7 @@ export interface SnippetEditorProps {
   onClose: () => void;
   onNavigateFolder?: (folderId: string) => void;
   onNavigateHome?: () => void;
-  onUpdate: (snippetId: string, changes: { title?: string; code?: string }) => void;
+  onUpdate: (snippetId: string, changes: { title?: string; code?: string; language?: LanguageId }) => void;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -199,11 +201,11 @@ export function SnippetEditor({
 
   const breadcrumbActions = (
     <>
-      {langConfig && (
-        <span className="rounded bg-white/[0.06] px-2 py-0.5 text-[11px] font-medium text-white/50">
-          {langConfig.label}
-        </span>
-      )}
+      <LanguageSelect
+        value={snippet.language as LanguageId}
+        onChange={(v) => onUpdate(snippet.id, { language: v })}
+        copy={copy.languageSelect}
+      />
       <div className="h-4 w-px bg-white/[0.08]" />
       <button
         type="button"
