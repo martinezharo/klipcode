@@ -92,8 +92,10 @@ function FolderCard({
             type="button"
             onClick={handleTogglePinAside}
             className={cn(
-              "group/pin relative flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-white/[0.08] hover:text-foreground transition-opacity",
-              folder.isPinnedAside ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+              "group/pin relative flex h-6 w-6 items-center justify-center rounded transition-opacity",
+              folder.isPinnedAside
+                ? "opacity-100 text-muted hover:bg-white/[0.08] hover:text-foreground"
+                : "opacity-0 group-hover:opacity-100 text-white/40 hover:text-white/70 hover:bg-white/[0.08]",
             )}
             title={folder.isPinnedAside ? copy.contextMenu.unpinAside : copy.contextMenu.pinAside}
             aria-label={folder.isPinnedAside ? copy.contextMenu.unpinAside : copy.contextMenu.pinAside}
@@ -104,7 +106,7 @@ function FolderCard({
                 <PinOff size={14} className="absolute opacity-0 transition-opacity group-hover/pin:opacity-100" />
               </>
             ) : (
-              <Pin size={14} />
+              <Pin size={14} className="opacity-70 group-hover:opacity-100" />
             )}
           </button>
         )}
