@@ -28,6 +28,7 @@ interface SnippetCardsSectionProps {
   folders: FolderRecord[];
   copy: Dictionary;
   onSelectSnippet: (snippetId: string) => void;
+  onUnpinHomeSnippet?: (snippetId: string) => void;
   emptyMessage?: string;
 }
 
@@ -38,6 +39,7 @@ function SnippetCardsSection({
   folders,
   copy,
   onSelectSnippet,
+  onUnpinHomeSnippet,
   emptyMessage,
 }: SnippetCardsSectionProps) {
   if (snippets.length === 0) {
@@ -76,6 +78,7 @@ function SnippetCardsSection({
               folderName={getFolderName(snippet.folderId, folders)}
               copy={copy}
               onSelect={() => onSelectSnippet(snippet.id)}
+              onUnpinHome={onUnpinHomeSnippet ? () => onUnpinHomeSnippet(snippet.id) : undefined}
             />
           ))}
         </ScrollContainer>
@@ -91,6 +94,7 @@ interface SharedSnippetCardsProps {
   folders: FolderRecord[];
   copy: Dictionary;
   onSelectSnippet: (snippetId: string) => void;
+  onPinSnippet?: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
 }
 
 export function PinnedSnippetCards({
@@ -98,6 +102,7 @@ export function PinnedSnippetCards({
   folders,
   copy,
   onSelectSnippet,
+  onPinSnippet,
 }: SharedSnippetCardsProps) {
   const pinnedSnippets = sortSnippetsByUpdatedAtDesc(
     snippets.filter((snippet) => snippet.isPinnedHome)
@@ -111,6 +116,7 @@ export function PinnedSnippetCards({
       folders={folders}
       copy={copy}
       onSelectSnippet={onSelectSnippet}
+      onUnpinHomeSnippet={onPinSnippet ? (snippetId) => void onPinSnippet(snippetId, "home", false) : undefined}
     />
   );
 }

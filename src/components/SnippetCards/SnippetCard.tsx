@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, Folder } from "lucide-react";
+import { Check, Copy, Folder, Pin, PinOff } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 
 import { LANGUAGES } from "@/lib/constants/languages";
@@ -33,9 +33,10 @@ interface SnippetCardProps {
   folderName: string | null;
   copy: Dictionary;
   onSelect: () => void;
+  onUnpinHome?: () => void;
 }
 
-export function SnippetCard({ snippet, folderName, copy, onSelect }: SnippetCardProps) {
+export function SnippetCard({ snippet, folderName, copy, onSelect, onUnpinHome }: SnippetCardProps) {
   const [copied, setCopied] = useState(false);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -57,6 +58,13 @@ export function SnippetCard({ snippet, folderName, copy, onSelect }: SnippetCard
     } catch {
       setCopied(false);
     }
+  };
+
+  const handleUnpinHome = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    onUnpinHome?.();
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -101,7 +109,20 @@ export function SnippetCard({ snippet, folderName, copy, onSelect }: SnippetCard
           </div>
         </div>
 
-        <div className="flex items-center">
+        <div className="flex items-center gap-1">
+          {onUnpinHome && snippet.isPinnedHome && (
+            <button
+              type="button"
+              onClick={handleUnpinHome}
+              className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-white/[0.08] hover:text-foreground"
+              title={copy.contextMenu.unpinHome}
+              aria-label={copy.contextMenu.unpinHome}
+            >
+              <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
+              <PinOff size={14} className="absolute opacity-0 transition-opacity group-hover/unpin:opacity-100" />
+            </button>
+          )}
+
           <button
             type="button"
             onClick={handleCopy}

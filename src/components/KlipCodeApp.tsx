@@ -551,6 +551,7 @@ export default function KlipCodeApp() {
                 folders={folders}
                 copy={copy}
                 onSelectSnippet={setSelectedSnippetId}
+                onPinSnippet={handlePinSnippet}
               />
             </div>
           </main>
