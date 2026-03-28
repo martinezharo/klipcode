@@ -397,14 +397,46 @@ export default function KlipCodeApp() {
       .filter((s) => s.folderId && toDelete.has(s.folderId))
       .map((s) => s.id);
     await Promise.all(snippetIdsToDelete.map((sid) => db.snippets.delete(sid)));
+
+    // If the user is signed in and Supabase is configured, also remove the
+    // corresponding rows from the cloud so the workspace isn't re-populated
+    // from the server on the next sync.
+    if (user && supabaseConfigured && supabase) {
+      try {
+        if (snippetIdsToDelete.length > 0) {
+          await supabase.from("snippets").delete().in("id", snippetIdsToDelete);
+        }
+
+        if (toDelete.size > 0) {
+          await supabase.from("folders").delete().in("id", [...toDelete]);
+        }
+      } catch (err) {
+        // Swallow errors here but keep a console trace for debugging.
+        // Sync will try again later.
+        // eslint-disable-next-line no-console
+        console.error("Failed to delete on cloud:", err);
+      }
+    }
+
     if (selectedSnippetId && snippetIdsToDelete.includes(selectedSnippetId)) {
       setSelectedSnippetId(null);
     }
+
     refreshWorkspace();
   }
 
   async function handleDeleteSnippet(id: string) {
     await db.snippets.delete(id);
+
+    if (user && supabaseConfigured && supabase) {
+      try {
+        await supabase.from("snippets").delete().eq("id", id);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error("Failed to delete snippet on cloud:", err);
+      }
+    }
+
     if (selectedSnippetId === id) setSelectedSnippetId(null);
     refreshWorkspace();
   }
