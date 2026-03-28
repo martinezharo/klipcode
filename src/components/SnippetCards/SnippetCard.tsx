@@ -35,10 +35,11 @@ interface SnippetCardProps {
   copy: Dictionary;
   onSelect: () => void;
   onUnpinHome?: () => void;
+  onTogglePinAside?: (pinned: boolean) => void;
   className?: string;
 }
 
-export function SnippetCard({ snippet, folderName, copy, onSelect, onUnpinHome, className }: SnippetCardProps) {
+export function SnippetCard({ snippet, folderName, copy, onSelect, onUnpinHome, onTogglePinAside, className }: SnippetCardProps) {
   const [copied, setCopied] = useState(false);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -67,6 +68,13 @@ export function SnippetCard({ snippet, folderName, copy, onSelect, onUnpinHome, 
     event.stopPropagation();
 
     onUnpinHome?.();
+  };
+
+  const handleTogglePinAside = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    onTogglePinAside?.(!snippet.isPinnedAside);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -115,6 +123,28 @@ export function SnippetCard({ snippet, folderName, copy, onSelect, onUnpinHome, 
         </div>
 
         <div className="flex items-center gap-1">
+          {onTogglePinAside && (
+            <button
+              type="button"
+              onClick={handleTogglePinAside}
+              className={cn(
+                "group/pin relative flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-white/[0.08] hover:text-foreground transition-opacity",
+                snippet.isPinnedAside ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+              )}
+              title={snippet.isPinnedAside ? copy.contextMenu.unpinAside : copy.contextMenu.pinAside}
+              aria-label={snippet.isPinnedAside ? copy.contextMenu.unpinAside : copy.contextMenu.pinAside}
+            >
+              {snippet.isPinnedAside ? (
+                <>
+                  <Pin size={14} className="transition-opacity group-hover/pin:opacity-0" />
+                  <PinOff size={14} className="absolute opacity-0 transition-opacity group-hover/pin:opacity-100" />
+                </>
+              ) : (
+                <Pin size={14} />
+              )}
+            </button>
+          )}
+
           {onUnpinHome && snippet.isPinnedHome && (
             <button
               type="button"

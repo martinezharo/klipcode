@@ -1,6 +1,9 @@
 "use client";
 
-import { FileCode2, Folder, FolderOpen, Layers } from "lucide-react";
+import { FileCode2, Folder, FolderOpen, Layers, Pin, PinOff } from "lucide-react";
+import type { KeyboardEvent, MouseEvent } from "react";
+
+import { cn } from "@/lib/utils";
 
 import type { Dictionary } from "@/i18n";
 import type { FolderRecord, SnippetRecord } from "@/lib/types";
@@ -29,12 +32,14 @@ function FolderCard({
   subFolderCount,
   copy,
   onClick,
+  onTogglePinAside,
 }: {
   folder: FolderRecord;
   snippetCount: number;
   subFolderCount: number;
   copy: Dictionary;
   onClick: () => void;
+  onTogglePinAside?: (pinned: boolean) => void;
 }) {
   const meta = [
     snippetCount > 0 ? `${snippetCount} ${copy.folderView.snippetLabel}` : null,
@@ -42,28 +47,69 @@ function FolderCard({
   ]
     .filter(Boolean)
     .join(" · ");
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onClick();
+    }
+  };
+
+  const handleTogglePinAside = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    onTogglePinAside?.(!folder.isPinnedAside);
+  };
 
   return (
-    <button
-      type="button"
+    <article
+      role="button"
+      tabIndex={0}
       onClick={onClick}
-      className="group flex min-w-0 items-center gap-3 rounded-xl border border-white/[0.06] bg-surface px-4 py-3 text-left transition-all duration-100 hover:border-white/[0.12] hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+      onKeyDown={handleKeyDown}
+      className="group flex min-w-0 items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-surface px-4 py-3 text-left transition-all duration-100 hover:border-white/[0.12] hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
     >
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] transition-colors group-hover:bg-white/[0.08]">
-        <Folder
-          size={14}
-          className="text-white/35 transition-colors group-hover:text-white/55"
-        />
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] transition-colors group-hover:bg-white/[0.08]">
+          <Folder
+            size={14}
+            className="text-white/35 transition-colors group-hover:text-white/55"
+          />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-[13px] font-medium leading-tight text-foreground">
+            {folder.name}
+          </p>
+          <p className="mt-0.5 text-[11px] text-muted">
+            {meta || copy.folderView.emptyFolder}
+          </p>
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-medium leading-tight text-foreground">
-          {folder.name}
-        </p>
-        <p className="mt-0.5 text-[11px] text-muted">
-          {meta || copy.folderView.emptyFolder}
-        </p>
+
+      <div className="flex items-center gap-2">
+        {onTogglePinAside && (
+          <button
+            type="button"
+            onClick={handleTogglePinAside}
+            className={cn(
+              "group/pin relative flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-white/[0.08] hover:text-foreground transition-opacity",
+              folder.isPinnedAside ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+            )}
+            title={folder.isPinnedAside ? copy.contextMenu.unpinAside : copy.contextMenu.pinAside}
+            aria-label={folder.isPinnedAside ? copy.contextMenu.unpinAside : copy.contextMenu.pinAside}
+          >
+            {folder.isPinnedAside ? (
+              <>
+                <Pin size={14} className="transition-opacity group-hover/pin:opacity-0" />
+                <PinOff size={14} className="absolute opacity-0 transition-opacity group-hover/pin:opacity-100" />
+              </>
+            ) : (
+              <Pin size={14} />
+            )}
+          </button>
+        )}
       </div>
-    </button>
+    </article>
   );
 }
 
@@ -77,6 +123,8 @@ export interface FolderViewProps {
   onSelectSnippet: (snippetId: string) => void;
   onNavigateFolder: (folderId: string) => void;
   onNavigateHome: () => void;
+  onPinSnippet?: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
+  onPinFolder?: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
 }
 
 export function FolderView({
@@ -87,6 +135,8 @@ export function FolderView({
   onSelectSnippet,
   onNavigateFolder,
   onNavigateHome,
+  onPinSnippet,
+  onPinFolder,
 }: FolderViewProps) {
   const isRootSpace = folderId === SPACE_ROOT_ID;
   const currentFolder = isRootSpace ? null : folders.find((f) => f.id === folderId);
@@ -96,11 +146,17 @@ export function FolderView({
 
   const childFolders = folders
     .filter((f) => f.parentId === (isRootSpace ? null : folderId))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => {
+      if (a.isPinnedAside !== b.isPinnedAside) return a.isPinnedAside ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
 
   const folderSnippets = snippets
     .filter((s) => s.folderId === (isRootSpace ? null : folderId))
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    .sort((a, b) => {
+      if (a.isPinnedAside !== b.isPinnedAside) return a.isPinnedAside ? -1 : 1;
+      return b.updatedAt.localeCompare(a.updatedAt);
+    });
 
   const isEmpty = childFolders.length === 0 && folderSnippets.length === 0;
   const folderTitle = isRootSpace ? copy.aside.mySpace : (currentFolder?.name ?? copy.aside.mySpace);
@@ -195,6 +251,7 @@ export function FolderView({
                   subFolderCount={folders.filter((f) => f.parentId === folder.id).length}
                   copy={copy}
                   onClick={() => onNavigateFolder(folder.id)}
+                  onTogglePinAside={onPinFolder ? (pinned) => void onPinFolder(folder.id, "aside", pinned) : undefined}
                 />
               ))}
             </div>
@@ -215,6 +272,7 @@ export function FolderView({
                   folderName={null}
                   copy={copy}
                   onSelect={() => onSelectSnippet(snippet.id)}
+                  onTogglePinAside={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "aside", pinned) : undefined}
                   className="w-full shrink"
                 />
               ))}

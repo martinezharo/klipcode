@@ -609,6 +609,8 @@ export default function KlipCodeApp() {
             onSelectSnippet={setSelectedSnippetId}
             onNavigateFolder={setSelectedFolderId}
             onNavigateHome={() => setSelectedFolderId(SPACE_ROOT_ID)}
+            onPinSnippet={handlePinSnippet}
+            onPinFolder={handlePinFolder}
           />
         ) : (
           <main className="flex-1 overflow-y-auto">
