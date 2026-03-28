@@ -432,6 +432,30 @@ export default function KlipCodeApp() {
     if (user && supabaseConfigured) scheduleCloudSync();
   }
 
+  async function handleMoveFolder(id: string, newParentId: string | null) {
+    const folder = folders.find((f) => f.id === id);
+    if (!folder || folder.parentId === newParentId) return;
+    await db.folders.update(id, {
+      parentId: newParentId,
+      updatedAt: new Date().toISOString(),
+      dirty: true,
+    });
+    refreshWorkspace();
+    if (user && supabaseConfigured) scheduleCloudSync();
+  }
+
+  async function handleMoveSnippet(id: string, newFolderId: string | null) {
+    const snippet = snippets.find((s) => s.id === id);
+    if (!snippet || snippet.folderId === newFolderId) return;
+    await db.snippets.update(id, {
+      folderId: newFolderId,
+      updatedAt: new Date().toISOString(),
+      dirty: true,
+    });
+    refreshWorkspace();
+    if (user && supabaseConfigured) scheduleCloudSync();
+  }
+
   async function handlePaste(targetFolderId: string | null) {
     if (!clipboard) return;
     const timestamp = new Date().toISOString();
@@ -486,6 +510,8 @@ export default function KlipCodeApp() {
         onCut={setClipboard}
         onCopy={(entry) => setClipboard({ ...entry, type: "copy" })}
         onPaste={handlePaste}
+        onMoveFolder={handleMoveFolder}
+        onMoveSnippet={handleMoveSnippet}
       />
 
       <div className="flex flex-1 flex-col overflow-hidden">

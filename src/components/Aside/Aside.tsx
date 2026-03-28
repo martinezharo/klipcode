@@ -50,6 +50,8 @@ export interface AsideProps {
   onCut: (entry: ClipboardEntry) => void;
   onCopy: (entry: ClipboardEntry) => void;
   onPaste: (targetFolderId: string | null) => Promise<void>;
+  onMoveFolder: (id: string, newParentId: string | null) => Promise<void>;
+  onMoveSnippet: (id: string, newFolderId: string | null) => Promise<void>;
 }
 
 /* ─────────────────────────── Internal context ───────────────────────────── */
@@ -75,6 +77,15 @@ interface AsideCtxShape {
   cancelCreateFolder: () => void;
   submitCreateFolder: (parentId: string | null, name: string) => void;
   selectSnippet: (id: string) => void;
+  /* ── Drag & Drop ── */
+  dragging: { type: "folder" | "snippet"; id: string } | null;
+  dragOverId: string | "root" | null;
+  startDrag: (type: "folder" | "snippet", id: string) => void;
+  endDrag: () => void;
+  enterDropTarget: (id: string | "root") => void;
+  dropOnTarget: (targetFolderId: string | null) => void;
+  canDropOnFolder: (folderId: string) => boolean;
+  folders: FolderRecord[];
 }
 
 const AsideCtx = createContext<AsideCtxShape>(null!);
@@ -94,6 +105,21 @@ function sortByPinThenAlpha<T extends { isPinnedAside: boolean }>(
     if (a.isPinnedAside !== b.isPinnedAside) return a.isPinnedAside ? -1 : 1;
     return key(a).localeCompare(key(b));
   });
+}
+
+/** Returns true if `targetId` is `ancestorId` itself or a descendant of it. */
+function isDescendantOrSelf(
+  folders: FolderRecord[],
+  ancestorId: string,
+  targetId: string,
+): boolean {
+  if (targetId === ancestorId) return true;
+  let current = folders.find((f) => f.id === targetId);
+  while (current && current.parentId) {
+    if (current.parentId === ancestorId) return true;
+    current = folders.find((f) => f.id === current!.parentId);
+  }
+  return false;
 }
 
 /* ─────────────────────────── NewFolderInput ─────────────────────────────── */
@@ -219,8 +245,13 @@ function FolderNode({
   }
 
   const paddingLeft = 10 + depth * STEP;
-  const sharedRowClass =
-    "group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] text-muted transition-colors hover:bg-white/[0.04] hover:text-foreground";
+  const isDraggingThis = ctx.dragging?.id === folder.id;
+  const isDropTarget = ctx.dragOverId === folder.id && ctx.canDropOnFolder(folder.id);
+  const sharedRowClass = [
+    "group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] text-muted transition-all duration-100 hover:bg-white/[0.04] hover:text-foreground",
+    isDraggingThis ? "opacity-40" : "",
+    isDropTarget ? "bg-white/[0.07] text-foreground ring-1 ring-inset ring-white/[0.18]" : "",
+  ].filter(Boolean).join(" ");
   const hasChildren = childFolders.length > 0 || childSnippets.length > 0;
 
   return (
@@ -256,8 +287,30 @@ function FolderNode({
       ) : (
         <button
           type="button"
+          draggable
           onClick={() => setIsOpen((v) => !v)}
           onContextMenu={openContextMenu}
+          onDragStart={(e) => {
+            e.stopPropagation();
+            ctx.startDrag("folder", folder.id);
+            e.dataTransfer.effectAllowed = "move";
+          }}
+          onDragEnd={() => ctx.endDrag()}
+          onDragEnter={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            ctx.enterDropTarget(folder.id);
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = ctx.canDropOnFolder(folder.id) ? "move" : "none";
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            ctx.dropOnTarget(folder.id);
+          }}
           className={sharedRowClass}
           style={{ paddingLeft }}
         >
@@ -326,8 +379,11 @@ function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth: number
   const displayName = baseName.endsWith(ext) ? baseName : `${baseName}${ext}`;
 
   const paddingLeft = 10 + depth * STEP + 19;
-  const sharedRowClass =
-    "group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] text-muted transition-colors hover:bg-white/[0.04] hover:text-foreground";
+  const isDraggingThis = ctx.dragging?.id === snippet.id;
+  const sharedRowClass = [
+    "group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] text-muted transition-all duration-100 hover:bg-white/[0.04] hover:text-foreground",
+    isDraggingThis ? "opacity-40" : "",
+  ].filter(Boolean).join(" ");
 
   function openContextMenu(e: React.MouseEvent) {
     e.preventDefault();
@@ -365,8 +421,15 @@ function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth: number
   ) : (
     <button
       type="button"
+      draggable
       onClick={() => ctx.selectSnippet(snippet.id)}
       onContextMenu={openContextMenu}
+      onDragStart={(e) => {
+        e.stopPropagation();
+        ctx.startDrag("snippet", snippet.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragEnd={() => ctx.endDrag()}
       className={sharedRowClass}
       style={{ paddingLeft }}
     >
@@ -400,6 +463,8 @@ export function Aside({
   onCut,
   onCopy,
   onPaste,
+  onMoveFolder,
+  onMoveSnippet,
 }: AsideProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -408,6 +473,8 @@ export function Aside({
     string | null | undefined
   >(undefined);
   const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null);
+  const [dragging, setDragging] = useState<{ type: "folder" | "snippet"; id: string } | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | "root" | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia(`(max-width: ${MOBILE_BP - 1}px)`);
@@ -565,6 +632,26 @@ export function Aside({
 
   /* ── AsideCtx value ────────────────────────────────────────────────────── */
 
+  function canDropOnFolder(folderId: string): boolean {
+    if (!dragging) return false;
+    if (dragging.type === "folder") {
+      return !isDescendantOrSelf(folders, dragging.id, folderId);
+    }
+    return true;
+  }
+
+  function dropOnTarget(targetFolderId: string | null) {
+    if (!dragging) return;
+    if (dragging.type === "folder") {
+      if (targetFolderId !== null && !canDropOnFolder(targetFolderId)) return;
+      void onMoveFolder(dragging.id, targetFolderId);
+    } else {
+      void onMoveSnippet(dragging.id, targetFolderId);
+    }
+    setDragging(null);
+    setDragOverId(null);
+  }
+
   const ctxValue: AsideCtxShape = {
     copy,
     renamingId,
@@ -589,6 +676,15 @@ export function Aside({
       setCreatingFolderParentId(undefined);
     },
     selectSnippet: onSelectSnippet,
+    /* DnD */
+    dragging,
+    dragOverId,
+    startDrag: (type, id) => { setDragging({ type, id }); setDragOverId(null); },
+    endDrag: () => { setDragging(null); setDragOverId(null); },
+    enterDropTarget: (id) => setDragOverId(id),
+    dropOnTarget,
+    canDropOnFolder,
+    folders,
   };
 
   /* ── Tree data ─────────────────────────────────────────────────────────── */
@@ -723,6 +819,24 @@ export function Aside({
                   {unpinnedSnippets.map((snippet) => (
                     <SnippetNode key={snippet.id} snippet={snippet} depth={0} />
                   ))}
+                </div>
+              )}
+
+              {/* Root drop zone — visible only while dragging */}
+              {dragging && (
+                <div
+                  onDragEnter={(e) => { e.preventDefault(); setDragOverId("root"); }}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                  onDrop={(e) => { e.preventDefault(); dropOnTarget(null); }}
+                  className={[
+                    "mx-1 mt-1.5 flex items-center justify-center gap-1.5 rounded-md border border-dashed py-2 text-[11px] transition-all duration-150 select-none",
+                    dragOverId === "root"
+                      ? "border-white/30 bg-white/[0.05] text-white/55"
+                      : "border-white/[0.08] text-white/20",
+                  ].join(" ")}
+                >
+                  <Layers size={11} />
+                  {copy.aside.dropToRoot}
                 </div>
               )}
             </div>
