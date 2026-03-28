@@ -557,6 +557,14 @@ export default function KlipCodeApp() {
               copy={copy}
               syncStatus={snippetStatuses[selectedSnippet.id] ?? "idle"}
               onClose={() => setSelectedSnippetId(null)}
+              onNavigateFolder={(folderId) => {
+                setSelectedSnippetId(null);
+                setSelectedFolderId(folderId);
+              }}
+              onNavigateHome={() => {
+                setSelectedSnippetId(null);
+                setSelectedFolderId(SPACE_ROOT_ID);
+              }}
               onUpdate={handleUpdateSnippet}
             />
           </div>

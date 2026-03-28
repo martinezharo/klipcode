@@ -105,6 +105,8 @@ export interface SnippetEditorProps {
   copy: Dictionary;
   syncStatus: SyncStatus;
   onClose: () => void;
+  onNavigateFolder?: (folderId: string) => void;
+  onNavigateHome?: () => void;
   onUpdate: (snippetId: string, changes: { title?: string; code?: string }) => void;
 }
 
@@ -118,6 +120,8 @@ export function SnippetEditor({
   copy,
   syncStatus,
   onClose,
+  onNavigateFolder,
+  onNavigateHome,
   onUpdate,
 }: SnippetEditorProps) {
   const editorCopy = copy.snippetEditor;
@@ -168,13 +172,13 @@ export function SnippetEditor({
       id: "root",
       label: copy.aside.mySpace,
       icon: <Layers size={12} aria-hidden="true" />,
-      onClick: onClose,
+      onClick: onNavigateHome ? onNavigateHome : onClose,
     },
     ...folderPath.map<BreadcrumbItem>((f) => ({
       id: f.id,
       label: f.name,
       icon: <Folder size={12} aria-hidden="true" />,
-      onClick: onClose,
+      onClick: onNavigateFolder ? () => onNavigateFolder(f.id) : onClose,
     })),
     {
       id: snippet.id,
