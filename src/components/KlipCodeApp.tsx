@@ -21,6 +21,7 @@ import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
 import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
 import { SnippetEditor } from "@/components/SnippetEditor/SnippetEditor";
 import { FolderView } from "@/components/FolderView/FolderView";
+import { SPACE_ROOT_ID } from "@/lib/navigation";
 
 export default function KlipCodeApp() {
   const copy = getDictionary();
@@ -491,7 +492,7 @@ export default function KlipCodeApp() {
   // Clear stale folder selection if the folder no longer exists
   useEffect(() => {
     if (!workspaceQuery.isSuccess) return;
-    if (selectedFolderId && !folders.find((f) => f.id === selectedFolderId)) {
+    if (selectedFolderId && selectedFolderId !== SPACE_ROOT_ID && !folders.find((f) => f.id === selectedFolderId)) {
       setSelectedFolderId(null);
     }
   }, [folders, selectedFolderId, workspaceQuery.isSuccess]);
@@ -511,6 +512,10 @@ export default function KlipCodeApp() {
         onGoHome={() => {
           setSelectedSnippetId(null);
           setSelectedFolderId(null);
+        }}
+        onGoSpace={() => {
+          setSelectedSnippetId(null);
+          setSelectedFolderId(SPACE_ROOT_ID);
         }}
         onNewSnippetAt={handleNewSnippetAt}
         onCreateFolder={handleCreateFolder}
@@ -561,7 +566,7 @@ export default function KlipCodeApp() {
             copy={copy}
             onSelectSnippet={setSelectedSnippetId}
             onNavigateFolder={setSelectedFolderId}
-            onNavigateHome={() => setSelectedFolderId(null)}
+            onNavigateHome={() => setSelectedFolderId(SPACE_ROOT_ID)}
           />
         ) : (
           <main className="flex-1 overflow-y-auto">

@@ -1,10 +1,11 @@
 "use client";
 
-import { ChevronRight, FileCode2, Folder, FolderOpen, Home } from "lucide-react";
+import { ChevronRight, FileCode2, Folder, FolderOpen, Layers } from "lucide-react";
 
 import type { Dictionary } from "@/i18n";
 import type { FolderRecord, SnippetRecord } from "@/lib/types";
 import { SnippetCard } from "@/components/SnippetCards/SnippetCard";
+import { SPACE_ROOT_ID } from "@/lib/navigation";
 
 /* ─────────────────────────── Utils ──────────────────────────────────────── */
 
@@ -86,20 +87,22 @@ export function FolderView({
   onNavigateFolder,
   onNavigateHome,
 }: FolderViewProps) {
-  const currentFolder = folders.find((f) => f.id === folderId);
-  if (!currentFolder) return null;
+  const isRootSpace = folderId === SPACE_ROOT_ID;
+  const currentFolder = isRootSpace ? null : folders.find((f) => f.id === folderId);
+  if (!isRootSpace && !currentFolder) return null;
 
-  const path = getFolderPath(folderId, folders);
+  const path = isRootSpace ? [] : getFolderPath(folderId, folders);
 
   const childFolders = folders
-    .filter((f) => f.parentId === folderId)
+    .filter((f) => f.parentId === (isRootSpace ? null : folderId))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const folderSnippets = snippets
-    .filter((s) => s.folderId === folderId)
+    .filter((s) => s.folderId === (isRootSpace ? null : folderId))
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
   const isEmpty = childFolders.length === 0 && folderSnippets.length === 0;
+  const folderTitle = isRootSpace ? copy.aside.mySpace : (currentFolder?.name ?? copy.aside.mySpace);
 
   const metaParts = [
     childFolders.length > 0
@@ -123,8 +126,8 @@ export function FolderView({
                 onClick={onNavigateHome}
                 className="flex items-center gap-1.5 rounded text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
               >
-                <Home size={13} aria-hidden="true" />
-                <span>{copy.aside.home}</span>
+                <Layers size={13} aria-hidden="true" />
+                <span>{copy.aside.mySpace}</span>
               </button>
             </li>
 
@@ -157,11 +160,15 @@ export function FolderView({
         {/* ── Folder header ──────────────────────────────────────────────── */}
         <div className="flex items-center gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04]">
-            <FolderOpen size={20} className="text-white/40" />
+            {isRootSpace ? (
+              <Layers size={20} className="text-white/40" />
+            ) : (
+              <FolderOpen size={20} className="text-white/40" />
+            )}
           </div>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              {currentFolder.name}
+              {folderTitle}
             </h1>
             {metaParts.length > 0 && (
               <p className="mt-0.5 text-sm text-muted">{metaParts.join(" · ")}</p>

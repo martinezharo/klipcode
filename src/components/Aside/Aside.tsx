@@ -29,6 +29,7 @@ import type { ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import type { FolderRecord, SnippetRecord, ClipboardEntry } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 import { LANGUAGES } from "@/lib/constants/languages";
+import { SPACE_ROOT_ID } from "@/lib/navigation";
 
 /* ─────────────────────────── Props ─────────────────────────────────────── */
 
@@ -39,6 +40,7 @@ export interface AsideProps {
   clipboard: ClipboardEntry | null;
   onSelectSnippet: (snippetId: string) => void;
   onGoHome: () => void;
+  onGoSpace: () => void;
   onNewSnippetAt: (folderId: string | null) => void;
   onCreateFolder: (parentId: string | null, name: string) => Promise<void>;
   onDeleteFolder: (id: string) => Promise<void>;
@@ -471,6 +473,7 @@ export function Aside({
   clipboard,
   onSelectSnippet,
   onGoHome,
+  onGoSpace,
   onNewSnippetAt,
   onCreateFolder,
   onDeleteFolder,
@@ -787,12 +790,16 @@ export function Aside({
           {/* My Space */}
           <div className="flex flex-1 flex-col overflow-hidden px-2">
             <div className="mb-2 flex items-center justify-between px-2">
-              <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={onGoSpace}
+                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-white/[0.04] hover:text-foreground"
+              >
                 <Layers size={12} className="text-white/25" />
                 <span className="text-[11px] font-medium uppercase tracking-wider text-white/35">
                   {copy.aside.mySpace}
                 </span>
-              </div>
+              </button>
               <div className="flex items-center gap-0.5">
                 <button
                   type="button"
