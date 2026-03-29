@@ -22,6 +22,7 @@ export const es = {
   forms: {
     folderTitle: "Nueva carpeta",
     folderName: "Nombre de la carpeta",
+    snippetNamePlaceholder: "Nombre del snippet",
     folderParent: "Carpeta padre",
     folderPinned: "Fijada",
     snippetTitle: "Nuevo snippet",

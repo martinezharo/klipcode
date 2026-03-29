@@ -31,6 +31,7 @@ interface UseContextMenuGroupsArgs {
   onCopy: (entry: ClipboardEntry) => void;
   setRenamingId: (id: string | null) => void;
   setCreatingFolderParentId: (id: string | null | undefined) => void;
+  setCreatingSnippetFolderId: (id: string | null | undefined) => void;
 }
 
 export function useContextMenuGroups({
@@ -49,6 +50,7 @@ export function useContextMenuGroups({
   onCopy,
   setRenamingId,
   setCreatingFolderParentId,
+  setCreatingSnippetFolderId,
 }: UseContextMenuGroupsArgs) {
   return useCallback(
     (target: MenuTarget): ContextMenuGroup[] => {
@@ -69,7 +71,7 @@ export function useContextMenuGroups({
                 id: "new-snippet",
                 label: cm.newSnippet,
                 Icon: FilePlus,
-                onClick: () => { onGoHome(); onNewSnippetAt(null); },
+                onClick: () => setCreatingSnippetFolderId(null),
               },
             ],
           },
@@ -102,7 +104,7 @@ export function useContextMenuGroups({
                 id: "new-snippet",
                 label: cm.newSnippet,
                 Icon: FilePlus,
-                onClick: () => { onGoHome(); onNewSnippetAt(id); },
+                onClick: () => setCreatingSnippetFolderId(id),
               },
             ],
           },
@@ -187,6 +189,6 @@ export function useContextMenuGroups({
 
       return [];
     },
-    [clipboard, copy.contextMenu, folders, snippets, onGoHome, onNewSnippetAt, onPaste, onPinFolder, onPinSnippet, onDeleteFolder, onDeleteSnippet, onCut, onCopy, setRenamingId, setCreatingFolderParentId],
+    [clipboard, copy.contextMenu, folders, snippets, onGoHome, onNewSnippetAt, onPaste, onPinFolder, onPinSnippet, onDeleteFolder, onDeleteSnippet, onCut, onCopy, setRenamingId, setCreatingFolderParentId, setCreatingSnippetFolderId],
   );
 }

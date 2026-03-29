@@ -343,6 +343,41 @@ export default function KlipCodeApp() {
     settleLocally(snippetId);
   }
 
+  async function handleCreateSnippetInline(folderId: string | null, title: string) {
+    const snippetId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+
+    await db.snippets.put({
+      id: snippetId,
+      ownerId: user?.id ?? null,
+      folderId: folderId ?? null,
+      title: title.trim() || "Untitled",
+      language: "javascript",
+      code: "",
+      isPinnedAside: false,
+      isPinnedHome: false,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      dirty: true,
+      lastSyncedAt: null,
+    });
+
+    setSnippetStatuses((currentStatuses) => ({
+      ...currentStatuses,
+      [snippetId]: "editing",
+    }));
+
+    refreshWorkspace();
+    setSelectedSnippetId(snippetId);
+
+    if (user && supabaseConfigured) {
+      scheduleCloudSync();
+      return;
+    }
+
+    settleLocally(snippetId);
+  }
+
   async function handleUpdateSnippet(
     snippetId: string,
     changes: { title?: string; code?: string; language?: string }
@@ -581,6 +616,7 @@ export default function KlipCodeApp() {
           setSelectedFolderId(SPACE_ROOT_ID);
         }}
         onNewSnippetAt={handleNewSnippetAt}
+        onCreateSnippetInline={handleCreateSnippetInline}
         onCreateFolder={handleCreateFolder}
         onDeleteFolder={handleDeleteFolder}
         onDeleteSnippet={handleDeleteSnippet}

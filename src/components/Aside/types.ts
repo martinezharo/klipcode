@@ -14,6 +14,7 @@ export interface AsideProps {
   onGoHome: () => void;
   onGoSpace: () => void;
   onNewSnippetAt: (folderId: string | null) => void;
+  onCreateSnippetInline: (folderId: string | null, title: string) => Promise<void>;
   onCreateFolder: (parentId: string | null, name: string) => Promise<void>;
   onDeleteFolder: (id: string) => Promise<void>;
   onDeleteSnippet: (id: string) => Promise<void>;
@@ -46,6 +47,8 @@ export interface AsideCtxShape {
   renamingId: string | null;
   /** undefined = inactive, null = creating at root, string = inside that folder id */
   creatingFolderParentId: string | null | undefined;
+  /** undefined = inactive, null = creating at root, string = inside that folder id */
+  creatingSnippetFolderId: string | null | undefined;
   openMenu: (target: MenuTarget) => void;
   beginRename: (id: string) => void;
   submitFolderRename: (id: string, value: string) => void;
@@ -54,6 +57,9 @@ export interface AsideCtxShape {
   beginCreateFolder: (parentId: string | null) => void;
   cancelCreateFolder: () => void;
   submitCreateFolder: (parentId: string | null, name: string) => void;
+  beginCreateSnippet: (folderId: string | null) => void;
+  cancelCreateSnippet: () => void;
+  submitCreateSnippet: (folderId: string | null, title: string) => void;
   selectSnippet: (id: string) => void;
   selectFolder: (id: string) => void;
   pinFolder: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
