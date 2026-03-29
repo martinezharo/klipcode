@@ -28,6 +28,7 @@ interface SnippetCardsSectionProps {
   folders: FolderRecord[];
   copy: Dictionary;
   onSelectSnippet: (snippetId: string) => void;
+  onNavigateFolder?: (folderId: string) => void;
   onUnpinHomeSnippet?: (snippetId: string) => void;
   emptyMessage?: string;
 }
@@ -39,6 +40,7 @@ function SnippetCardsSection({
   folders,
   copy,
   onSelectSnippet,
+  onNavigateFolder,
   onUnpinHomeSnippet,
   emptyMessage,
 }: SnippetCardsSectionProps) {
@@ -78,6 +80,11 @@ function SnippetCardsSection({
               folderName={getFolderName(snippet.folderId, folders)}
               copy={copy}
               onSelect={() => onSelectSnippet(snippet.id)}
+              onNavigateFolder={
+                snippet.folderId && onNavigateFolder
+                  ? () => onNavigateFolder(snippet.folderId!)
+                  : undefined
+              }
               onUnpinHome={onUnpinHomeSnippet ? () => onUnpinHomeSnippet(snippet.id) : undefined}
             />
           ))}
@@ -94,6 +101,7 @@ interface SharedSnippetCardsProps {
   folders: FolderRecord[];
   copy: Dictionary;
   onSelectSnippet: (snippetId: string) => void;
+  onNavigateFolder?: (folderId: string) => void;
   onPinSnippet?: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
 }
 
@@ -102,6 +110,7 @@ export function PinnedSnippetCards({
   folders,
   copy,
   onSelectSnippet,
+  onNavigateFolder,
   onPinSnippet,
 }: SharedSnippetCardsProps) {
   const pinnedSnippets = sortSnippetsByUpdatedAtDesc(
@@ -116,6 +125,7 @@ export function PinnedSnippetCards({
       folders={folders}
       copy={copy}
       onSelectSnippet={onSelectSnippet}
+      onNavigateFolder={onNavigateFolder}
       onUnpinHomeSnippet={onPinSnippet ? (snippetId) => void onPinSnippet(snippetId, "home", false) : undefined}
     />
   );
@@ -126,6 +136,7 @@ export function RecentSnippetCards({
   folders,
   copy,
   onSelectSnippet,
+  onNavigateFolder,
 }: SharedSnippetCardsProps) {
   const recentSnippets = sortSnippetsByUpdatedAtDesc(snippets).slice(0, 6);
 
@@ -137,6 +148,7 @@ export function RecentSnippetCards({
       folders={folders}
       copy={copy}
       onSelectSnippet={onSelectSnippet}
+      onNavigateFolder={onNavigateFolder}
       emptyMessage={copy.recentSnippets.empty}
     />
   );

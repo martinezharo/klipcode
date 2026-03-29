@@ -89,6 +89,7 @@ export const es = {
     paste: "Pegar",
     delete: "Eliminar",
     copyContent: "Copiar contenido",
+    moreOptions: "Más opciones",
   },
   languageSelect: {
     searchPlaceholder: "Buscar lenguaje...",

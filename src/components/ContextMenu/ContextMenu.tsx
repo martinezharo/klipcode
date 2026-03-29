@@ -109,7 +109,8 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
                     role="menuitem"
                     disabled={item.disabled}
                     onMouseDown={(e) => e.stopPropagation()}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       item.onClick();
                       onClose();
                     }}

@@ -606,11 +606,21 @@ export default function KlipCodeApp() {
             folders={folders}
             snippets={snippets}
             copy={copy}
+            clipboard={clipboard}
             onSelectSnippet={setSelectedSnippetId}
             onNavigateFolder={setSelectedFolderId}
             onNavigateHome={() => setSelectedFolderId(SPACE_ROOT_ID)}
             onPinSnippet={handlePinSnippet}
             onPinFolder={handlePinFolder}
+            onDeleteSnippet={handleDeleteSnippet}
+            onRenameSnippet={handleRenameSnippet}
+            onCutSnippet={(id) => setClipboard({ type: "cut", itemType: "snippet", id })}
+            onCopySnippet={(id) => setClipboard({ type: "copy", itemType: "snippet", id })}
+            onDeleteFolder={handleDeleteFolder}
+            onRenameFolder={handleRenameFolder}
+            onCutFolder={(id) => setClipboard({ type: "cut", itemType: "folder", id })}
+            onCopyFolder={(id) => setClipboard({ type: "copy", itemType: "folder", id })}
+            onPaste={handlePaste}
           />
         ) : (
           <main className="flex-1 overflow-y-auto">
@@ -627,6 +637,7 @@ export default function KlipCodeApp() {
                 folders={folders}
                 copy={copy}
                 onSelectSnippet={setSelectedSnippetId}
+                onNavigateFolder={setSelectedFolderId}
                 onPinSnippet={handlePinSnippet}
               />
             </div>
