@@ -74,8 +74,8 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
       <span className="flex-1 truncate leading-none">{displayName}</span>
       <ItemActions onMore={openMoreMenu} />
       {snippet.isPinnedAside && (
-        <button
-          type="button"
+        <span
+          role="button"
           title={ctx.copy.aside.unpin}
           className="group/pin shrink-0 rounded p-px text-white/30 transition-colors hover:text-white/70"
           onClick={(e) => {
@@ -85,7 +85,7 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
         >
           <Pin size={10} className="block group-hover/pin:hidden" />
           <PinOff size={10} className="hidden group-hover/pin:block" />
-        </button>
+        </span>
       )}
     </button>
   );
