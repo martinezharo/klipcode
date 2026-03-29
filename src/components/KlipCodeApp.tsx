@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCloudSync } from "@/hooks/useCloudSync";
 import { useWorkspaceMutations } from "@/hooks/useWorkspaceMutations";
 
-import { Header } from "@/components/Header/Header";
+import { AccountToast } from "@/components/AccountToast/AccountToast";
 import { Aside } from "@/components/Aside/Aside";
 import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
 import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
@@ -152,6 +152,8 @@ export default function KlipCodeApp() {
         onPaste={mutations.handlePaste}
         onMoveFolder={mutations.handleMoveFolder}
         onMoveSnippet={mutations.handleMoveSnippet}
+        onSignIn={auth.handleGitHubSignIn}
+        onSignOut={auth.handleSignOut}
         onSelectFolder={(folderId) => {
           setSelectedSnippetId(null);
           setSelectedFolderId(folderId);
@@ -159,15 +161,7 @@ export default function KlipCodeApp() {
       />
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header
-          user={auth.user}
-          authReady={auth.authReady}
-          supabaseConfigured={auth.supabaseConfigured}
-          copy={copy}
-          onSignIn={auth.handleGitHubSignIn}
-          onSignOut={auth.handleSignOut}
-          accountMessage={auth.accountMessage}
-        />
+        <AccountToast message={auth.accountMessage} />
 
         {selectedSnippet ? (
           <div className="flex-1 overflow-hidden">

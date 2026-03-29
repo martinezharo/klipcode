@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { FilePlus, FolderPlus, Home, Layers } from "lucide-react";
 
 import { ContextMenu } from "@/components/ContextMenu/ContextMenu";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 import type { AsideProps, AsideCtxShape, MenuTarget } from "./types";
 import { sortByPinThenAlpha, isDescendantOrSelf } from "./utils";
@@ -42,6 +41,8 @@ export function Aside({
   onMoveFolder,
   onMoveSnippet,
   onSelectFolder,
+  onSignIn,
+  onSignOut,
   isOpen,
   isMobile,
   onSetOpen,
@@ -58,23 +59,6 @@ export function Aside({
   const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null);
   const [dragging, setDragging] = useState<{ type: "folder" | "snippet"; id: string } | null>(null);
   const [dragOverId, setDragOverId] = useState<string | "root" | null>(null);
-
-  /* ── Auth ───────────────────────────────────────────────────────────────── */
-
-  const supabase = getSupabaseBrowserClient();
-
-  const handleSignIn = async () => {
-    if (!supabase) return;
-    await supabase.auth.signInWithOAuth({
-      provider: "github",
-      options: { redirectTo: window.location.origin },
-    });
-  };
-
-  const handleSignOut = async () => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
-  };
 
   /* ── Drag cursor effect ─────────────────────────────────────────────────── */
 
@@ -235,8 +219,8 @@ export function Aside({
           <AsideHeader
             user={user}
             copy={copy}
-            onSignIn={handleSignIn}
-            onSignOut={handleSignOut}
+            onSignIn={onSignIn}
+            onSignOut={onSignOut}
             onCollapse={() => onSetOpen(false)}
           />
 

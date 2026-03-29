@@ -4,6 +4,7 @@ import { getDirtyWorkspace } from "@/lib/db";
 import { fetchCloudWorkspace, syncDirtyWorkspace } from "@/lib/sync";
 import type { Dictionary } from "@/i18n";
 import type { SyncStatus } from "@/lib/types";
+import { DEBOUNCE_MS } from "@/lib/constants/timing";
 
 interface UseCloudSyncOptions {
   user: User | null;
@@ -47,7 +48,7 @@ export function useCloudSync({
     const nextTimer = setTimeout(() => {
       setSnippetStatus(snippetId, "saved-local");
       localStatusTimersRef.current.delete(snippetId);
-    }, 800);
+    }, DEBOUNCE_MS);
 
     localStatusTimersRef.current.set(snippetId, nextTimer);
   }
@@ -98,7 +99,7 @@ export function useCloudSync({
           if (cloudSyncTimerRef.current) clearTimeout(cloudSyncTimerRef.current);
           cloudSyncTimerRef.current = setTimeout(() => {
             void runCloudSync();
-          }, 800);
+          }, DEBOUNCE_MS);
         }
       }
     }
@@ -111,7 +112,7 @@ export function useCloudSync({
 
     cloudSyncTimerRef.current = setTimeout(() => {
       void runCloudSync();
-    }, 800);
+    }, DEBOUNCE_MS);
   }
 
   // Cleanup sync timers on unmount

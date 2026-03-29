@@ -28,6 +28,8 @@ export interface AsideProps {
   onMoveFolder: (id: string, newParentId: string | null) => Promise<void>;
   onMoveSnippet: (id: string, newFolderId: string | null) => Promise<void>;
   onSelectFolder?: (folderId: string) => void;
+  onSignIn: () => void;
+  onSignOut: () => void;
   isOpen: boolean;
   isMobile: boolean;
   onSetOpen: (open: boolean) => void;

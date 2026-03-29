@@ -3,6 +3,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { User } from "@supabase/supabase-js";
 import { db } from "@/lib/db";
 import type { ClipboardEntry, FolderRecord, SnippetRecord, SyncStatus } from "@/lib/types";
+import { DEFAULT_LANGUAGE } from "@/lib/constants/languages";
+import { DEBOUNCE_MS } from "@/lib/constants/timing";
+import { getDictionary } from "@/i18n";
 
 interface UseWorkspaceMutationsOptions {
   user: User | null;
@@ -36,6 +39,7 @@ export function useWorkspaceMutations({
   setSnippetStatus,
 }: UseWorkspaceMutationsOptions) {
   const updateTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const copy = getDictionary();
 
   // Cleanup debounce timers on unmount
   useEffect(() => {
@@ -70,7 +74,7 @@ export function useWorkspaceMutations({
       id: snippetId,
       ownerId: user?.id ?? null,
       folderId: data.folderId || null,
-      title: data.title.trim() || "Untitled",
+      title: data.title.trim() || copy.snippetCard.untitled,
       language: data.language.trim(),
       code: data.code,
       isPinnedAside: false,
@@ -94,8 +98,8 @@ export function useWorkspaceMutations({
       id: snippetId,
       ownerId: user?.id ?? null,
       folderId: folderId ?? null,
-      title: title.trim() || "Untitled",
-      language: "javascript",
+      title: title.trim() || copy.snippetCard.untitled,
+      language: DEFAULT_LANGUAGE,
       code: "",
       isPinnedAside: false,
       isPinnedHome: false,
@@ -136,7 +140,7 @@ export function useWorkspaceMutations({
       } else {
         settleLocally(snippetId);
       }
-    }, 800);
+    }, DEBOUNCE_MS);
 
     updateTimersRef.current.set(snippetId, timer);
   }

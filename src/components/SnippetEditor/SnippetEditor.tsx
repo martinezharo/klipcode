@@ -21,22 +21,8 @@ import type { LanguageId } from "@/lib/constants/languages";
 import type { SnippetRecord, FolderRecord, SyncStatus } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 import { LANGUAGES } from "@/lib/constants/languages";
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ──────────────────────────────────────────────────────────────────────────────
-
-function buildFolderPath(folderId: string | null, folders: FolderRecord[]): FolderRecord[] {
-  if (!folderId) return [];
-  const path: FolderRecord[] = [];
-  let current = folders.find((f) => f.id === folderId);
-  while (current) {
-    path.unshift(current);
-    const parentId = current.parentId;
-    current = parentId ? folders.find((f) => f.id === parentId) : undefined;
-  }
-  return path;
-}
+import { DEBOUNCE_MS } from "@/lib/constants/timing";
+import { getFolderPath } from "@/components/FolderView/utils";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Sync status indicator (top-right of header)
@@ -150,7 +136,7 @@ export function SnippetEditor({
     if (titleTimerRef.current) clearTimeout(titleTimerRef.current);
     titleTimerRef.current = setTimeout(() => {
       onUpdate(snippet.id, { title: next });
-    }, 800);
+    }, DEBOUNCE_MS);
   }
 
   function handleCodeChange(next: string) {
@@ -159,7 +145,7 @@ export function SnippetEditor({
     if (codeTimerRef.current) clearTimeout(codeTimerRef.current);
     codeTimerRef.current = setTimeout(() => {
       onUpdate(snippet.id, { code: next });
-    }, 800);
+    }, DEBOUNCE_MS);
   }
 
   function handleCopy() {
@@ -169,7 +155,7 @@ export function SnippetEditor({
   }
 
   // ── Folder path for breadcrumb ───────────────────────────────────────────
-  const folderPath = buildFolderPath(snippet.folderId, folders);
+  const folderPath = snippet.folderId ? getFolderPath(snippet.folderId, folders) : [];
 
   const breadcrumbItems: BreadcrumbItem[] = [
     {

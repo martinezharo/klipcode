@@ -6,19 +6,8 @@ import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from
 import { LANGUAGES } from "@/lib/constants/languages";
 import type { Dictionary } from "@/i18n";
 import type { SnippetRecord } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, getSnippetDisplayName } from "@/lib/utils";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
-
-function getDisplayName(snippet: SnippetRecord, untitledLabel: string) {
-  const extension = LANGUAGES.find((language) => language.id === snippet.language)?.extension ?? "";
-  const baseName = snippet.title || untitledLabel;
-
-  if (!extension || baseName.endsWith(extension)) {
-    return baseName;
-  }
-
-  return `${baseName}${extension}`;
-}
 
 function buildPreviewLines(code: string) {
   const lines = code.split("\n").slice(0, 8);
@@ -216,7 +205,7 @@ export function SnippetCard({
     };
   }, []);
 
-  const displayName = getDisplayName(snippet, copy.snippetCard.untitled);
+  const displayName = getSnippetDisplayName(snippet.title, snippet.language, copy.snippetCard.untitled);
   const previewLines = buildPreviewLines(snippet.code);
 
   return (

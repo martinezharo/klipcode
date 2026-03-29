@@ -3,6 +3,7 @@
 import { FileCode2, Pin, PinOff } from "lucide-react";
 import { LANGUAGES } from "@/lib/constants/languages";
 import type { SnippetRecord } from "@/lib/types";
+import { getSnippetDisplayName } from "@/lib/utils";
 import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
 import { STEP } from "./utils";
@@ -11,9 +12,7 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
   const ctx = useAsideCtx();
   const isRenaming = ctx.renamingId === snippet.id;
 
-  const ext = LANGUAGES.find((l) => l.id === snippet.language)?.extension ?? "";
-  const baseName = snippet.title || ctx.copy.snippetCard.untitled;
-  const displayName = baseName.endsWith(ext) ? baseName : `${baseName}${ext}`;
+  const displayName = getSnippetDisplayName(snippet.title, snippet.language, ctx.copy.snippetCard.untitled);
 
   const paddingLeft = 10 + depth * STEP + 19;
   const isDraggingThis = ctx.dragging?.id === snippet.id;
