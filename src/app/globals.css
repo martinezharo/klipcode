@@ -139,7 +139,7 @@ body {
   width: 16px;
 }
 
-/* Ocultar los marcadores por defecto; mostrar on hover del gutter */
+/* Hide the default markers; show them on gutter hover */
 .cm-editor .cm-foldGutter .cm-gutterElement {
   opacity: 0;
   transition: opacity 0.1s ease-in-out;
@@ -150,12 +150,12 @@ body {
   opacity: 1;
 }
 
-/* El marcador colapsado siempre visible */
+/* Keep the collapsed marker always visible */
 .cm-editor .cm-foldGutter .cm-gutterElement:has(.cm-fold-closed) {
   opacity: 1;
 }
 
-/* Placeholder del texto plegado ({...}) */
+/* Placeholder for folded text ({...}) */
 .cm-editor .cm-foldPlaceholder {
   background: transparent !important;
   border: 1px solid rgba(38, 38, 38, 0.85) !important;
@@ -171,7 +171,7 @@ body {
   letter-spacing: 0.14em;
 }
 
-/* Marcadores SVG — mismos iconos que VS Code (codicon-chevron-down / chevron-right) */
+/* SVG markers - same icons as VS Code (codicon-chevron-down / chevron-right) */
 .cm-fold-open,
 .cm-fold-closed {
   display: block;
@@ -182,7 +182,7 @@ body {
   background-size: 16px 16px;
 }
 
-/* Expandido: chevron hacia abajo */
+/* Expanded: chevron down */
 .cm-fold-open {
   background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%23858585'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z'/%3E%3C/svg%3E");
 }
@@ -191,7 +191,7 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%23cccccc'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z'/%3E%3C/svg%3E");
 }
 
-/* Colapsado: chevron hacia la derecha */
+/* Collapsed: chevron right */
 .cm-fold-closed {
   background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg' fill='%23858585'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M10.072 8.024L5.715 3.667l.618-.62L11 7.716v.618L6.333 13l-.618-.619 4.357-4.357z'/%3E%3C/svg%3E");
 }
