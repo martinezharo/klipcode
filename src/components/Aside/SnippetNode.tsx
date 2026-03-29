@@ -56,22 +56,33 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
       />
     </div>
   ) : (
-    <button
-      type="button"
-      draggable
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => ctx.selectSnippet(snippet.id)}
-      onContextMenu={openContextMenu}
-      onDragStart={(e) => {
-        e.stopPropagation();
-        ctx.startDrag("snippet", snippet.id);
-        e.dataTransfer.effectAllowed = "move";
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          ctx.selectSnippet(snippet.id);
+        }
       }}
-      onDragEnd={() => ctx.endDrag()}
-      className={`${sharedRowClass} cursor-grab active:cursor-grabbing`}
+      onContextMenu={openContextMenu}
+      className={sharedRowClass}
       style={{ paddingLeft }}
     >
-      <FileCode2 size={13} className="shrink-0 text-white/20" />
-      <span className="flex-1 truncate leading-none">{displayName}</span>
+      <span
+        draggable
+        onDragStart={(e) => {
+          e.stopPropagation();
+          ctx.startDrag("snippet", snippet.id);
+          e.dataTransfer.effectAllowed = "move";
+        }}
+        onDragEnd={() => ctx.endDrag()}
+        className="flex min-w-0 flex-1 items-center gap-1.5 cursor-grab active:cursor-grabbing"
+      >
+        <FileCode2 size={13} className="shrink-0 text-white/20" />
+        <span className="flex-1 truncate leading-none">{displayName}</span>
+      </span>
       <ItemActions onMore={openMoreMenu} />
       {snippet.isPinnedAside && (
         <span
@@ -87,6 +98,6 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
           <PinOff size={10} className="hidden group-hover/pin:block" />
         </span>
       )}
-    </button>
+    </div>
   );
 }
