@@ -30,7 +30,18 @@ const LANG_COLORS: Record<string, string> = {
   swift:      "#fa7343",
   kotlin:     "#a97bff",
   yaml:       "#cb171e",
+  toml:       "#9c4221",
   xml:        "#0060ac",
+  scss:       "#cc6699",
+  dart:       "#00b4ab",
+  scala:      "#dc322f",
+  groovy:     "#e69f56",
+  lua:        "#000080",
+  haskell:    "#5e5086",
+  erlang:     "#b83998",
+  r:          "#198ce7",
+  powershell: "#5391fe",
+  dockerfile: "#0db7ed",
   plaintext:  "#858585",
 };
 

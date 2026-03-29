@@ -27,7 +27,18 @@ export const LANGUAGES = [
   { id: "swift",       label: "Swift",       extension: ".swift" },
   { id: "kotlin",      label: "Kotlin",      extension: ".kt"    },
   { id: "yaml",        label: "YAML",        extension: ".yaml"  },
+  { id: "toml",        label: "TOML",        extension: ".toml"  },
   { id: "xml",         label: "XML",         extension: ".xml"   },
+  { id: "scss",        label: "SCSS",        extension: ".scss"  },
+  { id: "dart",        label: "Dart",        extension: ".dart"  },
+  { id: "scala",       label: "Scala",       extension: ".scala" },
+  { id: "groovy",      label: "Groovy",      extension: ".groovy"},
+  { id: "lua",         label: "Lua",         extension: ".lua"   },
+  { id: "haskell",     label: "Haskell",     extension: ".hs"    },
+  { id: "erlang",      label: "Erlang",      extension: ".erl"   },
+  { id: "r",           label: "R",           extension: ".r"     },
+  { id: "powershell",  label: "PowerShell",  extension: ".ps1"   },
+  { id: "dockerfile",  label: "Dockerfile",  extension: ".dockerfile" },
   { id: "plaintext",   label: "Plain Text",  extension: ".txt"   },
 ] as const satisfies readonly LanguageConfig[];
 

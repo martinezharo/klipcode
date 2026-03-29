@@ -160,6 +160,94 @@ async function loadExtension(language: string): Promise<Extension[]> {
       extensions = [StreamLanguage.define(kotlin)];
       break;
     }
+    case "dart": {
+      const [{ StreamLanguage }, { dart }] = await Promise.all([
+        import("@codemirror/language"),
+        import("@codemirror/legacy-modes/mode/clike"),
+      ]);
+      extensions = [StreamLanguage.define(dart)];
+      break;
+    }
+    case "scala": {
+      const [{ StreamLanguage }, { scala }] = await Promise.all([
+        import("@codemirror/language"),
+        import("@codemirror/legacy-modes/mode/clike"),
+      ]);
+      extensions = [StreamLanguage.define(scala)];
+      break;
+    }
+    case "groovy": {
+      const [{ StreamLanguage }, { groovy }] = await Promise.all([
+        import("@codemirror/language"),
+        import("@codemirror/legacy-modes/mode/groovy"),
+      ]);
+      extensions = [StreamLanguage.define(groovy)];
+      break;
+    }
+    case "lua": {
+      const [{ StreamLanguage }, { lua }] = await Promise.all([
+        import("@codemirror/language"),
+        import("@codemirror/legacy-modes/mode/lua"),
+      ]);
+      extensions = [StreamLanguage.define(lua)];
+      break;
+    }
+    case "haskell": {
+      const [{ StreamLanguage }, { haskell }] = await Promise.all([
+        import("@codemirror/language"),
+        import("@codemirror/legacy-modes/mode/haskell"),
+      ]);
+      extensions = [StreamLanguage.define(haskell)];
+      break;
+    }
+    case "erlang": {
+      const [{ StreamLanguage }, { erlang }] = await Promise.all([
+        import("@codemirror/language"),
+        import("@codemirror/legacy-modes/mode/erlang"),
+      ]);
+      extensions = [StreamLanguage.define(erlang)];
+      break;
+    }
+    case "r": {
+      const [{ StreamLanguage }, { r }] = await Promise.all([
+        import("@codemirror/language"),
+        import("@codemirror/legacy-modes/mode/r"),
+      ]);
+      extensions = [StreamLanguage.define(r)];
+      break;
+    }
+    case "powershell": {
+      const [{ StreamLanguage }, { powerShell }] = await Promise.all([
+        import("@codemirror/language"),
+        import("@codemirror/legacy-modes/mode/powershell"),
+      ]);
+      extensions = [StreamLanguage.define(powerShell)];
+      break;
+    }
+    case "toml": {
+      const [{ StreamLanguage }, { toml }] = await Promise.all([
+        import("@codemirror/language"),
+        import("@codemirror/legacy-modes/mode/toml"),
+      ]);
+      extensions = [StreamLanguage.define(toml)];
+      break;
+    }
+    case "scss": {
+      const [{ StreamLanguage }, { sass }] = await Promise.all([
+        import("@codemirror/language"),
+        import("@codemirror/legacy-modes/mode/sass"),
+      ]);
+      extensions = [StreamLanguage.define(sass)];
+      break;
+    }
+    case "dockerfile": {
+      const [{ StreamLanguage }, { dockerFile }] = await Promise.all([
+        import("@codemirror/language"),
+        import("@codemirror/legacy-modes/mode/dockerfile"),
+      ]);
+      extensions = [StreamLanguage.define(dockerFile)];
+      break;
+    }
     default:
       extensions = [];
   }
