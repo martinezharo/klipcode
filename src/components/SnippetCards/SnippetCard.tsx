@@ -9,6 +9,7 @@ import type { SnippetRecord } from "@/lib/types";
 import { cn, getSnippetDisplayName } from "@/lib/utils";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
+import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 
 function buildPreviewLines(code: string) {
   const lines = code.split("\n").slice(0, 8);
@@ -250,66 +251,68 @@ export function SnippetCard({
               className="w-full rounded bg-white/[0.07] px-2 py-0.5 text-sm font-medium text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
             />
           ) : (
-            <h3 className="truncate text-sm font-medium text-foreground">
-              {displayName}
-            </h3>
+            <TruncateTooltip text={displayName} className="block truncate text-sm font-medium text-foreground" placement="bottom" />
           )}
         </div>
 
         <div className="flex items-center gap-1">
           {/* Unpin-from-home button (home view) */}
           {onUnpinHome && snippet.isPinnedHome && (
-            <button
-              type="button"
-              onClick={handleUnpinHome}
-              className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-white/[0.08] hover:text-foreground"
-              title={cm.unpinHome}
-              aria-label={cm.unpinHome}
-            >
-              <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
-              <PinOff size={14} className="absolute opacity-0 transition-opacity group-hover/unpin:opacity-100" />
-            </button>
+            <Tooltip content={cm.unpinHome} placement="bottom">
+              <button
+                type="button"
+                onClick={handleUnpinHome}
+                className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-white/[0.08] hover:text-foreground"
+                aria-label={cm.unpinHome}
+              >
+                <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
+                <PinOff size={14} className="absolute opacity-0 transition-opacity group-hover/unpin:opacity-100" />
+              </button>
+            </Tooltip>
           )}
 
           {/* Unpin-from-aside button (folder view) */}
           {onUnpinAside && snippet.isPinnedAside && (
-            <button
-              type="button"
-              onClick={handleUnpinAside}
-              className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-white/[0.08] hover:text-foreground"
-              title={cm.unpinAside}
-              aria-label={cm.unpinAside}
-            >
-              <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
-              <PinOff size={14} className="absolute opacity-0 transition-opacity group-hover/unpin:opacity-100" />
-            </button>
+            <Tooltip content={cm.unpinAside} placement="bottom">
+              <button
+                type="button"
+                onClick={handleUnpinAside}
+                className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-white/[0.08] hover:text-foreground"
+                aria-label={cm.unpinAside}
+              >
+                <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
+                <PinOff size={14} className="absolute opacity-0 transition-opacity group-hover/unpin:opacity-100" />
+              </button>
+            </Tooltip>
           )}
 
           {/* Three-dot context menu button */}
           {hasMenu && (
-            <button
-              type="button"
-              onClick={handleMoreClick}
-              className={cn(
-                "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-white/[0.08] hover:text-foreground",
-                menuAnchor ? "opacity-100 bg-white/[0.08] text-foreground" : "opacity-100",
-              )}
-              title={cm.moreOptions}
-              aria-label={cm.moreOptions}
-            >
-              <MoreHorizontal size={14} />
-            </button>
+            <Tooltip content={cm.moreOptions} placement="bottom">
+              <button
+                type="button"
+                onClick={handleMoreClick}
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-white/[0.08] hover:text-foreground",
+                  menuAnchor ? "opacity-100 bg-white/[0.08] text-foreground" : "opacity-100",
+                )}
+                aria-label={cm.moreOptions}
+              >
+                <MoreHorizontal size={14} />
+              </button>
+            </Tooltip>
           )}
 
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-white/[0.08] hover:text-foreground"
-            title={cm.copyContent}
-            aria-label={cm.copyContent}
-          >
-            {copied ? <Check size={14} /> : <Copy size={14} />}
-          </button>
+          <Tooltip content={cm.copyContent} placement="bottom">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-white/[0.08] hover:text-foreground"
+              aria-label={cm.copyContent}
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+            </button>
+          </Tooltip>
         </div>
       </div>
 

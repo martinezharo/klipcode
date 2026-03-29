@@ -3,6 +3,7 @@
 import { ChevronsLeft, LogOut } from "lucide-react";
 import type { Dictionary } from "@/i18n";
 import type { User } from "@supabase/supabase-js";
+import { Tooltip } from "@/ui/Tooltip";
 import { GitHubIcon } from "./GitHubIcon";
 
 export function AsideHeader({
@@ -35,13 +36,15 @@ export function AsideHeader({
                 {user.user_metadata.full_name || user.email?.split("@")[0]}
               </span>
             </div>
-            <button
-              onClick={onSignOut}
-              className="shrink-0 rounded p-1 text-white/25 transition-colors hover:bg-white/[0.1] hover:text-white/60"
-              title={copy.auth.signOut}
-            >
-              <LogOut size={12} />
-            </button>
+            <Tooltip content={copy.auth.signOut} placement="bottom">
+              <button
+                onClick={onSignOut}
+                className="shrink-0 rounded p-1 text-white/25 transition-colors hover:bg-white/[0.1] hover:text-white/60"
+                aria-label={copy.auth.signOut}
+              >
+                <LogOut size={12} />
+              </button>
+            </Tooltip>
           </div>
         ) : (
           <button
@@ -55,14 +58,16 @@ export function AsideHeader({
           </button>
         )}
 
-        <button
-          type="button"
-          title={copy.aside.collapse}
-          onClick={onCollapse}
-          className="shrink-0 rounded-md p-1.5 text-white/20 transition-colors hover:bg-white/[0.06] hover:text-white/60"
-        >
-          <ChevronsLeft size={14} />
-        </button>
+        <Tooltip content={copy.aside.collapse} placement="bottom">
+          <button
+            type="button"
+            onClick={onCollapse}
+            className="shrink-0 rounded-md p-1.5 text-white/20 transition-colors hover:bg-white/[0.06] hover:text-white/60"
+            aria-label={copy.aside.collapse}
+          >
+            <ChevronsLeft size={14} />
+          </button>
+        </Tooltip>
       </div>
     </div>
   );

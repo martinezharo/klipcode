@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Folder, FolderOpen, Pin, PinOff } from "lucide-react";
 import type { FolderRecord, SnippetRecord } from "@/lib/types";
+import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
 import { NewFolderInput } from "./NewFolderInput";
@@ -128,21 +129,22 @@ export function FolderNode({
             ctx.dropOnTarget(folder.id);
           }}
         >
-          <button
-            type="button"
-            className="flex h-4 w-4 shrink-0 items-center justify-center text-white/25 transition-colors hover:text-white/45"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsOpen((value) => !value);
-            }}
-            title={ctx.copy.aside.toggleFolder}
-            aria-label={ctx.copy.aside.toggleFolder}
-          >
-            <ChevronRight
-              size={13}
-              className={`transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
-            />
-          </button>
+          <Tooltip content={ctx.copy.aside.toggleFolder}>
+            <button
+              type="button"
+              className="flex h-4 w-4 shrink-0 items-center justify-center text-white/25 transition-colors hover:text-white/45"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen((value) => !value);
+              }}
+              aria-label={ctx.copy.aside.toggleFolder}
+            >
+              <ChevronRight
+                size={13}
+                className={`transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
+              />
+            </button>
+          </Tooltip>
 
           <button
             type="button"
@@ -160,25 +162,28 @@ export function FolderNode({
             ) : (
               <Folder size={13} className="shrink-0 text-white/25" />
             )}
-            <span className="flex-1 truncate leading-none">{folder.name}</span>
+            <TruncateTooltip text={folder.name} className="flex-1 truncate leading-none" />
           </button>
 
           <ItemActions
             onMore={openMoreMenu}
+            label={ctx.copy.contextMenu.moreOptions}
           />
           {folder.isPinnedAside && (
-            <button
-              type="button"
-              title={ctx.copy.aside.unpin}
-              className="group/pin shrink-0 rounded p-px text-white/30 transition-colors hover:text-white/70"
-              onClick={(e) => {
-                e.stopPropagation();
-                void ctx.pinFolder(folder.id, "aside", false);
-              }}
-            >
-              <Pin size={10} className="block group-hover/pin:hidden" />
-              <PinOff size={10} className="hidden group-hover/pin:block" />
-            </button>
+            <Tooltip content={ctx.copy.aside.unpin}>
+              <button
+                type="button"
+                aria-label={ctx.copy.aside.unpin}
+                className="group/pin shrink-0 rounded p-px text-white/30 transition-colors hover:text-white/70"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void ctx.pinFolder(folder.id, "aside", false);
+                }}
+              >
+                <Pin size={10} className="block group-hover/pin:hidden" />
+                <PinOff size={10} className="hidden group-hover/pin:block" />
+              </button>
+            </Tooltip>
           )}
         </div>
       )}

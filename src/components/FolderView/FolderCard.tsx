@@ -8,6 +8,7 @@ import type { Dictionary } from "@/i18n";
 import type { FolderRecord } from "@/lib/types";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
+import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 
 /* ─────────────────── Menu builder ───────────────────────────────────────── */
 
@@ -201,9 +202,7 @@ export function FolderCard({
             />
           ) : (
             <>
-              <p className="truncate text-[13px] font-medium leading-tight text-foreground">
-                {folder.name}
-              </p>
+              <TruncateTooltip text={folder.name} className="block truncate text-[13px] font-medium leading-tight text-foreground" placement="bottom" />
               <p className="mt-0.5 text-[11px] text-muted">
                 {meta || copy.folderView.emptyFolder}
               </p>
@@ -214,35 +213,37 @@ export function FolderCard({
 
       <div className="flex items-center gap-2">
         {folder.isPinnedAside && onPinAside && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onPinAside(false);
-            }}
-            className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-white/[0.08] hover:text-foreground"
-            title={cm.unpinAside}
-            aria-label={cm.unpinAside}
-          >
-            <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
-            <PinOff size={14} className="absolute opacity-0 transition-opacity group-hover/unpin:opacity-100" />
-          </button>
+          <Tooltip content={cm.unpinAside} placement="bottom">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onPinAside(false);
+              }}
+              className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-white/[0.08] hover:text-foreground"
+              aria-label={cm.unpinAside}
+            >
+              <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
+              <PinOff size={14} className="absolute opacity-0 transition-opacity group-hover/unpin:opacity-100" />
+            </button>
+          </Tooltip>
         )}
 
         {hasMenu && (
-          <button
-            type="button"
-            onClick={handleMoreClick}
-            className={cn(
-              "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-white/[0.08] hover:text-foreground",
-              menuAnchor ? "opacity-100 bg-white/[0.08] text-foreground" : "opacity-100",
-            )}
-            title={cm.moreOptions}
-            aria-label={cm.moreOptions}
-          >
-            <MoreHorizontal size={14} />
-          </button>
+          <Tooltip content={cm.moreOptions} placement="bottom">
+            <button
+              type="button"
+              onClick={handleMoreClick}
+              className={cn(
+                "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-white/[0.08] hover:text-foreground",
+                menuAnchor ? "opacity-100 bg-white/[0.08] text-foreground" : "opacity-100",
+              )}
+              aria-label={cm.moreOptions}
+            >
+              <MoreHorizontal size={14} />
+            </button>
+          </Tooltip>
         )}
       </div>
 

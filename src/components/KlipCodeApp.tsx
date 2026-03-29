@@ -8,6 +8,7 @@ import { readWorkspace } from "@/lib/db";
 import type { ClipboardEntry } from "@/lib/types";
 import { getDictionary } from "@/i18n";
 import { SPACE_ROOT_ID } from "@/lib/navigation";
+import { Tooltip } from "@/ui/Tooltip";
 
 import { useResponsiveSidebar } from "@/hooks/useResponsiveSidebar";
 import { useAuth } from "@/hooks/useAuth";
@@ -107,14 +108,16 @@ export default function KlipCodeApp() {
   }
 
   const menuButton = !sidebarOpen ? (
-    <button
-      type="button"
-      title={copy.aside.open}
-      onClick={() => setSidebarOpen(true)}
-      className="shrink-0 rounded-md p-1.5 text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white/70"
-    >
-      <Menu size={16} />
-    </button>
+    <Tooltip content={copy.aside.open} placement="bottom">
+      <button
+        type="button"
+        aria-label={copy.aside.open}
+        onClick={() => setSidebarOpen(true)}
+        className="shrink-0 rounded-md p-1.5 text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white/70"
+      >
+        <Menu size={16} />
+      </button>
+    </Tooltip>
   ) : null;
 
   /* ── Render ───────────────────────────────────────────────────────────── */

@@ -17,6 +17,7 @@ import {
 import { Editor } from "@/components/Editor/Editor";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
 import { LanguageSelect } from "@/ui/LanguageSelect";
+import { Tooltip } from "@/ui/Tooltip";
 import type { LanguageId } from "@/lib/constants/languages";
 import type { SnippetRecord, FolderRecord, SyncStatus } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
@@ -195,14 +196,16 @@ export function SnippetEditor({
         copy={copy.languageSelect}
       />
       <div className="h-4 w-px bg-white/[0.08]" />
-      <button
-        type="button"
-        title={editorCopy.copyCode}
-        onClick={handleCopy}
-        className="flex items-center justify-center rounded p-1.5 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-white/70"
-      >
-        {copied ? <Check size={13} /> : <Copy size={13} />}
-      </button>
+      <Tooltip content={editorCopy.copyCode} placement="bottom">
+        <button
+          type="button"
+          aria-label={editorCopy.copyCode}
+          onClick={handleCopy}
+          className="flex items-center justify-center rounded p-1.5 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-white/70"
+        >
+          {copied ? <Check size={13} /> : <Copy size={13} />}
+        </button>
+      </Tooltip>
     </>
   );
 

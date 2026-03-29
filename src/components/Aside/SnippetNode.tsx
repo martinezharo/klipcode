@@ -4,6 +4,7 @@ import { FileCode2, Pin, PinOff } from "lucide-react";
 import { LANGUAGES } from "@/lib/constants/languages";
 import type { SnippetRecord } from "@/lib/types";
 import { getSnippetDisplayName } from "@/lib/utils";
+import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
 import { STEP } from "./utils";
@@ -80,22 +81,24 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
         className="flex min-w-0 flex-1 items-center gap-1.5 cursor-grab active:cursor-grabbing"
       >
         <FileCode2 size={13} className="shrink-0 text-white/20" />
-        <span className="flex-1 truncate leading-none">{displayName}</span>
+        <TruncateTooltip text={displayName} className="flex-1 truncate leading-none" />
       </span>
-      <ItemActions onMore={openMoreMenu} />
+      <ItemActions onMore={openMoreMenu} label={ctx.copy.contextMenu.moreOptions} />
       {snippet.isPinnedAside && (
-        <span
-          role="button"
-          title={ctx.copy.aside.unpin}
-          className="group/pin shrink-0 rounded p-px text-white/30 transition-colors hover:text-white/70"
-          onClick={(e) => {
-            e.stopPropagation();
-            void ctx.pinSnippet(snippet.id, "aside", false);
-          }}
-        >
-          <Pin size={10} className="block group-hover/pin:hidden" />
-          <PinOff size={10} className="hidden group-hover/pin:block" />
-        </span>
+        <Tooltip content={ctx.copy.aside.unpin}>
+          <span
+            role="button"
+            aria-label={ctx.copy.aside.unpin}
+            className="group/pin shrink-0 rounded p-px text-white/30 transition-colors hover:text-white/70"
+            onClick={(e) => {
+              e.stopPropagation();
+              void ctx.pinSnippet(snippet.id, "aside", false);
+            }}
+          >
+            <Pin size={10} className="block group-hover/pin:hidden" />
+            <PinOff size={10} className="hidden group-hover/pin:block" />
+          </span>
+        </Tooltip>
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import { FilePlus, FolderPlus, Home, Layers } from "lucide-react";
 
 import { ContextMenu } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
+import { Tooltip } from "@/ui/Tooltip";
 
 import type { AsideProps, AsideCtxShape, MenuTarget } from "./types";
 import { sortByPinThenAlpha } from "./utils";
@@ -219,22 +220,26 @@ export function Aside({
                 </span>
               </button>
               <div className="flex items-center gap-0.5">
-                <button
-                  type="button"
-                  title={copy.aside.addSnippet}
-                  onClick={() => setCreatingSnippetFolderId(null)}
-                  className="rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
-                >
-                  <FilePlus size={13} />
-                </button>
-                <button
-                  type="button"
-                  title={copy.aside.addFolder}
-                  onClick={() => setCreatingFolderParentId(null)}
-                  className="rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
-                >
-                  <FolderPlus size={13} />
-                </button>
+                <Tooltip content={copy.aside.addSnippet} placement="bottom">
+                  <button
+                    type="button"
+                    aria-label={copy.aside.addSnippet}
+                    onClick={() => setCreatingSnippetFolderId(null)}
+                    className="rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
+                  >
+                    <FilePlus size={13} />
+                  </button>
+                </Tooltip>
+                <Tooltip content={copy.aside.addFolder} placement="bottom">
+                  <button
+                    type="button"
+                    aria-label={copy.aside.addFolder}
+                    onClick={() => setCreatingFolderParentId(null)}
+                    className="rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
+                  >
+                    <FolderPlus size={13} />
+                  </button>
+                </Tooltip>
               </div>
             </div>
 
