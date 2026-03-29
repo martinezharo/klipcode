@@ -186,15 +186,36 @@ export function Aside({
         />
       )}
 
-      {isOpen && isMobile && (
-        <div className="fixed inset-0 z-40 bg-black/50" onClick={() => onSetOpen(false)} />
-      )}
+      {/* Mobile backdrop */}
+      <div
+        aria-hidden="true"
+        onClick={() => onSetOpen(false)}
+        className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 ease-in-out${
+          isOpen && isMobile ? " opacity-100" : " pointer-events-none opacity-0"
+        }`}
+      />
 
-      {isOpen && (
+      {/* Desktop: width-animating wrapper | Mobile: display:contents passthrough */}
+      <div
+        className={
+          isMobile
+            ? "contents"
+            : `overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]${
+                isOpen ? " w-[240px]" : " w-0"
+              }`
+        }
+      >
         <aside
-          className={`flex h-screen w-[240px] shrink-0 flex-col border-r border-white/[0.06] bg-surface${
-            isMobile ? " fixed inset-y-0 left-0 z-50 shadow-2xl" : ""
-          }`}
+          className={[
+            "flex h-screen w-[240px] shrink-0 flex-col border-r border-white/[0.06] bg-surface",
+            isMobile
+              ? `fixed inset-y-0 left-0 z-50 shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+                  isOpen ? "translate-x-0" : "-translate-x-full"
+                }`
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
           <AsideHeader
             user={user}
@@ -303,7 +324,7 @@ export function Aside({
             </div>
           </div>
         </aside>
-      )}
+      </div>
     </AsideCtx.Provider>
   );
 }
