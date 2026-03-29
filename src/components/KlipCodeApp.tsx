@@ -17,6 +17,7 @@ import { useWorkspaceMutations } from "@/hooks/useWorkspaceMutations";
 
 import { AccountToast } from "@/components/AccountToast/AccountToast";
 import { Aside } from "@/components/Aside/Aside";
+import { ConfirmDialog } from "@/components/ConfirmDialog/ConfirmDialog";
 import { DragProvider } from "@/components/DragContext";
 import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
 import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
@@ -60,6 +61,12 @@ export default function KlipCodeApp() {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [clipboard, setClipboard] = useState<ClipboardEntry | null>(null);
   const [defaultNewSnippetFolderId, setDefaultNewSnippetFolderId] = useState<string | null>(null);
+  const [pendingDeleteFolder, setPendingDeleteFolder] = useState<{
+    id: string;
+    name: string;
+    nestedFolderCount: number;
+    snippetCount: number;
+  } | null>(null);
 
   /* ── Workspace data ───────────────────────────────────────────────────── */
 
@@ -107,6 +114,33 @@ export default function KlipCodeApp() {
     setDefaultNewSnippetFolderId(folderId);
   }
 
+  async function handleDeleteFolderWithConfirm(id: string): Promise<void> {
+    const folder = folders.find((f) => f.id === id);
+    if (!folder) return;
+
+    const folderSet = new Set<string>([id]);
+    const queue = [id];
+    while (queue.length > 0) {
+      const cur = queue.shift()!;
+      for (const f of folders) {
+        if (f.parentId === cur && !folderSet.has(f.id)) {
+          folderSet.add(f.id);
+          queue.push(f.id);
+        }
+      }
+    }
+
+    const nestedFolderCount = folderSet.size - 1;
+    const snippetCount = snippets.filter((s) => s.folderId && folderSet.has(s.folderId)).length;
+
+    if (nestedFolderCount === 0 && snippetCount === 0) {
+      await mutations.handleDeleteFolder(id);
+      return;
+    }
+
+    setPendingDeleteFolder({ id, name: folder.name, nestedFolderCount, snippetCount });
+  }
+
   const menuButton = !sidebarOpen ? (
     <Tooltip content={copy.aside.open} placement="bottom">
       <button
@@ -150,7 +184,7 @@ export default function KlipCodeApp() {
         onNewSnippetAt={handleNewSnippetAt}
         onCreateSnippetInline={mutations.handleCreateSnippetInline}
         onCreateFolder={mutations.handleCreateFolder}
-        onDeleteFolder={mutations.handleDeleteFolder}
+        onDeleteFolder={handleDeleteFolderWithConfirm}
         onDeleteSnippet={mutations.handleDeleteSnippet}
         onRenameFolder={mutations.handleRenameFolder}
         onRenameSnippet={mutations.handleRenameSnippet}
@@ -209,7 +243,7 @@ export default function KlipCodeApp() {
             onRenameSnippet={mutations.handleRenameSnippet}
             onCutSnippet={(id) => setClipboard({ type: "cut", itemType: "snippet", id })}
             onCopySnippet={(id) => setClipboard({ type: "copy", itemType: "snippet", id })}
-            onDeleteFolder={mutations.handleDeleteFolder}
+            onDeleteFolder={handleDeleteFolderWithConfirm}
             onRenameFolder={mutations.handleRenameFolder}
             onCutFolder={(id) => setClipboard({ type: "cut", itemType: "folder", id })}
             onCopyFolder={(id) => setClipboard({ type: "copy", itemType: "folder", id })}
@@ -250,6 +284,20 @@ export default function KlipCodeApp() {
         )}
       </div>
     </div>
+
+    {pendingDeleteFolder && (
+      <ConfirmDialog
+        copy={copy.confirmDeleteFolder}
+        folderName={pendingDeleteFolder.name}
+        nestedFolderCount={pendingDeleteFolder.nestedFolderCount}
+        snippetCount={pendingDeleteFolder.snippetCount}
+        onCancel={() => setPendingDeleteFolder(null)}
+        onConfirm={() => {
+          void mutations.handleDeleteFolder(pendingDeleteFolder.id);
+          setPendingDeleteFolder(null);
+        }}
+      />
+    )}
     </DragProvider>
   );
 }

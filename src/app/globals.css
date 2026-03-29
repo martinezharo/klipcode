@@ -78,6 +78,15 @@ body {
   transform-origin: var(--kb-origin, top left);
 }
 
+@keyframes klipcode-dialog-in {
+  from { opacity: 0; transform: scale(0.95) translateY(4px); }
+  to   { opacity: 1; transform: scale(1)   translateY(0); }
+}
+
+.klipcode-dialog-animate {
+  animation: klipcode-dialog-in 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 @keyframes klipcode-tooltip-in {
   from { opacity: 0; transform: scale(0.97); }
   to { opacity: 1; transform: scale(1); }

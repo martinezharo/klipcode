@@ -125,4 +125,14 @@ export const es = {
     copyCode: "Copiar código",
     codeCopied: "¡Copiado!",
   },
+  confirmDeleteFolder: {
+    title: "Eliminar carpeta",
+    permanentWarning: "Esta acción es permanente y no se puede deshacer.",
+    containsFolders: (n: number) =>
+      n === 1 ? "1 carpeta interna" : `${n} carpetas internas`,
+    containsSnippets: (n: number) =>
+      n === 1 ? "1 snippet" : `${n} snippets`,
+    cancel: "Cancelar",
+    confirm: "Eliminar permanentemente",
+  },
 } as const;
