@@ -23,7 +23,7 @@ const LANG_COLORS: Record<string, string> = {
   cpp:        "#f34b7d",
   c:          "#a8a8a8",
   csharp:     "#178600",
-  php:        "#4f5d95",
+  php:        "#787cb4",
   ruby:       "#701516",
   swift:      "#fa7343",
   kotlin:     "#a97bff",
