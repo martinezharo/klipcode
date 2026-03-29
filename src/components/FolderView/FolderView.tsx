@@ -1,7 +1,7 @@
 "use client";
 
 import { Clipboard, Copy, FileCode2, Folder, FolderOpen, Layers, MoreHorizontal, PenLine, Pin, PinOff, Scissors, Trash2 } from "lucide-react";
-import { useState, type KeyboardEvent, type MouseEvent } from "react";
+import { useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -195,26 +195,37 @@ function FolderCard({
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Clickable unpin-from-aside button */}
+        {folder.isPinnedAside && onPinAside && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onPinAside(false);
+            }}
+            className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-white/[0.08] hover:text-foreground"
+            title={cm.unpinAside}
+            aria-label={cm.unpinAside}
+          >
+            <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
+            <PinOff size={14} className="absolute opacity-0 transition-opacity group-hover/unpin:opacity-100" />
+          </button>
+        )}
+
         {hasMenu && (
-          <>
-            {folder.isPinnedAside && (
-              <span className="flex h-6 w-6 items-center justify-center text-white/40">
-                <Pin size={14} />
-              </span>
+          <button
+            type="button"
+            onClick={handleMoreClick}
+            className={cn(
+              "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-white/[0.08] hover:text-foreground",
+              menuAnchor ? "opacity-100 bg-white/[0.08] text-foreground" : "opacity-100",
             )}
-            <button
-              type="button"
-              onClick={handleMoreClick}
-              className={cn(
-                "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-white/[0.08] hover:text-foreground",
-                menuAnchor ? "opacity-100 bg-white/[0.08] text-foreground" : "opacity-100",
-              )}
-              title={cm.moreOptions}
-              aria-label={cm.moreOptions}
-            >
-              <MoreHorizontal size={14} />
-            </button>
-          </>
+            title={cm.moreOptions}
+            aria-label={cm.moreOptions}
+          >
+            <MoreHorizontal size={14} />
+          </button>
         )}
       </div>
 
@@ -252,6 +263,7 @@ export interface FolderViewProps {
   onCutFolder?: (id: string) => void;
   onCopyFolder?: (id: string) => void;
   onPaste?: (targetFolderId: string | null) => Promise<void>;
+  menuButton?: ReactNode;
 }
 
 export function FolderView({
@@ -274,6 +286,7 @@ export function FolderView({
   onCutFolder,
   onCopyFolder,
   onPaste,
+  menuButton,
 }: FolderViewProps) {
   const isRootSpace = folderId === SPACE_ROOT_ID;
   const currentFolder = isRootSpace ? null : folders.find((f) => f.id === folderId);
@@ -341,7 +354,7 @@ export function FolderView({
   return (
     <main className="flex-1 overflow-y-auto">
       {/* ── Sticky breadcrumb bar ───────────────────────────────────────── */}
-      <Breadcrumbs items={breadcrumbItems} />
+      <Breadcrumbs items={breadcrumbItems} leading={menuButton} />
 
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 pb-8 pt-6">
         {/* ── Folder header ──────────────────────────────────────────────── */}
@@ -415,6 +428,7 @@ export function FolderView({
                   folderName={null}
                   copy={copy}
                   onSelect={() => onSelectSnippet(snippet.id)}
+                  onUnpinAside={onPinSnippet ? () => void onPinSnippet(snippet.id, "aside", false) : undefined}
                   onPinAside={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "aside", pinned) : undefined}
                   onPinHome={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "home", pinned) : undefined}
                   onRename={onRenameSnippet ? (title) => void onRenameSnippet(snippet.id, title) : undefined}

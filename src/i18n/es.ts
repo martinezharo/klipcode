@@ -99,11 +99,7 @@ export const es = {
     noFolders: "Sin carpetas",
   },
   pinnedToHome: {
-    title: "Fijados",
-  },
-  recentSnippets: {
-    title: "Editados recientemente",
-    empty: "Aun no tienes snippets. Crea tu primero arriba.",
+    title: "Fijados en inicio",
   },
   folderView: {
     breadcrumbLabel: "Navegación de carpetas",

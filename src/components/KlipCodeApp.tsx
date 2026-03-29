@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { Menu } from "lucide-react";
 
 import { db, getDirtyWorkspace, readWorkspace } from "@/lib/db";
 import { fetchCloudWorkspace, reconcileWorkspace, syncDirtyWorkspace } from "@/lib/sync";
@@ -38,11 +39,26 @@ export default function KlipCodeApp() {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [clipboard, setClipboard] = useState<ClipboardEntry | null>(null);
   const [defaultNewSnippetFolderId, setDefaultNewSnippetFolderId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const localStatusTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const updateTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const cloudSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cloudSyncInFlightRef = useRef(false);
   const accountSyncInFlightRef = useRef(false);
+
+  useEffect(() => {
+    const MOBILE_BP = 1024;
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BP - 1}px)`);
+    const apply = (matches: boolean) => {
+      setIsMobile(matches);
+      if (matches) setSidebarOpen(false);
+    };
+    apply(mq.matches);
+    const handler = (e: MediaQueryListEvent) => apply(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   const workspaceQuery = useQuery({
     queryKey: ["workspace", user?.id ?? "guest"],
@@ -533,6 +549,17 @@ export default function KlipCodeApp() {
     ? (snippets.find((s) => s.id === selectedSnippetId) ?? null)
     : null;
 
+  const menuButton = !sidebarOpen ? (
+    <button
+      type="button"
+      title={copy.aside.open}
+      onClick={() => setSidebarOpen(true)}
+      className="shrink-0 rounded-md p-1.5 text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white/70"
+    >
+      <Menu size={16} />
+    </button>
+  ) : null;
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Aside
@@ -541,6 +568,9 @@ export default function KlipCodeApp() {
         snippets={snippets}
         copy={copy}
         clipboard={clipboard}
+        isOpen={sidebarOpen}
+        isMobile={isMobile}
+        onSetOpen={setSidebarOpen}
         onSelectSnippet={setSelectedSnippetId}
         onGoHome={() => {
           setSelectedSnippetId(null);
@@ -598,6 +628,7 @@ export default function KlipCodeApp() {
                 setSelectedFolderId(SPACE_ROOT_ID);
               }}
               onUpdate={handleUpdateSnippet}
+              menuButton={menuButton}
             />
           </div>
         ) : selectedFolderId ? (
@@ -621,9 +652,15 @@ export default function KlipCodeApp() {
             onCutFolder={(id) => setClipboard({ type: "cut", itemType: "folder", id })}
             onCopyFolder={(id) => setClipboard({ type: "copy", itemType: "folder", id })}
             onPaste={handlePaste}
+            menuButton={menuButton}
           />
         ) : (
           <main className="flex-1 overflow-y-auto">
+            {menuButton && (
+              <div className="sticky top-0 z-10 flex h-[44px] items-center border-b border-transparent px-3">
+                {menuButton}
+              </div>
+            )}
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8">
               <NewSnippet
                 copy={copy}
@@ -636,9 +673,15 @@ export default function KlipCodeApp() {
                 snippets={snippets}
                 folders={folders}
                 copy={copy}
+                clipboard={clipboard}
                 onSelectSnippet={setSelectedSnippetId}
                 onNavigateFolder={setSelectedFolderId}
                 onPinSnippet={handlePinSnippet}
+                onDeleteSnippet={handleDeleteSnippet}
+                onRenameSnippet={handleRenameSnippet}
+                onCutSnippet={(id) => setClipboard({ type: "cut", itemType: "snippet", id })}
+                onCopySnippet={(id) => setClipboard({ type: "copy", itemType: "snippet", id })}
+                onPaste={handlePaste}
               />
             </div>
           </main>

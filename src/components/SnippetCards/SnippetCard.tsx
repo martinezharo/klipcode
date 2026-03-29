@@ -37,7 +37,7 @@ interface SnippetCardProps {
   onSelect: () => void;
   onNavigateFolder?: () => void;
   onUnpinHome?: () => void;
-  // Context-menu mode (replaces the old onTogglePinAside hover button)
+  onUnpinAside?: () => void;
   onPinAside?: (pinned: boolean) => void;
   onPinHome?: (pinned: boolean) => void;
   onRename?: (newTitle: string) => void;
@@ -56,6 +56,7 @@ export function SnippetCard({
   onSelect,
   onNavigateFolder,
   onUnpinHome,
+  onUnpinAside,
   onPinAside,
   onPinHome,
   onRename,
@@ -168,6 +169,12 @@ export function SnippetCard({
     onUnpinHome?.();
   };
 
+  const handleUnpinAside = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onUnpinAside?.();
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -267,31 +274,8 @@ export function SnippetCard({
         </div>
 
         <div className="flex items-center gap-1">
-          {/* Context-menu mode */}
-          {hasMenu && (
-            <>
-              {snippet.isPinnedAside && (
-                <span className="flex h-6 w-6 items-center justify-center text-white/40">
-                  <Pin size={14} />
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={handleMoreClick}
-                className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-white/[0.08] hover:text-foreground",
-                  menuAnchor ? "opacity-100 bg-white/[0.08] text-foreground" : "opacity-100",
-                )}
-                title={cm.moreOptions}
-                aria-label={cm.moreOptions}
-              >
-                <MoreHorizontal size={14} />
-              </button>
-            </>
-          )}
-
-          {/* Legacy unpin-home button (Home view, no menu mode) */}
-          {!hasMenu && onUnpinHome && snippet.isPinnedHome && (
+          {/* Unpin-from-home button (home view) */}
+          {onUnpinHome && snippet.isPinnedHome && (
             <button
               type="button"
               onClick={handleUnpinHome}
@@ -301,6 +285,36 @@ export function SnippetCard({
             >
               <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
               <PinOff size={14} className="absolute opacity-0 transition-opacity group-hover/unpin:opacity-100" />
+            </button>
+          )}
+
+          {/* Unpin-from-aside button (folder view) */}
+          {onUnpinAside && snippet.isPinnedAside && (
+            <button
+              type="button"
+              onClick={handleUnpinAside}
+              className="group/unpin relative flex h-6 w-6 items-center justify-center rounded text-muted opacity-100 hover:bg-white/[0.08] hover:text-foreground"
+              title={cm.unpinAside}
+              aria-label={cm.unpinAside}
+            >
+              <Pin size={14} className="transition-opacity group-hover/unpin:opacity-0" />
+              <PinOff size={14} className="absolute opacity-0 transition-opacity group-hover/unpin:opacity-100" />
+            </button>
+          )}
+
+          {/* Three-dot context menu button */}
+          {hasMenu && (
+            <button
+              type="button"
+              onClick={handleMoreClick}
+              className={cn(
+                "flex h-6 w-6 items-center justify-center rounded text-muted transition-all hover:bg-white/[0.08] hover:text-foreground",
+                menuAnchor ? "opacity-100 bg-white/[0.08] text-foreground" : "opacity-100",
+              )}
+              title={cm.moreOptions}
+              aria-label={cm.moreOptions}
+            >
+              <MoreHorizontal size={14} />
             </button>
           )}
 

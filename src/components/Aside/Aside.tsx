@@ -14,7 +14,6 @@ import {
   Home,
   Layers,
   LogOut,
-  Menu,
   MoreHorizontal,
   PenLine,
   Pin,
@@ -67,6 +66,9 @@ export interface AsideProps {
   onMoveFolder: (id: string, newParentId: string | null) => Promise<void>;
   onMoveSnippet: (id: string, newFolderId: string | null) => Promise<void>;
   onSelectFolder?: (folderId: string) => void;
+  isOpen: boolean;
+  isMobile: boolean;
+  onSetOpen: (open: boolean) => void;
 }
 
 /* ─────────────────────────── Internal context ───────────────────────────── */
@@ -510,9 +512,10 @@ export function Aside({
   onMoveFolder,
   onMoveSnippet,
   onSelectFolder,
+  isOpen,
+  isMobile,
+  onSetOpen,
 }: AsideProps) {
-  const [isOpen, setIsOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [creatingFolderParentId, setCreatingFolderParentId] = useState<
     string | null | undefined
@@ -547,17 +550,7 @@ export function Aside({
     };
   }, [dragging]);
 
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${MOBILE_BP - 1}px)`);
-    const apply = (matches: boolean) => {
-      setIsMobile(matches);
-      if (matches) setIsOpen(false);
-    };
-    apply(mq.matches);
-    const handler = (e: MediaQueryListEvent) => apply(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
+
 
   /* ── Menu groups builder ───────────────────────────────────────────────── */
 
@@ -782,25 +775,14 @@ export function Aside({
         />
       )}
 
-      {!isOpen && (
-        <button
-          type="button"
-          title={copy.aside.open}
-          onClick={() => setIsOpen(true)}
-          className="fixed left-4 top-4 z-50 rounded-md p-1.5 text-white/40 transition-colors hover:bg-white/[0.06] hover:text-muted"
-        >
-          <Menu size={16} />
-        </button>
-      )}
-
       {isOpen && isMobile && (
-        <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setIsOpen(false)} />
+        <div className="fixed inset-0 z-40 bg-black/50" onClick={() => onSetOpen(false)} />
       )}
 
       {isOpen && (
         <aside
           className={`flex h-screen w-[240px] shrink-0 flex-col border-r border-white/[0.06] bg-surface${
-            isMobile ? " fixed inset-y-0 left-0 z-50" : ""
+            isMobile ? " fixed inset-y-0 left-0 z-50 shadow-2xl" : ""
           }`}
         >
           {/* Auth Section + Logo + Collapse */}
@@ -843,7 +825,7 @@ export function Aside({
               <button
                 type="button"
                 title={copy.aside.collapse}
-                onClick={() => setIsOpen(false)}
+                onClick={() => onSetOpen(false)}
                 className="shrink-0 rounded-md p-1.5 text-white/20 transition-colors hover:bg-white/[0.06] hover:text-white/60"
               >
                 <ChevronsLeft size={14} />

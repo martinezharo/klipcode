@@ -110,6 +110,7 @@ export interface SnippetEditorProps {
   onNavigateFolder?: (folderId: string) => void;
   onNavigateHome?: () => void;
   onUpdate: (snippetId: string, changes: { title?: string; code?: string; language?: LanguageId }) => void;
+  menuButton?: React.ReactNode;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -125,6 +126,7 @@ export function SnippetEditor({
   onNavigateFolder,
   onNavigateHome,
   onUpdate,
+  menuButton,
 }: SnippetEditorProps) {
   const editorCopy = copy.snippetEditor;
 
@@ -225,6 +227,7 @@ export function SnippetEditor({
       {/* ── Breadcrumb top bar ───────────────────────────────────────────── */}
       <Breadcrumbs
         items={breadcrumbItems}
+        leading={menuButton}
         actions={breadcrumbActions}
         defaultStuck
       />

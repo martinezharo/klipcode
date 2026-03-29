@@ -24,6 +24,8 @@ export interface BreadcrumbItem {
 
 interface BreadcrumbsProps {
   items: BreadcrumbItem[];
+  /** Slot rendered before the breadcrumb trail (e.g. hamburger toggle button). */
+  leading?: React.ReactNode;
   /** Slot rendered to the right of the breadcrumb trail (e.g. action buttons). */
   actions?: React.ReactNode;
   /**
@@ -54,6 +56,7 @@ function findScrollParent(node: HTMLElement): HTMLElement | null {
 
 export function Breadcrumbs({
   items,
+  leading,
   actions,
   defaultStuck = false,
   className,
@@ -94,6 +97,9 @@ export function Breadcrumbs({
         className
       )}
     >
+      {leading && (
+        <div className="flex shrink-0 items-center">{leading}</div>
+      )}
       <ol className="flex flex-1 min-w-0 items-center gap-0.5 overflow-hidden whitespace-nowrap">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
