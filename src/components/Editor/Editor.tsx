@@ -35,6 +35,16 @@ async function loadExtension(language: string): Promise<Extension[]> {
       extensions = [javascript({ typescript: true })];
       break;
     }
+    case "tsx": {
+      const { javascript } = await import("@codemirror/lang-javascript");
+      extensions = [javascript({ jsx: true, typescript: true })];
+      break;
+    }
+    case "jsx": {
+      const { javascript } = await import("@codemirror/lang-javascript");
+      extensions = [javascript({ jsx: true })];
+      break;
+    }
     case "html": {
       const { html } = await import("@codemirror/lang-html");
       extensions = [html()];

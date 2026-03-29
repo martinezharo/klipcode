@@ -9,7 +9,9 @@ import type { Dictionary } from "@/i18n";
 /* Brand-aligned language colors */
 const LANG_COLORS: Record<string, string> = {
   typescript: "#3178c6",
+  tsx:        "#3178c6",
   javascript: "#f0db4f",
+  jsx:        "#61dafb",
   html:       "#e34c26",
   css:        "#563d7c",
   python:     "#3572a5",

@@ -6,7 +6,9 @@ export interface LanguageConfig {
 
 export const LANGUAGES = [
   { id: "typescript",  label: "TypeScript",  extension: ".ts"    },
+  { id: "tsx",         label: "TSX",         extension: ".tsx"   },
   { id: "javascript",  label: "JavaScript",  extension: ".js"    },
+  { id: "jsx",         label: "JSX",         extension: ".jsx"   },
   { id: "html",        label: "HTML",        extension: ".html"  },
   { id: "css",         label: "CSS",         extension: ".css"   },
   { id: "python",      label: "Python",      extension: ".py"    },
