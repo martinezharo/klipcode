@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FolderPlus, Home, Layers, Plus } from "lucide-react";
+import { FilePlus, FolderPlus, Home, Layers } from "lucide-react";
 
 import { ContextMenu } from "@/components/ContextMenu/ContextMenu";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
@@ -153,6 +153,8 @@ export function Aside({
     },
     selectSnippet: onSelectSnippet,
     selectFolder: (id: string) => onSelectFolder?.(id),
+    pinFolder: onPinFolder,
+    pinSnippet: onPinSnippet,
     dragging,
     dragOverId,
     startDrag: (type, id) => { setDragging({ type, id }); setDragOverId(null); },
@@ -261,7 +263,7 @@ export function Aside({
                   onClick={() => { onGoHome(); onNewSnippetAt(null); }}
                   className="rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
                 >
-                  <Plus size={13} />
+                  <FilePlus size={13} />
                 </button>
                 <button
                   type="button"

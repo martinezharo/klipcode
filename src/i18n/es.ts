@@ -73,6 +73,7 @@ export const es = {
     emptySpace: "No hay archivos todavia.",
     root: "Raiz",
     dropToRoot: "Mover a raíz",
+    unpin: "Desfijar",
   },
   contextMenu: {
     newFolder: "Nueva carpeta\u2026",

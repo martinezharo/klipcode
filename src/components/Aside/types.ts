@@ -56,6 +56,8 @@ export interface AsideCtxShape {
   submitCreateFolder: (parentId: string | null, name: string) => void;
   selectSnippet: (id: string) => void;
   selectFolder: (id: string) => void;
+  pinFolder: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
+  pinSnippet: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
   /* ── Drag & Drop ── */
   dragging: { type: "folder" | "snippet"; id: string } | null;
   dragOverId: string | "root" | null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { FileCode2, Pin } from "lucide-react";
+import { FileCode2, Pin, PinOff } from "lucide-react";
 import { LANGUAGES } from "@/lib/constants/languages";
 import type { SnippetRecord } from "@/lib/types";
 import { useAsideCtx } from "./AsideContext";
@@ -74,7 +74,18 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
       <span className="flex-1 truncate leading-none">{displayName}</span>
       <ItemActions onMore={openMoreMenu} />
       {snippet.isPinnedAside && (
-        <Pin size={10} className="shrink-0 text-white/30" />
+        <button
+          type="button"
+          title={ctx.copy.aside.unpin}
+          className="group/pin shrink-0 rounded p-px text-white/30 transition-colors hover:text-white/70"
+          onClick={(e) => {
+            e.stopPropagation();
+            void ctx.pinSnippet(snippet.id, "aside", false);
+          }}
+        >
+          <Pin size={10} className="block group-hover/pin:hidden" />
+          <PinOff size={10} className="hidden group-hover/pin:block" />
+        </button>
       )}
     </button>
   );

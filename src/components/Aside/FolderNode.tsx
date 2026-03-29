@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronRight, Folder, FolderOpen, Pin } from "lucide-react";
+import { ChevronRight, Folder, FolderOpen, Pin, PinOff } from "lucide-react";
 import type { FolderRecord, SnippetRecord } from "@/lib/types";
 import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
@@ -161,16 +161,21 @@ export function FolderNode({
           </button>
 
           <ItemActions
-            showAdd
-            onAdd={(e) => {
-              e.stopPropagation();
-              setIsOpen(true);
-              ctx.beginCreateFolder(folder.id);
-            }}
             onMore={openMoreMenu}
           />
           {folder.isPinnedAside && (
-            <Pin size={10} className="shrink-0 text-white/30" />
+            <button
+              type="button"
+              title={ctx.copy.aside.unpin}
+              className="group/pin shrink-0 rounded p-px text-white/30 transition-colors hover:text-white/70"
+              onClick={(e) => {
+                e.stopPropagation();
+                void ctx.pinFolder(folder.id, "aside", false);
+              }}
+            >
+              <Pin size={10} className="block group-hover/pin:hidden" />
+              <PinOff size={10} className="hidden group-hover/pin:block" />
+            </button>
           )}
         </div>
       )}
