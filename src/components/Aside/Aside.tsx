@@ -356,7 +356,7 @@ function FolderNode({
               e.dataTransfer.effectAllowed = "move";
             }}
             onDragEnd={() => ctx.endDrag()}
-            className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+            className="flex min-w-0 flex-1 items-center gap-1.5 text-left cursor-grab active:cursor-grabbing"
           >
             {isOpen && hasChildren ? (
               <FolderOpen size={13} className="shrink-0 text-white/25" />
@@ -472,7 +472,7 @@ function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth: number
         e.dataTransfer.effectAllowed = "move";
       }}
       onDragEnd={() => ctx.endDrag()}
-      className={sharedRowClass}
+      className={`${sharedRowClass} cursor-grab active:cursor-grabbing`}
       style={{ paddingLeft }}
     >
       <FileCode2 size={13} className="shrink-0 text-white/20" />
@@ -535,6 +535,17 @@ export function Aside({
     if (!supabase) return;
     await supabase.auth.signOut();
   };
+
+  useEffect(() => {
+    if (dragging) {
+      document.body.style.cursor = "grabbing";
+    } else {
+      document.body.style.cursor = "";
+    }
+    return () => {
+      document.body.style.cursor = "";
+    };
+  }, [dragging]);
 
   useEffect(() => {
     const mq = window.matchMedia(`(max-width: ${MOBILE_BP - 1}px)`);
