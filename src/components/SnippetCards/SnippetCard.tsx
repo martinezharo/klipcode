@@ -8,6 +8,7 @@ import type { Dictionary } from "@/i18n";
 import type { SnippetRecord } from "@/lib/types";
 import { cn, getSnippetDisplayName } from "@/lib/utils";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
+import { useDragCtx } from "@/components/DragContext";
 
 function buildPreviewLines(code: string) {
   const lines = code.split("\n").slice(0, 8);
@@ -36,6 +37,7 @@ interface SnippetCardProps {
   onPaste?: () => void;
   hasPaste?: boolean;
   className?: string;
+  enableDrag?: boolean;
 }
 
 export function SnippetCard({
@@ -55,12 +57,16 @@ export function SnippetCard({
   onPaste,
   hasPaste,
   className,
+  enableDrag,
 }: SnippetCardProps) {
   const [copied, setCopied] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const drag = useDragCtx();
+  const isDraggingThis = enableDrag && drag.dragging?.id === snippet.id && drag.dragging.type === "snippet";
 
   const hasMenu = !!(onPinAside || onPinHome || onRename || onDelete || onCut || onCopy);
 
@@ -212,11 +218,18 @@ export function SnippetCard({
     <article
       role="button"
       tabIndex={0}
+      draggable={enableDrag}
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       onContextMenu={handleContextMenu}
+      onDragStart={enableDrag ? (e) => {
+        drag.startDrag("snippet", snippet.id);
+        e.dataTransfer.effectAllowed = "move";
+      } : undefined}
+      onDragEnd={enableDrag ? () => drag.endDrag() : undefined}
       className={cn(
-        "group flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-surface transition-colors hover:border-white/[0.12] hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 active:cursor-grabbing",
+        "group flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-surface transition-colors hover:border-white/[0.12] hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
+        enableDrag && (isDraggingThis ? "opacity-40 cursor-grabbing" : "cursor-grab active:cursor-grabbing"),
         className,
       )}
     >

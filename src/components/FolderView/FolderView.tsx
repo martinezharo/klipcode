@@ -8,6 +8,7 @@ import type { ClipboardEntry, FolderRecord, SnippetRecord } from "@/lib/types";
 import { SPACE_ROOT_ID } from "@/lib/navigation";
 import { SnippetCard } from "@/components/SnippetCards/SnippetCard";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/Breadcrumbs/Breadcrumbs";
+import { useDragCtx } from "@/components/DragContext";
 import { FolderCard } from "./FolderCard";
 import { getFolderPath, buildSnippetCountMap, buildSubFolderCountMap } from "./utils";
 
@@ -58,11 +59,33 @@ export function FolderView({
   onPaste,
   menuButton,
 }: FolderViewProps) {
+  const drag = useDragCtx();
+
   const isRootSpace = folderId === SPACE_ROOT_ID;
   const currentFolder = isRootSpace ? null : folders.find((f) => f.id === folderId);
   if (!isRootSpace && !currentFolder) return null;
 
   const parentKey = isRootSpace ? null : folderId;
+
+  const dropTargetSentinel = parentKey ?? "space-root";
+  const canDropOnCurrentFolder =
+    drag.dragging !== null &&
+    (drag.dragging.type === "snippet" || isRootSpace || drag.canDropOnFolder(folderId));
+
+  // Only show the drop hint when the item doesn't already live in this folder
+  const isDraggedFromOutside = drag.dragging !== null && (() => {
+    if (drag.dragging!.type === "folder") {
+      const f = folders.find((x) => x.id === drag.dragging!.id);
+      return f ? f.parentId !== parentKey : false;
+    } else {
+      const s = snippets.find((x) => x.id === drag.dragging!.id);
+      return s ? s.folderId !== parentKey : false;
+    }
+  })();
+
+  // Show as soon as an eligible outside item is being dragged; highlight when hovering over the view
+  const showDropHint = canDropOnCurrentFolder && isDraggedFromOutside;
+  const isCurrentFolderDropTarget = showDropHint && drag.dragOverId === dropTargetSentinel;
 
   const childFolders = useMemo(
     () =>
@@ -135,27 +158,47 @@ export function FolderView({
   const hasPaste = !!clipboard;
 
   return (
-    <main className="flex-1 overflow-y-auto">
+    <main
+      className="flex-1 overflow-y-auto"
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = canDropOnCurrentFolder ? "move" : "none"; }}
+      onDragEnter={(e) => { e.preventDefault(); drag.enterDropTarget(dropTargetSentinel); }}
+      onDrop={(e) => { e.preventDefault(); drag.dropOnFolder(parentKey); }}
+    >
       <Breadcrumbs items={breadcrumbItems} leading={menuButton} />
 
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 pb-8 pt-6">
         {/* ── Folder header ──────────────────────────────────────────────── */}
-        <div className="flex items-center gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04]">
-            {isRootSpace ? (
-              <Layers size={20} className="text-white/40" />
-            ) : (
-              <FolderOpen size={20} className="text-white/40" />
-            )}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04]">
+              {isRootSpace ? (
+                <Layers size={20} className="text-white/40" />
+              ) : (
+                <FolderOpen size={20} className="text-white/40" />
+              )}
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                {folderTitle}
+              </h1>
+              {metaParts.length > 0 && (
+                <p className="mt-0.5 text-sm text-muted">{metaParts.join(" · ")}</p>
+              )}
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+
+          {/* ── Drop-to-current-folder indicator ───────────────────────────────── */}
+          {showDropHint && (
+            <div className={[
+              "flex items-center justify-center gap-1.5 rounded-lg border border-dashed py-2 text-[11px] select-none transition-colors duration-100",
+              isCurrentFolderDropTarget
+                ? "border-white/35 bg-white/[0.05] text-white/60"
+                : "border-white/[0.1] bg-transparent text-white/25",
+            ].join(" ")}>
+              {isRootSpace ? <Layers size={11} /> : <FolderOpen size={11} />}
               {folderTitle}
-            </h1>
-            {metaParts.length > 0 && (
-              <p className="mt-0.5 text-sm text-muted">{metaParts.join(" · ")}</p>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* ── Empty state ────────────────────────────────────────────────── */}
@@ -209,6 +252,7 @@ export function FolderView({
                   snippet={snippet}
                   folderName={null}
                   copy={copy}
+                  enableDrag
                   onSelect={() => onSelectSnippet(snippet.id)}
                   onUnpinAside={onPinSnippet ? () => void onPinSnippet(snippet.id, "aside", false) : undefined}
                   onPinAside={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "aside", pinned) : undefined}

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FilePlus, FolderPlus, Home, Layers } from "lucide-react";
 
 import { ContextMenu } from "@/components/ContextMenu/ContextMenu";
+import { useDragCtx } from "@/components/DragContext";
 
 import type { AsideProps, AsideCtxShape, MenuTarget } from "./types";
-import { sortByPinThenAlpha, isDescendantOrSelf } from "./utils";
+import { sortByPinThenAlpha } from "./utils";
 import { AsideCtx } from "./AsideContext";
 import { AsideHeader } from "./AsideHeader";
 import { FolderNode } from "./FolderNode";
@@ -57,21 +58,7 @@ export function Aside({
     string | null | undefined
   >(undefined);
   const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null);
-  const [dragging, setDragging] = useState<{ type: "folder" | "snippet"; id: string } | null>(null);
-  const [dragOverId, setDragOverId] = useState<string | "root" | null>(null);
-
-  /* ── Drag cursor effect ─────────────────────────────────────────────────── */
-
-  useEffect(() => {
-    if (dragging) {
-      document.body.style.cursor = "grabbing";
-    } else {
-      document.body.style.cursor = "";
-    }
-    return () => {
-      document.body.style.cursor = "";
-    };
-  }, [dragging]);
+  const drag = useDragCtx();
 
   /* ── Context menu groups ────────────────────────────────────────────────── */
 
@@ -93,28 +80,6 @@ export function Aside({
     setCreatingFolderParentId,
     setCreatingSnippetFolderId,
   });
-
-  /* ── Drag & Drop helpers ────────────────────────────────────────────────── */
-
-  function canDropOnFolder(folderId: string): boolean {
-    if (!dragging) return false;
-    if (dragging.type === "folder") {
-      return !isDescendantOrSelf(folders, dragging.id, folderId);
-    }
-    return true;
-  }
-
-  function dropOnTarget(targetFolderId: string | null) {
-    if (!dragging) return;
-    if (dragging.type === "folder") {
-      if (targetFolderId !== null && !canDropOnFolder(targetFolderId)) return;
-      void onMoveFolder(dragging.id, targetFolderId);
-    } else {
-      void onMoveSnippet(dragging.id, targetFolderId);
-    }
-    setDragging(null);
-    setDragOverId(null);
-  }
 
   /* ── Context value ──────────────────────────────────────────────────────── */
 
@@ -152,13 +117,13 @@ export function Aside({
     selectFolder: (id: string) => onSelectFolder?.(id),
     pinFolder: onPinFolder,
     pinSnippet: onPinSnippet,
-    dragging,
-    dragOverId,
-    startDrag: (type, id) => { setDragging({ type, id }); setDragOverId(null); },
-    endDrag: () => { setDragging(null); setDragOverId(null); },
-    enterDropTarget: (id) => setDragOverId(id),
-    dropOnTarget,
-    canDropOnFolder,
+    dragging: drag.dragging,
+    dragOverId: drag.dragOverId,
+    startDrag: drag.startDrag,
+    endDrag: drag.endDrag,
+    enterDropTarget: drag.enterDropTarget,
+    dropOnTarget: drag.dropOnFolder,
+    canDropOnFolder: drag.canDropOnFolder,
     folders,
   };
 
@@ -307,14 +272,14 @@ export function Aside({
               )}
 
               {/* Root drop zone */}
-              {dragging && (
+              {drag.dragging && (
                 <div
-                  onDragEnter={(e) => { e.preventDefault(); setDragOverId("root"); }}
+                  onDragEnter={(e) => { e.preventDefault(); drag.enterDropTarget("root"); }}
                   onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
-                  onDrop={(e) => { e.preventDefault(); dropOnTarget(null); }}
+                  onDrop={(e) => { e.preventDefault(); drag.dropOnFolder(null); }}
                   className={[
                     "mx-1 mt-1.5 flex items-center justify-center gap-1.5 rounded-md border border-dashed py-2 text-[11px] transition-all duration-150 select-none",
-                    dragOverId === "root"
+                    drag.dragOverId === "root"
                       ? "border-white/30 bg-white/[0.05] text-white/55"
                       : "border-white/[0.08] text-white/20",
                   ].join(" ")}

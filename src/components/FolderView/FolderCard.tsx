@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { Dictionary } from "@/i18n";
 import type { FolderRecord } from "@/lib/types";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
+import { useDragCtx } from "@/components/DragContext";
 
 /* ─────────────────── Menu builder ───────────────────────────────────────── */
 
@@ -85,6 +86,10 @@ export function FolderCard({
   const [renameValue, setRenameValue] = useState("");
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
 
+  const drag = useDragCtx();
+  const isDraggingThis = drag.dragging?.id === folder.id && drag.dragging.type === "folder";
+  const isDropTarget = drag.dragOverId === folder.id && drag.canDropOnFolder(folder.id);
+
   const hasMenu = !!(onPinAside || onRename || onDelete || onCut || onCopy);
   const cm = copy.contextMenu;
 
@@ -141,10 +146,39 @@ export function FolderCard({
     <article
       role="button"
       tabIndex={0}
+      draggable
       onClick={onClick}
       onKeyDown={handleKeyDown}
       onContextMenu={handleContextMenu}
-      className="group flex min-w-0 items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-surface px-4 py-3 text-left transition-all duration-100 hover:border-white/[0.12] hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+      onDragStart={(e) => {
+        drag.startDrag("folder", folder.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragEnd={() => drag.endDrag()}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        drag.enterDropTarget(folder.id);
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = drag.canDropOnFolder(folder.id) ? "move" : "none";
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        drag.dropOnFolder(folder.id);
+      }}
+      className={cn(
+        "group flex min-w-0 items-center justify-between gap-3 rounded-xl border bg-surface px-4 py-3 text-left transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
+        isDraggingThis
+          ? "opacity-40 cursor-grabbing"
+          : "cursor-grab active:cursor-grabbing",
+        isDropTarget
+          ? "border-white/30 bg-white/[0.06] ring-1 ring-inset ring-white/20"
+          : "border-white/[0.06] hover:border-white/[0.12] hover:bg-surface-hover",
+      )}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] transition-colors group-hover:bg-white/[0.08]">

@@ -16,6 +16,7 @@ import { useWorkspaceMutations } from "@/hooks/useWorkspaceMutations";
 
 import { AccountToast } from "@/components/AccountToast/AccountToast";
 import { Aside } from "@/components/Aside/Aside";
+import { DragProvider } from "@/components/DragContext";
 import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
 import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
 import { SnippetEditor } from "@/components/SnippetEditor/SnippetEditor";
@@ -119,6 +120,11 @@ export default function KlipCodeApp() {
   /* ── Render ───────────────────────────────────────────────────────────── */
 
   return (
+    <DragProvider
+      folders={folders}
+      onMoveFolder={mutations.handleMoveFolder}
+      onMoveSnippet={mutations.handleMoveSnippet}
+    >
     <div className="flex h-screen overflow-hidden">
       <Aside
         user={auth.user}
@@ -241,5 +247,6 @@ export default function KlipCodeApp() {
         )}
       </div>
     </div>
+    </DragProvider>
   );
 }
