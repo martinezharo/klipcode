@@ -23,7 +23,6 @@
     "@codemirror/language": "^6.12.3",
     "@codemirror/legacy-modes": "^6.5.2",
     "@codemirror/state": "^6.6.0",
-    "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/supabase-js": "^2.100.0",
     "@tanstack/react-query": "^5.95.2",
     "@uiw/codemirror-theme-vscode": "^4.25.9",
@@ -34,7 +33,6 @@
     "next": "16.2.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "react-indiana-drag-scroll": "^2.2.1",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
