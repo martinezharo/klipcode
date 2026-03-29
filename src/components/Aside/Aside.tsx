@@ -1,493 +1,21 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import {
-  ChevronRight,
-  ChevronsLeft,
-  Clipboard,
-  Copy,
-  FileCode2,
-  FilePlus,
-  Folder,
-  FolderOpen,
-  FolderPlus,
-  Home,
-  Layers,
-  LogOut,
-  MoreHorizontal,
-  PenLine,
-  Pin,
-  PinOff,
-  Plus,
-  Scissors,
-  Trash2,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { FolderPlus, Home, Layers, Plus } from "lucide-react";
 
-import { Logo } from "@/ui/Logo";
 import { ContextMenu } from "@/components/ContextMenu/ContextMenu";
-import type { ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
-import type { FolderRecord, SnippetRecord, ClipboardEntry } from "@/lib/types";
-import type { Dictionary } from "@/i18n";
-import { LANGUAGES } from "@/lib/constants/languages";
-import { SPACE_ROOT_ID } from "@/lib/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
-import type { User } from "@supabase/supabase-js";
 
-function GitHubIcon({ size = 16, className }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-    </svg>
-  );
-}
+import type { AsideProps, AsideCtxShape, MenuTarget } from "./types";
+import { sortByPinThenAlpha, isDescendantOrSelf } from "./utils";
+import { AsideCtx } from "./AsideContext";
+import { AsideHeader } from "./AsideHeader";
+import { FolderNode } from "./FolderNode";
+import { SnippetNode } from "./SnippetNode";
+import { NewFolderInput } from "./NewFolderInput";
+import { useContextMenuGroups } from "./useContextMenuGroups";
 
-/* ─────────────────────────── Props ─────────────────────────────────────── */
-
-export interface AsideProps {
-  user: User | null;
-  folders: FolderRecord[];
-  snippets: SnippetRecord[];
-  copy: Dictionary;
-  clipboard: ClipboardEntry | null;
-  onSelectSnippet: (snippetId: string) => void;
-  onGoHome: () => void;
-  onGoSpace: () => void;
-  onNewSnippetAt: (folderId: string | null) => void;
-  onCreateFolder: (parentId: string | null, name: string) => Promise<void>;
-  onDeleteFolder: (id: string) => Promise<void>;
-  onDeleteSnippet: (id: string) => Promise<void>;
-  onRenameFolder: (id: string, name: string) => Promise<void>;
-  onRenameSnippet: (id: string, title: string) => Promise<void>;
-  onPinFolder: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
-  onPinSnippet: (id: string, target: "aside" | "home", pinned: boolean) => Promise<void>;
-  onCut: (entry: ClipboardEntry) => void;
-  onCopy: (entry: ClipboardEntry) => void;
-  onPaste: (targetFolderId: string | null) => Promise<void>;
-  onMoveFolder: (id: string, newParentId: string | null) => Promise<void>;
-  onMoveSnippet: (id: string, newFolderId: string | null) => Promise<void>;
-  onSelectFolder?: (folderId: string) => void;
-  isOpen: boolean;
-  isMobile: boolean;
-  onSetOpen: (open: boolean) => void;
-}
-
-/* ─────────────────────────── Internal context ───────────────────────────── */
-
-interface MenuTarget {
-  type: "folder" | "snippet" | "root";
-  id?: string;
-  x: number;
-  y: number;
-}
-
-interface AsideCtxShape {
-  copy: Dictionary;
-  renamingId: string | null;
-  /** undefined = inactive, null = creating at root, string = inside that folder id */
-  creatingFolderParentId: string | null | undefined;
-  openMenu: (target: MenuTarget) => void;
-  beginRename: (id: string) => void;
-  submitFolderRename: (id: string, value: string) => void;
-  submitSnippetRename: (id: string, value: string) => void;
-  cancelRename: () => void;
-  beginCreateFolder: (parentId: string | null) => void;
-  cancelCreateFolder: () => void;
-  submitCreateFolder: (parentId: string | null, name: string) => void;
-  selectSnippet: (id: string) => void;
-  selectFolder: (id: string) => void;
-  /* ── Drag & Drop ── */
-  dragging: { type: "folder" | "snippet"; id: string } | null;
-  dragOverId: string | "root" | null;
-  startDrag: (type: "folder" | "snippet", id: string) => void;
-  endDrag: () => void;
-  enterDropTarget: (id: string | "root") => void;
-  dropOnTarget: (targetFolderId: string | null) => void;
-  canDropOnFolder: (folderId: string) => boolean;
-  folders: FolderRecord[];
-}
-
-const AsideCtx = createContext<AsideCtxShape>(null!);
-
-/* ─────────────────────────── Constants ─────────────────────────────────── */
-
-const STEP = 14;
-const MOBILE_BP = 1024;
-
-/* ─────────────────────────── Utilities ─────────────────────────────────── */
-
-function sortByPinThenAlpha<T extends { isPinnedAside: boolean }>(
-  items: T[],
-  key: (item: T) => string,
-): T[] {
-  return [...items].sort((a, b) => {
-    if (a.isPinnedAside !== b.isPinnedAside) return a.isPinnedAside ? -1 : 1;
-    return key(a).localeCompare(key(b));
-  });
-}
-
-/** Returns true if `targetId` is `ancestorId` itself or a descendant of it. */
-function isDescendantOrSelf(
-  folders: FolderRecord[],
-  ancestorId: string,
-  targetId: string,
-): boolean {
-  if (targetId === ancestorId) return true;
-  let current = folders.find((f) => f.id === targetId);
-  while (current && current.parentId) {
-    if (current.parentId === ancestorId) return true;
-    current = folders.find((f) => f.id === current!.parentId);
-  }
-  return false;
-}
-
-/* ─────────────────────────── NewFolderInput ─────────────────────────────── */
-
-function NewFolderInput({ depth, parentId }: { depth: number; parentId: string | null }) {
-  const { cancelCreateFolder, submitCreateFolder, copy } = useContext(AsideCtx);
-  const [value, setValue] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  function commit() {
-    const name = value.trim();
-    if (name) submitCreateFolder(parentId, name);
-    else cancelCreateFolder();
-  }
-
-  return (
-    <div
-      className="flex items-center gap-1.5 py-[5px] pr-2"
-      style={{ paddingLeft: `${10 + depth * STEP}px` }}
-    >
-      <span className="w-[13px] shrink-0" />
-      <Folder size={13} className="shrink-0 text-white/30" />
-      <input
-        ref={inputRef}
-        type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          e.stopPropagation();
-          if (e.key === "Enter") commit();
-          if (e.key === "Escape") cancelCreateFolder();
-        }}
-        placeholder={copy.forms.folderName}
-        className="min-w-0 flex-1 rounded bg-white/[0.07] px-2 py-0.5 text-[13px] text-foreground placeholder:text-white/20 outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
-      />
-    </div>
-  );
-}
-
-/* ─────────────────────────── ItemActions ────────────────────────────────── */
-
-function ItemActions({
-  showAdd,
-  onAdd,
-  onMore,
-}: {
-  showAdd?: boolean;
-  onAdd?: (e: React.MouseEvent) => void;
-  onMore?: (e: React.MouseEvent) => void;
-}) {
-  return (
-    <span className="invisible flex shrink-0 items-center gap-px group-hover:visible">
-      {showAdd && (
-        <span
-          role="button"
-          className="rounded p-0.5 text-white/35 transition-colors hover:bg-white/[0.08] hover:text-white/70"
-          onClick={onAdd}
-        >
-          <Plus size={12} />
-        </span>
-      )}
-      <span
-        role="button"
-        className="rounded p-0.5 text-white/35 transition-colors hover:bg-white/[0.08] hover:text-white/70"
-        onClick={onMore}
-      >
-        <MoreHorizontal size={12} />
-      </span>
-    </span>
-  );
-}
-
-/* ─────────────────────────── FolderNode ─────────────────────────────────── */
-
-function FolderNode({
-  folder,
-  folders,
-  snippets,
-  depth,
-}: {
-  folder: FolderRecord;
-  folders: FolderRecord[];
-  snippets: SnippetRecord[];
-  depth: number;
-}) {
-  const ctx = useContext(AsideCtx);
-  const [isOpen, setIsOpen] = useState(false);
-
-  const isRenaming = ctx.renamingId === folder.id;
-  const isCreatingHere = ctx.creatingFolderParentId === folder.id;
-
-  const childFolders = sortByPinThenAlpha(
-    folders.filter((f) => f.parentId === folder.id),
-    (f) => f.name,
-  );
-  const childSnippets = sortByPinThenAlpha(
-    snippets.filter((s) => s.folderId === folder.id),
-    (s) => s.title ?? "",
-  );
-
-  const prevCreating = useRef(false);
-  useEffect(() => {
-    if (isCreatingHere && !prevCreating.current) setIsOpen(true);
-    prevCreating.current = isCreatingHere;
-  }, [isCreatingHere]);
-
-  function openContextMenu(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    ctx.openMenu({ type: "folder", id: folder.id, x: e.clientX, y: e.clientY });
-  }
-
-  function openMoreMenu(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    ctx.openMenu({ type: "folder", id: folder.id, x: rect.left, y: rect.bottom + 4 });
-  }
-
-  const paddingLeft = 10 + depth * STEP;
-  const isDraggingThis = ctx.dragging?.id === folder.id;
-  const isDropTarget = ctx.dragOverId === folder.id && ctx.canDropOnFolder(folder.id);
-  const sharedRowClass = [
-    "group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] text-muted transition-all duration-100 hover:bg-white/[0.04] hover:text-foreground",
-    isDraggingThis ? "opacity-40" : "",
-    isDropTarget ? "bg-white/[0.07] text-foreground ring-1 ring-inset ring-white/[0.18]" : "",
-  ].filter(Boolean).join(" ");
-  const hasChildren = childFolders.length > 0 || childSnippets.length > 0;
-
-  return (
-    <div>
-      {isRenaming ? (
-        <div
-          className={sharedRowClass}
-          style={{ paddingLeft }}
-          onContextMenu={openContextMenu}
-        >
-          <ChevronRight
-            size={13}
-            className={`shrink-0 text-white/25 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
-          />
-          {isOpen && hasChildren ? (
-            <FolderOpen size={13} className="shrink-0 text-white/25" />
-          ) : (
-            <Folder size={13} className="shrink-0 text-white/25" />
-          )}
-          <input
-            autoFocus
-            defaultValue={folder.name}
-            onBlur={(e) => ctx.submitFolderRename(folder.id, e.target.value)}
-            onKeyDown={(e) => {
-              e.stopPropagation();
-              if (e.key === "Enter")
-                ctx.submitFolderRename(folder.id, (e.target as HTMLInputElement).value);
-              if (e.key === "Escape") ctx.cancelRename();
-            }}
-            className="min-w-0 flex-1 rounded bg-white/[0.07] px-2 py-0.5 text-[13px] text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
-          />
-        </div>
-      ) : (
-        <div
-          className={sharedRowClass}
-          style={{ paddingLeft }}
-          role="button"
-          tabIndex={0}
-          onClick={() => ctx.selectFolder(folder.id)}
-          onKeyDown={(e) => {
-            if (e.target !== e.currentTarget) return;
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              ctx.selectFolder(folder.id);
-            }
-          }}
-          onContextMenu={openContextMenu}
-          onDragEnter={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            ctx.enterDropTarget(folder.id);
-          }}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            e.dataTransfer.dropEffect = ctx.canDropOnFolder(folder.id) ? "move" : "none";
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            ctx.dropOnTarget(folder.id);
-          }}
-        >
-          <button
-            type="button"
-            className="flex h-4 w-4 shrink-0 items-center justify-center text-white/25 transition-colors hover:text-white/45"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsOpen((value) => !value);
-            }}
-            title={ctx.copy.aside.toggleFolder}
-            aria-label={ctx.copy.aside.toggleFolder}
-          >
-            <ChevronRight
-              size={13}
-              className={`transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
-            />
-          </button>
-
-          <button
-            type="button"
-            draggable
-            onDragStart={(e) => {
-              e.stopPropagation();
-              ctx.startDrag("folder", folder.id);
-              e.dataTransfer.effectAllowed = "move";
-            }}
-            onDragEnd={() => ctx.endDrag()}
-            className="flex min-w-0 flex-1 items-center gap-1.5 text-left cursor-grab active:cursor-grabbing"
-          >
-            {isOpen && hasChildren ? (
-              <FolderOpen size={13} className="shrink-0 text-white/25" />
-            ) : (
-              <Folder size={13} className="shrink-0 text-white/25" />
-            )}
-            <span className="flex-1 truncate leading-none">{folder.name}</span>
-          </button>
-
-          <ItemActions
-            showAdd
-            onAdd={(e) => {
-              e.stopPropagation();
-              setIsOpen(true);
-              ctx.beginCreateFolder(folder.id);
-            }}
-            onMore={openMoreMenu}
-          />
-          {folder.isPinnedAside && (
-            <Pin size={10} className="shrink-0 text-white/30" />
-          )}
-        </div>
-      )}
-
-      {(isOpen || isCreatingHere) && (
-        <div className="relative">
-          {(hasChildren || isCreatingHere) && (
-            <div
-              className="absolute bottom-1 top-0 w-px bg-white/[0.05]"
-              style={{ left: `${paddingLeft + 6}px` }}
-            />
-          )}
-          {isCreatingHere && (
-            <NewFolderInput depth={depth + 1} parentId={folder.id} />
-          )}
-          {childFolders.map((child) => (
-            <FolderNode
-              key={child.id}
-              folder={child}
-              folders={folders}
-              snippets={snippets}
-              depth={depth + 1}
-            />
-          ))}
-          {childSnippets.map((snippet) => (
-            <SnippetNode key={snippet.id} snippet={snippet} depth={depth + 1} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─────────────────────────── SnippetNode ────────────────────────────────── */
-
-function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth: number }) {
-  const ctx = useContext(AsideCtx);
-  const isRenaming = ctx.renamingId === snippet.id;
-
-  const ext = LANGUAGES.find((l) => l.id === snippet.language)?.extension ?? "";
-  const baseName = snippet.title || ctx.copy.snippetCard.untitled;
-  const displayName = baseName.endsWith(ext) ? baseName : `${baseName}${ext}`;
-
-  const paddingLeft = 10 + depth * STEP + 19;
-  const isDraggingThis = ctx.dragging?.id === snippet.id;
-  const sharedRowClass = [
-    "group flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] text-muted transition-all duration-100 hover:bg-white/[0.04] hover:text-foreground",
-    isDraggingThis ? "opacity-40" : "",
-  ].filter(Boolean).join(" ");
-
-  function openContextMenu(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    ctx.openMenu({ type: "snippet", id: snippet.id, x: e.clientX, y: e.clientY });
-  }
-
-  function openMoreMenu(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    ctx.openMenu({ type: "snippet", id: snippet.id, x: rect.left, y: rect.bottom + 4 });
-  }
-
-  return isRenaming ? (
-    <div
-      className={sharedRowClass}
-      style={{ paddingLeft }}
-      onContextMenu={openContextMenu}
-    >
-      <FileCode2 size={13} className="shrink-0 text-white/20" />
-      <input
-        autoFocus
-        defaultValue={snippet.title ?? ""}
-        onBlur={(e) => ctx.submitSnippetRename(snippet.id, e.target.value)}
-        onKeyDown={(e) => {
-          e.stopPropagation();
-          if (e.key === "Enter")
-            ctx.submitSnippetRename(snippet.id, (e.target as HTMLInputElement).value);
-          if (e.key === "Escape") ctx.cancelRename();
-        }}
-        className="min-w-0 flex-1 rounded bg-white/[0.07] px-2 py-0.5 text-[13px] text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
-      />
-    </div>
-  ) : (
-    <button
-      type="button"
-      draggable
-      onClick={() => ctx.selectSnippet(snippet.id)}
-      onContextMenu={openContextMenu}
-      onDragStart={(e) => {
-        e.stopPropagation();
-        ctx.startDrag("snippet", snippet.id);
-        e.dataTransfer.effectAllowed = "move";
-      }}
-      onDragEnd={() => ctx.endDrag()}
-      className={`${sharedRowClass} cursor-grab active:cursor-grabbing`}
-      style={{ paddingLeft }}
-    >
-      <FileCode2 size={13} className="shrink-0 text-white/20" />
-      <span className="flex-1 truncate leading-none">{displayName}</span>
-      <ItemActions onMore={openMoreMenu} />
-      {snippet.isPinnedAside && (
-        <Pin size={10} className="shrink-0 text-white/30" />
-      )}
-    </button>
-  );
-}
-
-/* ─────────────────────────── Aside ──────────────────────────────────────── */
+export type { AsideProps } from "./types";
 
 export function Aside({
   user,
@@ -516,6 +44,8 @@ export function Aside({
   isMobile,
   onSetOpen,
 }: AsideProps) {
+  /* ── State ─────────────────────────────────────────────────────────────── */
+
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [creatingFolderParentId, setCreatingFolderParentId] = useState<
     string | null | undefined
@@ -523,6 +53,8 @@ export function Aside({
   const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null);
   const [dragging, setDragging] = useState<{ type: "folder" | "snippet"; id: string } | null>(null);
   const [dragOverId, setDragOverId] = useState<string | "root" | null>(null);
+
+  /* ── Auth ───────────────────────────────────────────────────────────────── */
 
   const supabase = getSupabaseBrowserClient();
 
@@ -539,6 +71,8 @@ export function Aside({
     await supabase.auth.signOut();
   };
 
+  /* ── Drag cursor effect ─────────────────────────────────────────────────── */
+
   useEffect(() => {
     if (dragging) {
       document.body.style.cursor = "grabbing";
@@ -550,151 +84,27 @@ export function Aside({
     };
   }, [dragging]);
 
+  /* ── Context menu groups ────────────────────────────────────────────────── */
 
+  const buildMenuGroups = useContextMenuGroups({
+    copy,
+    clipboard,
+    folders,
+    snippets,
+    onGoHome,
+    onNewSnippetAt,
+    onPaste,
+    onPinFolder,
+    onPinSnippet,
+    onDeleteFolder,
+    onDeleteSnippet,
+    onCut,
+    onCopy,
+    setRenamingId,
+    setCreatingFolderParentId,
+  });
 
-  /* ── Menu groups builder ───────────────────────────────────────────────── */
-
-  const buildMenuGroups = useCallback(
-    (target: MenuTarget): ContextMenuGroup[] => {
-      const { type, id } = target;
-      const cm = copy.contextMenu;
-
-      if (type === "root") {
-        return [
-          {
-            items: [
-              {
-                id: "new-folder",
-                label: cm.newFolder,
-                Icon: FolderPlus,
-                onClick: () => setCreatingFolderParentId(null),
-              },
-              {
-                id: "new-snippet",
-                label: cm.newSnippet,
-                Icon: FilePlus,
-                onClick: () => { onGoHome(); onNewSnippetAt(null); },
-              },
-            ],
-          },
-          ...(clipboard
-            ? [{
-                items: [{
-                  id: "paste",
-                  label: cm.paste,
-                  Icon: Clipboard,
-                  onClick: () => void onPaste(null),
-                }],
-              }]
-            : []),
-        ];
-      }
-
-      if (type === "folder" && id) {
-        const folder = folders.find((f) => f.id === id);
-        if (!folder) return [];
-        return [
-          {
-            items: [
-              {
-                id: "new-folder",
-                label: cm.newFolder,
-                Icon: FolderPlus,
-                onClick: () => setCreatingFolderParentId(id),
-              },
-              {
-                id: "new-snippet",
-                label: cm.newSnippet,
-                Icon: FilePlus,
-                onClick: () => { onGoHome(); onNewSnippetAt(id); },
-              },
-            ],
-          },
-          {
-            items: [
-              folder.isPinnedAside
-                ? { id: "unpin", label: cm.unpin, Icon: PinOff, onClick: () => void onPinFolder(id, "aside", false) }
-                : { id: "pin",   label: cm.pin,   Icon: Pin,    onClick: () => void onPinFolder(id, "aside", true)  },
-              {
-                id: "rename",
-                label: cm.rename,
-                Icon: PenLine,
-                onClick: () => setRenamingId(id),
-              },
-            ],
-          },
-          {
-            items: [
-              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  itemType: "folder", id }) },
-              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", itemType: "folder", id }) },
-              ...(clipboard ? [{ id: "paste", label: cm.paste, Icon: Clipboard, onClick: () => void onPaste(id) }] : []),
-            ],
-          },
-          {
-            items: [{
-              id: "delete",
-              label: cm.delete,
-              Icon: Trash2,
-              variant: "destructive" as const,
-              onClick: () => void onDeleteFolder(id),
-            }],
-          },
-        ];
-      }
-
-      if (type === "snippet" && id) {
-        const snippet = snippets.find((s) => s.id === id);
-        if (!snippet) return [];
-        return [
-          {
-            items: [{
-              id: "copy-content",
-              label: cm.copyContent,
-              Icon: Copy,
-              onClick: () => void navigator.clipboard.writeText(snippet.code ?? ""),
-            }],
-          },
-          {
-            items: [
-              snippet.isPinnedAside
-                ? { id: "unpin-aside", label: cm.unpinAside, Icon: PinOff, onClick: () => void onPinSnippet(id, "aside", false) }
-                : { id: "pin-aside",   label: cm.pinAside,   Icon: Pin,    onClick: () => void onPinSnippet(id, "aside", true)  },
-              snippet.isPinnedHome
-                ? { id: "unpin-home", label: cm.unpinHome, Icon: PinOff, onClick: () => void onPinSnippet(id, "home", false) }
-                : { id: "pin-home",   label: cm.pinHome,   Icon: Pin,    onClick: () => void onPinSnippet(id, "home", true)  },
-              {
-                id: "rename",
-                label: cm.rename,
-                Icon: PenLine,
-                onClick: () => setRenamingId(id),
-              },
-            ],
-          },
-          {
-            items: [
-              { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  itemType: "snippet", id }) },
-              { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", itemType: "snippet", id }) },
-              ...(clipboard ? [{ id: "paste", label: cm.paste, Icon: Clipboard, onClick: () => void onPaste(snippet.folderId) }] : []),
-            ],
-          },
-          {
-            items: [{
-              id: "delete",
-              label: cm.delete,
-              Icon: Trash2,
-              variant: "destructive" as const,
-              onClick: () => void onDeleteSnippet(id),
-            }],
-          },
-        ];
-      }
-
-      return [];
-    },
-    [clipboard, copy.contextMenu, folders, snippets, onGoHome, onNewSnippetAt, onPaste, onPinFolder, onPinSnippet, onDeleteFolder, onDeleteSnippet, onCut, onCopy],
-  );
-
-  /* ── AsideCtx value ────────────────────────────────────────────────────── */
+  /* ── Drag & Drop helpers ────────────────────────────────────────────────── */
 
   function canDropOnFolder(folderId: string): boolean {
     if (!dragging) return false;
@@ -715,6 +125,8 @@ export function Aside({
     setDragging(null);
     setDragOverId(null);
   }
+
+  /* ── Context value ──────────────────────────────────────────────────────── */
 
   const ctxValue: AsideCtxShape = {
     copy,
@@ -741,7 +153,6 @@ export function Aside({
     },
     selectSnippet: onSelectSnippet,
     selectFolder: (id: string) => onSelectFolder?.(id),
-    /* DnD */
     dragging,
     dragOverId,
     startDrag: (type, id) => { setDragging({ type, id }); setDragOverId(null); },
@@ -785,53 +196,13 @@ export function Aside({
             isMobile ? " fixed inset-y-0 left-0 z-50 shadow-2xl" : ""
           }`}
         >
-          {/* Auth Section + Logo + Collapse */}
-          <div className="px-3.5 py-4">
-            <div className="flex items-center gap-2">
-              {user ? (
-                <div className="flex min-w-0 flex-1 items-center gap-2.5 p-1">
-                  <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full ring-1 ring-white/10">
-                    <img
-                      src={user.user_metadata.avatar_url}
-                      alt={user.user_metadata.full_name || user.email || "Avatar"}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-[12px] font-medium text-foreground">
-                      {user.user_metadata.full_name || user.email?.split("@")[0]}
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleSignOut}
-                    className="shrink-0 rounded p-1 text-white/25 transition-colors hover:bg-white/[0.1] hover:text-white/60"
-                    title={copy.auth.signOut}
-                  >
-                    <LogOut size={12} />
-                  </button>
-                </div>
-                ) : (
-                <button
-                  onClick={handleSignIn}
-                  className="group flex min-w-0 flex-1 items-center gap-2.5 py-1 pl-1 pr-2 text-left transition-colors hover:text-foreground"
-                >
-                  <GitHubIcon size={16} className="text-white/80 group-hover:text-white" />
-                  <span className="truncate text-[12px] font-medium text-foreground/80 group-hover:text-foreground ml-2">
-                    {copy.auth.signIn}
-                  </span>
-                </button>
-              )}
-
-              <button
-                type="button"
-                title={copy.aside.collapse}
-                onClick={() => onSetOpen(false)}
-                className="shrink-0 rounded-md p-1.5 text-white/20 transition-colors hover:bg-white/[0.06] hover:text-white/60"
-              >
-                <ChevronsLeft size={14} />
-              </button>
-            </div>
-          </div>
+          <AsideHeader
+            user={user}
+            copy={copy}
+            onSignIn={handleSignIn}
+            onSignOut={handleSignOut}
+            onCollapse={() => onSetOpen(false)}
+          />
 
           <div className="mx-4 mb-2 border-t border-white/[0.05]" />
 
@@ -912,7 +283,7 @@ export function Aside({
                 </div>
               )}
 
-              {/* Root drop zone — visible only while dragging */}
+              {/* Root drop zone */}
               {dragging && (
                 <div
                   onDragEnter={(e) => { e.preventDefault(); setDragOverId("root"); }}
