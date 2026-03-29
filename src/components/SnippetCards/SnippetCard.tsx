@@ -248,28 +248,9 @@ export function SnippetCard({
               className="w-full rounded bg-white/[0.07] px-2 py-0.5 text-sm font-medium text-foreground outline-none ring-1 ring-white/15 focus:ring-white/35 transition-shadow"
             />
           ) : (
-            <div className="flex min-w-0 items-center gap-2">
-              <h3 className="truncate text-sm font-medium text-foreground">
-                {displayName}
-              </h3>
-
-              {folderName && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onNavigateFolder?.();
-                  }}
-                  className={cn(
-                    "flex items-center gap-1 rounded bg-white/[0.06] px-1.5 py-0.5 text-[11px] text-muted transition-colors",
-                    onNavigateFolder ? "hover:bg-white/[0.12] hover:text-foreground" : "cursor-default"
-                  )}
-                >
-                  <Folder size={12} />
-                  <span className="truncate max-w-[100px]">{folderName}</span>
-                </button>
-              )}
-            </div>
+            <h3 className="truncate text-sm font-medium text-foreground">
+              {displayName}
+            </h3>
           )}
         </div>
 
@@ -345,6 +326,25 @@ export function SnippetCard({
         </div>
         <div className="pointer-events-none absolute bottom-1 left-1 right-1 h-12 rounded-b-lg bg-gradient-to-t from-surface to-transparent group-hover:from-surface-hover" />
       </div>
+
+      {folderName && (
+        <div className="mt-auto flex justify-end px-4 pb-4 pt-1">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onNavigateFolder?.();
+            }}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md border border-white/[0.05] bg-white/[0.02] px-2 py-1 text-[11px] font-medium text-muted transition-all",
+              onNavigateFolder ? "hover:border-white/[0.1] hover:bg-white/[0.06] hover:text-foreground" : "cursor-default",
+            )}
+          >
+            <Folder size={12} />
+            <span className="max-w-[120px] truncate">{folderName}</span>
+          </button>
+        </div>
+      )}
 
       {menuAnchor && menuGroups.length > 0 && (
         <ContextMenu
