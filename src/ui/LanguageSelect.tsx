@@ -60,13 +60,15 @@ export function LanguageSelect({ value, onChange, copy }: LanguageSelectProps) {
 
   const selectedLang = LANGUAGES.find((l) => l.id === value);
 
+  const sortedLanguages = [...LANGUAGES].sort((a, b) => a.label.localeCompare(b.label));
+
   const filtered = search.trim()
-    ? LANGUAGES.filter(
+    ? sortedLanguages.filter(
         (l) =>
           l.label.toLowerCase().includes(search.toLowerCase()) ||
           l.extension.toLowerCase().includes(search.toLowerCase()),
       )
-    : LANGUAGES;
+    : sortedLanguages;
 
   /* Position the dropdown */
   useLayoutEffect(() => {
