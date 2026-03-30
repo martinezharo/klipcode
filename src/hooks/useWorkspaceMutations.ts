@@ -25,6 +25,7 @@ interface UseWorkspaceMutationsOptions {
 }
 
 export function useWorkspaceMutations({
+  copy,
   user,
   supabase,
   supabaseConfigured,
