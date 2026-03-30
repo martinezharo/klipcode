@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Menu } from "lucide-react";
 
@@ -55,10 +56,22 @@ export default function KlipCodeApp() {
     setAccountMessage: auth.setAccountMessage,
   });
 
-  /* ── Navigation & clipboard state ─────────────────────────────────────── */
+  /* ── URL-based navigation ─────────────────────────────────────────────── */
 
-  const [selectedSnippetId, setSelectedSnippetId] = useState<string | null>(null);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const selectedSnippetId = searchParams.get("snippet");
+  const selectedFolderId = searchParams.get("folder");
+
+  /** Used by useWorkspaceMutations which needs a (id: string | null) => void setter. */
+  function setSelectedSnippetId(id: string | null) {
+    if (id !== null) router.push(`/?snippet=${id}`);
+    else router.push("/");
+  }
+
+  /* ── Clipboard state ──────────────────────────────────────────────────── */
+
   const [clipboard, setClipboard] = useState<ClipboardEntry | null>(null);
   const [defaultNewSnippetFolderId, setDefaultNewSnippetFolderId] = useState<string | null>(null);
   const [pendingDeleteFolder, setPendingDeleteFolder] = useState<{
@@ -101,16 +114,16 @@ export default function KlipCodeApp() {
   useEffect(() => {
     if (!workspaceQuery.isSuccess) return;
     if (selectedFolderId && selectedFolderId !== SPACE_ROOT_ID && !folders.find((f) => f.id === selectedFolderId)) {
-      setSelectedFolderId(null);
+      router.replace("/");
     }
-  }, [folders, selectedFolderId, workspaceQuery.isSuccess]);
+  }, [folders, selectedFolderId, workspaceQuery.isSuccess, router]);
 
   const selectedSnippet = selectedSnippetId
     ? (snippets.find((s) => s.id === selectedSnippetId) ?? null)
     : null;
 
   function handleNewSnippetAt(folderId: string | null) {
-    setSelectedSnippetId(null);
+    router.push("/");
     setDefaultNewSnippetFolderId(folderId);
   }
 
@@ -172,15 +185,9 @@ export default function KlipCodeApp() {
         isOpen={sidebarOpen}
         isMobile={isMobile}
         onSetOpen={setSidebarOpen}
-        onSelectSnippet={setSelectedSnippetId}
-        onGoHome={() => {
-          setSelectedSnippetId(null);
-          setSelectedFolderId(null);
-        }}
-        onGoSpace={() => {
-          setSelectedSnippetId(null);
-          setSelectedFolderId(SPACE_ROOT_ID);
-        }}
+        onSelectSnippet={(id) => router.push(`/?snippet=${id}`)}
+        onGoHome={() => router.push("/")}
+        onGoSpace={() => router.push(`/?folder=${SPACE_ROOT_ID}`)}
         onNewSnippetAt={handleNewSnippetAt}
         onCreateSnippetInline={mutations.handleCreateSnippetInline}
         onCreateFolder={mutations.handleCreateFolder}
@@ -197,10 +204,7 @@ export default function KlipCodeApp() {
         onMoveSnippet={mutations.handleMoveSnippet}
         onSignIn={auth.handleGitHubSignIn}
         onSignOut={auth.handleSignOut}
-        onSelectFolder={(folderId) => {
-          setSelectedSnippetId(null);
-          setSelectedFolderId(folderId);
-        }}
+        onSelectFolder={(folderId) => router.push(`/?folder=${folderId}`)}
       />
 
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -214,15 +218,9 @@ export default function KlipCodeApp() {
               folders={folders}
               copy={copy}
               syncStatus={sync.snippetStatuses[selectedSnippet.id] ?? "idle"}
-              onClose={() => setSelectedSnippetId(null)}
-              onNavigateFolder={(folderId) => {
-                setSelectedSnippetId(null);
-                setSelectedFolderId(folderId);
-              }}
-              onNavigateHome={() => {
-                setSelectedSnippetId(null);
-                setSelectedFolderId(SPACE_ROOT_ID);
-              }}
+              onClose={() => router.push("/")}
+              onNavigateFolder={(folderId) => router.push(`/?folder=${folderId}`)}
+              onNavigateHome={() => router.push(`/?folder=${SPACE_ROOT_ID}`)}
               onUpdate={mutations.handleUpdateSnippet}
               menuButton={menuButton}
             />
@@ -234,9 +232,9 @@ export default function KlipCodeApp() {
             snippets={snippets}
             copy={copy}
             clipboard={clipboard}
-            onSelectSnippet={setSelectedSnippetId}
-            onNavigateFolder={setSelectedFolderId}
-            onNavigateHome={() => setSelectedFolderId(SPACE_ROOT_ID)}
+            onSelectSnippet={(id) => router.push(`/?snippet=${id}`)}
+            onNavigateFolder={(folderId) => router.push(`/?folder=${folderId}`)}
+            onNavigateHome={() => router.push(`/?folder=${SPACE_ROOT_ID}`)}
             onPinSnippet={mutations.handlePinSnippet}
             onPinFolder={mutations.handlePinFolder}
             onDeleteSnippet={mutations.handleDeleteSnippet}
@@ -270,8 +268,8 @@ export default function KlipCodeApp() {
                 folders={folders}
                 copy={copy}
                 clipboard={clipboard}
-                onSelectSnippet={setSelectedSnippetId}
-                onNavigateFolder={setSelectedFolderId}
+                onSelectSnippet={(id) => router.push(`/?snippet=${id}`)}
+                onNavigateFolder={(folderId) => router.push(`/?folder=${folderId}`)}
                 onPinSnippet={mutations.handlePinSnippet}
                 onDeleteSnippet={mutations.handleDeleteSnippet}
                 onRenameSnippet={mutations.handleRenameSnippet}

@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import KlipCodeApp from "@/components/KlipCodeApp";
 
 export default function Home() {
-  return <KlipCodeApp />;
+  return (
+    <Suspense>
+      <KlipCodeApp />
+    </Suspense>
+  );
 }
