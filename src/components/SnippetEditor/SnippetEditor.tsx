@@ -12,6 +12,7 @@ import {
   FileCode2,
   Folder,
   Layers,
+  Zap,
 } from "lucide-react";
 
 import { Editor } from "@/components/Editor/Editor";
@@ -121,6 +122,7 @@ export function SnippetEditor({
   const [title, setTitle] = useState(snippet.title);
   const [code, setCode] = useState(snippet.code);
   const [copied, setCopied] = useState(false);
+  const [formatting, setFormatting] = useState(false);
 
   // Per-field debounce timers
   const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -153,6 +155,50 @@ export function SnippetEditor({
     navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  const PRETTIER_PARSERS: Partial<Record<string, string>> = {
+    javascript: "babel",
+    jsx: "babel",
+    typescript: "babel-ts",
+    tsx: "babel-ts",
+    html: "html",
+    css: "css",
+    scss: "css",
+    json: "json",
+    markdown: "markdown",
+  };
+
+  async function handleFormat() {
+    const parser = PRETTIER_PARSERS[snippet.language];
+    if (!parser) return;
+    setFormatting(true);
+    try {
+      const prettier = await import("prettier/standalone");
+      const plugins = await Promise.all([
+        import("prettier/plugins/babel"),
+        import("prettier/plugins/estree"),
+        import("prettier/plugins/html"),
+        import("prettier/plugins/postcss"),
+        import("prettier/plugins/markdown"),
+      ]);
+      const formatted = await prettier.format(code, {
+        parser,
+        plugins,
+        printWidth: 100,
+        tabWidth: 2,
+        singleQuote: false,
+        trailingComma: "es5",
+      });
+      const next = formatted.trimEnd();
+      setCode(next);
+      if (codeTimerRef.current) clearTimeout(codeTimerRef.current);
+      codeTimerRef.current = setTimeout(() => {
+        onUpdate(snippet.id, { code: next });
+      }, 0);
+    } finally {
+      setFormatting(false);
+    }
   }
 
   // ── Folder path for breadcrumb ───────────────────────────────────────────
@@ -188,6 +234,8 @@ export function SnippetEditor({
     },
   ];
 
+  const isFormattable = snippet.language in PRETTIER_PARSERS;
+
   const breadcrumbActions = (
     <>
       <LanguageSelect
@@ -196,6 +244,20 @@ export function SnippetEditor({
         copy={copy.languageSelect}
       />
       <div className="h-4 w-px bg-white/[0.08]" />
+      <Tooltip
+        content={isFormattable ? editorCopy.formatCode : editorCopy.formatNotSupported}
+        placement="bottom"
+      >
+        <button
+          type="button"
+          aria-label={editorCopy.formatCode}
+          onClick={handleFormat}
+          disabled={!isFormattable || formatting}
+          className="flex items-center justify-center rounded p-1.5 text-white/35 transition-colors hover:bg-white/[0.06] hover:text-white/70 disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          <Zap size={13} className={formatting ? "animate-pulse" : undefined} />
+        </button>
+      </Tooltip>
       <Tooltip content={editorCopy.copyCode} placement="bottom">
         <button
           type="button"

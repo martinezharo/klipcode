@@ -125,6 +125,8 @@ export const es = {
     folderRoot: "Raiz",
     copyCode: "Copiar código",
     codeCopied: "¡Copiado!",
+    formatCode: "Formatear código",
+    formatNotSupported: "Formateo no disponible para este lenguaje",
   },
   confirmDeleteFolder: {
     title: "Eliminar carpeta",
