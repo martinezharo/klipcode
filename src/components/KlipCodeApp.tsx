@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Menu } from "lucide-react";
 
 import { readWorkspace } from "@/lib/db";
+import { seedWelcomeContent } from "@/lib/seed";
 import type { ClipboardEntry } from "@/lib/types";
 import { getDictionary } from "@/i18n";
 import { SPACE_ROOT_ID } from "@/lib/navigation";
@@ -108,6 +109,16 @@ export default function KlipCodeApp() {
     settleLocally: sync.settleLocally,
     setSnippetStatus: sync.setSnippetStatus,
   });
+
+  /* ── First-visit seeding ────────────────────────────────────────────────── */
+
+  useEffect(() => {
+    if (!auth.authReady || auth.user) return;
+    void seedWelcomeContent(copy).then((seeded) => {
+      if (seeded) refreshWorkspace();
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.authReady, auth.user]);
 
   /* ── Derived state & side-effects ─────────────────────────────────────── */
 

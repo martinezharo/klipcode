@@ -1,3 +1,42 @@
+const WELCOME_SNIPPET_CONTENT = `# ¡Bienvenido a KlipCode!
+
+KlipCode es una herramienta diseñada para mantener tus fragmentos de código favoritos siempre a mano,
+de forma rápida y sencilla, en todos tus dispositivos.
+
+## ¿Qué puedes hacer?
+
+- **Guardado rápido:** Registra un *snippet* en un par de clics sin necesidad de iniciar sesión.
+- **Copiado ágil:** Copia el contenido de tus fragmentos al portapapeles instantáneamente.
+- **Organización jerárquica:** Crea carpetas con distintos niveles de profundidad para organizar tu código.
+- **Gestión intuitiva:** Mueve tus *snippets* y carpetas arrastrándolos para que se adapten a tu flujo de trabajo.
+- **Sincronización con GitHub:** Inicia sesión para que tus datos se sincronicen automáticamente en la nube.
+- **Editor avanzado:** Edita tus fragmentos cómodamente con un sistema de guardado automático.
+- **Acceso prioritario:** Fija tus *snippets* más importantes tanto en carpetas como en la página de inicio.
+
+## Primeros pasos
+
+1. **Crea tu primer snippet:** Utiliza el creador de la página de inicio o el botón
+   de la barra lateral para añadir este código JSX en la raíz con el título \`Componente\`:
+
+\`\`\`
+const Greet = ({ name }) => {
+  return (
+    <div className="user-card">
+      <h1>{name}</h1>
+      <button onClick={() => console.log(\`Hola \${name}\`)}>
+        Click
+      </button>
+    </div>
+  );
+};
+\`\`\`
+
+2. **Abre el editor:** Pulsa sobre el archivo creado en la barra lateral.
+3. **Organiza el contenido:** Crea una carpeta llamada \`mis-componentes\` desde la barra lateral
+   y arrastra tu nuevo componente dentro.
+4. **¡Listo!:** Ya puedes empezar a explorar KlipCode para potenciar tu productividad.
+   Puedes borrar todos los snippets y carpetas de ejemplo si quieres, simplemente haz clic derecho sobre
+   ellos en la barra lateral y selecciona "Eliminar".`;
 export const es = {
   app: {
     title: "KlipCode",
@@ -138,5 +177,10 @@ export const es = {
       n === 1 ? "1 snippet" : `${n} snippets`,
     cancel: "Cancelar",
     confirm: "Eliminar permanentemente",
+  },
+  seed: {
+    folderName: "bienvenido",
+    snippetName: "klipcode",
+    snippetContent: WELCOME_SNIPPET_CONTENT,
   },
 } as const;
