@@ -92,6 +92,7 @@ export function SnippetCards({
             onCopy={onCopySnippet ? () => onCopySnippet(snippet.id) : undefined}
             onPaste={onPaste ? () => void onPaste(snippet.folderId) : undefined}
             hasPaste={!!clipboard}
+            enableDrag
             className="w-full shrink"
           />
         ))}
