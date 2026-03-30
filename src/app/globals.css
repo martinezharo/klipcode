@@ -105,7 +105,7 @@ body {
 }
 
 .cm-editor .cm-gutters {
-  background: transparent !important;
+  background: var(--klipcode-editor-gutter-background, transparent) !important;
   border-right: none !important;
 }
 

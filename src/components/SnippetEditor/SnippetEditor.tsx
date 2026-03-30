@@ -230,6 +230,7 @@ export function SnippetEditor({
           readOnly={false}
           height="100%"
           fontSize={14}
+          gutterBackground="var(--background)"
         />
       </div>
 

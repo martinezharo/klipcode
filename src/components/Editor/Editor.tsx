@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { vscodeDark } from "@uiw/codemirror-theme-vscode";
 import { foldGutter } from "@codemirror/language";
@@ -293,6 +293,7 @@ export interface EditorProps {
   height?: string;
   placeholder?: string;
   fontSize?: number;
+  gutterBackground?: string;
 }
 
 export function Editor({
@@ -303,8 +304,17 @@ export function Editor({
   height = "200px",
   placeholder,
   fontSize = 13,
+  gutterBackground,
 }: EditorProps) {
   const [extensions, setExtensions] = useState<Extension[]>([]);
+
+  const editorStyle = {
+    fontSize: `${fontSize}px`,
+    ...(gutterBackground
+      ? { "--klipcode-editor-gutter-background": gutterBackground }
+      : {}),
+    ...(readOnly ? { pointerEvents: "none" } : {}),
+  } as CSSProperties;
 
   useEffect(() => {
     let cancelled = false;
@@ -329,10 +339,7 @@ export function Editor({
       placeholder={placeholder}
       basicSetup={readOnly ? PREVIEW_SETUP : EDIT_SETUP}
       height={height}
-      style={{
-        fontSize: `${fontSize}px`,
-        ...(readOnly ? { pointerEvents: "none" } : {}),
-      }}
+      style={editorStyle}
     />
   );
 }

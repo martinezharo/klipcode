@@ -79,6 +79,7 @@ export function NewSnippet({ copy, folders, defaultFolderId, onCreateSnippet }: 
             placeholder={copy.forms.snippetCodePlaceholder}
             height="200px"
             fontSize={13}
+            gutterBackground="var(--surface)"
           />
         </div>
 
