@@ -13,13 +13,51 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://klipcode.app";
+
 export const metadata: Metadata = {
-  title: "KlipCode",
-  description: "Gestor offline-first de snippets con sincronizacion en Supabase.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "KlipCode",
+    template: "%s · KlipCode",
+  },
+  description:
+    "Code snippet manager with cloud sync. Save, organize, and copy your snippets instantly across all your devices.",
+  keywords: [
+    "code snippets",
+    "snippet manager",
+    "developer tools",
+    "offline-first",
+    "cloud sync",
+    "code organizer",
+  ],
+  authors: [{ name: "KlipCode" }],
+  applicationName: "KlipCode",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    url: siteUrl,
+    title: "KlipCode — Multi-device snippet manager",
+    description:
+      "Offline-first code snippet manager with cloud sync. Save, organize, and copy your snippets instantly across all your devices.",
+    siteName: "KlipCode",
+  },
+  twitter: {
+    card: "summary",
+    title: "KlipCode — Multi-device snippet manager",
+    description:
+      "Offline-first code snippet manager with cloud sync. Save, organize, and copy your snippets instantly across all your devices.",
+  },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
     apple: "/favicon.svg",
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 
@@ -30,7 +68,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="es"
+      lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="h-full bg-background text-foreground">
