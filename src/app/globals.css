@@ -105,11 +105,8 @@ body {
 }
 
 .cm-editor .cm-gutters {
-  background: #0a0a0a !important;
+  background: transparent !important;
   border-right: none !important;
-  position: sticky;
-  left: 0;
-  z-index: 2;
 }
 
 .cm-editor .cm-lineNumbers .cm-gutterElement {
@@ -118,7 +115,7 @@ body {
 
 .cm-editor .cm-lineNumbers .cm-activeLineGutter {
   color: rgba(237, 237, 237, 0.45) !important;
-  background: #0a0a0a !important;
+  background: transparent !important;
 }
 
 .cm-editor .cm-gutters:hover .cm-lineNumbers .cm-gutterElement {
