@@ -129,7 +129,7 @@ export function FolderNode({
             ctx.dropOnTarget(folder.id);
           }}
         >
-          <Tooltip content={ctx.copy.aside.toggleFolder}>
+          <Tooltip content={isOpen ? ctx.copy.aside.collapseFolder : ctx.copy.aside.expandFolder}>
             <button
               type="button"
               className="flex h-4 w-4 shrink-0 items-center justify-center text-white/25 transition-colors hover:text-white/45"
@@ -137,7 +137,7 @@ export function FolderNode({
                 e.stopPropagation();
                 setIsOpen((value) => !value);
               }}
-              aria-label={ctx.copy.aside.toggleFolder}
+              aria-label={isOpen ? ctx.copy.aside.collapseFolder : ctx.copy.aside.expandFolder}
             >
               <ChevronRight
                 size={13}
