@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KlipCode
 
-## Getting Started
+KlipCode es un gestor de snippets de código con enfoque offline-first. Permite guardar, organizar y copiar fragmentos rápidamente, trabajar con carpetas jerárquicas, fijar elementos importantes y sincronizar todo con la nube cuando conectas tu cuenta de GitHub mediante Supabase.
 
-First, run the development server:
+## Características
+
+- Guardado local inmediato en IndexedDB.
+- Sincronización con la nube cuando Supabase está configurado.
+- Organización por carpetas con varios niveles de profundidad.
+- Arrastrar y soltar para mover carpetas y snippets.
+- Copia rápida al portapapeles.
+- Editor con guardado automático.
+- Snippets fijados en inicio y en la barra lateral.
+- Interfaz y textos en español.
+
+## Tecnologías
+
+- Next.js 16 con App Router.
+- React 19.
+- Tailwind CSS v4.
+- CodeMirror 6.
+- Dexie.js para persistencia local.
+- Supabase para autenticación y sincronización.
+- TanStack Query para el estado remoto.
+
+## Requisitos
+
+- Node.js 20 o superior.
+- pnpm.
+- Opcional: cuenta de Supabase para activar la sincronización en la nube.
+
+## Instalación
+
+1. Instala dependencias:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Inicia el entorno de desarrollo:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Abre [http://localhost:3000](http://localhost:3000).
 
-## Learn More
+## Variables de entorno
 
-To learn more about Next.js, take a look at the following resources:
+Para usar Supabase y la sincronización entre dispositivos, define estas variables:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Opcionalmente, puedes definir la URL pública del sitio:
 
-## Deploy on Vercel
+```bash
+NEXT_PUBLIC_SITE_URL=
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Si no configuras Supabase, la aplicación sigue funcionando en modo local con IndexedDB.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Scripts
+
+```bash
+pnpm dev
+pnpm build
+pnpm start
+pnpm lint
+pnpm test
+pnpm test:watch
+```
+
+## Base de datos
+
+El esquema de Supabase está en [db-structure.sql](db-structure.sql). Incluye las tablas de perfiles, carpetas y snippets, además de las políticas RLS necesarias para trabajar con datos propios de cada usuario.
+
+## Estructura general
+
+- [src/app](src/app) contiene la entrada principal de Next.js.
+- [src/components](src/components) agrupa la UI de la aplicación.
+- [src/hooks](src/hooks) contiene la lógica de mutaciones, auth y sincronización.
+- [src/lib](src/lib) reúne acceso a datos, tipos y utilidades.
+- [src/i18n](src/i18n) centraliza los textos visibles de la interfaz.
+
+## Uso rápido
+
+1. Crea un snippet desde la pantalla principal o desde la barra lateral.
+2. Organízalo en una carpeta o muévelo con drag and drop.
+3. Edita el código y deja que el guardado automático sincronice los cambios.
+4. Inicia sesión con GitHub para llevar tus snippets a la nube.
+
+## Despliegue
+
+La aplicación puede desplegarse como cualquier proyecto de Next.js. Si vas a publicarla, asegúrate de configurar `NEXT_PUBLIC_SITE_URL` y las variables de Supabase en el entorno de producción.
