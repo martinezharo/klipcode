@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://klipcode.app";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://klipcode.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
