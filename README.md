@@ -1,6 +1,6 @@
 # KlipCode
 
-KlipCode es un gestor de snippets de código con enfoque offline-first. Permite guardar, organizar y copiar fragmentos rápidamente, trabajar con carpetas jerárquicas, fijar elementos importantes y sincronizar todo con la nube cuando conectas tu cuenta de GitHub mediante Supabase.
+KlipCode es un gestor de snippets de código con almacenamiento local e integración opcional con Supabase para sincronización en la nube. Permite guardar, organizar y copiar fragmentos rápidamente, trabajar con carpetas jerárquicas y fijar elementos importantes.
 
 ## Características
 

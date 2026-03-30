@@ -27,7 +27,6 @@ export const metadata: Metadata = {
     "code snippets",
     "snippet manager",
     "developer tools",
-    "offline-first",
     "cloud sync",
     "code organizer",
   ],
@@ -41,14 +40,14 @@ export const metadata: Metadata = {
     url: siteUrl,
     title: "KlipCode — Multi-device snippet manager",
     description:
-      "Offline-first code snippet manager with cloud sync. Save, organize, and copy your snippets instantly across all your devices.",
+      "Code snippet manager with cloud sync. Save, organize, and copy your snippets instantly across all your devices.",
     siteName: "KlipCode",
   },
   twitter: {
     card: "summary",
     title: "KlipCode — Multi-device snippet manager",
     description:
-      "Offline-first code snippet manager with cloud sync. Save, organize, and copy your snippets instantly across all your devices.",
+      "Code snippet manager with cloud sync. Save, organize, and copy your snippets instantly across all your devices.",
   },
   icons: {
     icon: "/favicon.svg",
