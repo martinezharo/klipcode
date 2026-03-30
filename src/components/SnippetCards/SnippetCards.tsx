@@ -64,6 +64,7 @@ export function SnippetCards({
             folderName={getFolderName(snippet.folderId, folders)}
             copy={copy}
             onSelect={() => onSelectSnippet(snippet.id)}
+            onOpenInNewTab={() => window.open(`/?snippet=${snippet.id}`, "_blank", "noopener,noreferrer")}
             onNavigateFolder={
               snippet.folderId && onNavigateFolder
                 ? () => onNavigateFolder(snippet.folderId!)

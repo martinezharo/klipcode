@@ -226,6 +226,7 @@ export function FolderView({
                   subFolderCount={subFolderCountMap.get(folder.id) ?? 0}
                   copy={copy}
                   onClick={() => onNavigateFolder(folder.id)}
+                  onOpenInNewTab={() => window.open(`/?folder=${folder.id}`, "_blank", "noopener,noreferrer")}
                   onPinAside={onPinFolder ? (pinned) => void onPinFolder(folder.id, "aside", pinned) : undefined}
                   onRename={onRenameFolder ? (name) => void onRenameFolder(folder.id, name) : undefined}
                   onDelete={onDeleteFolder ? () => void onDeleteFolder(folder.id) : undefined}
@@ -254,6 +255,7 @@ export function FolderView({
                   copy={copy}
                   enableDrag
                   onSelect={() => onSelectSnippet(snippet.id)}
+                  onOpenInNewTab={() => window.open(`/?snippet=${snippet.id}`, "_blank", "noopener,noreferrer")}
                   onUnpinAside={onPinSnippet ? () => void onPinSnippet(snippet.id, "aside", false) : undefined}
                   onPinAside={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "aside", pinned) : undefined}
                   onPinHome={onPinSnippet ? (pinned) => void onPinSnippet(snippet.id, "home", pinned) : undefined}

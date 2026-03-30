@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clipboard, Copy, Folder, MoreHorizontal, PenLine, Pin, PinOff, Scissors, Trash2 } from "lucide-react";
+import { Check, Clipboard, Copy, ExternalLink, Folder, MoreHorizontal, PenLine, Pin, PinOff, Scissors, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 
 import { LANGUAGES } from "@/lib/constants/languages";
@@ -26,6 +26,7 @@ interface SnippetCardProps {
   folderName: string | null;
   copy: Dictionary;
   onSelect: () => void;
+  onOpenInNewTab?: () => void;
   onNavigateFolder?: () => void;
   onUnpinHome?: () => void;
   onUnpinAside?: () => void;
@@ -46,6 +47,7 @@ export function SnippetCard({
   folderName,
   copy,
   onSelect,
+  onOpenInNewTab,
   onNavigateFolder,
   onUnpinHome,
   onUnpinAside,
@@ -69,7 +71,7 @@ export function SnippetCard({
   const drag = useDragCtx();
   const isDraggingThis = enableDrag && drag.dragging?.id === snippet.id && drag.dragging.type === "snippet";
 
-  const hasMenu = !!(onPinAside || onPinHome || onRename || onDelete || onCut || onCopy);
+  const hasMenu = !!(onOpenInNewTab || onPinAside || onPinHome || onRename || onDelete || onCut || onCopy);
 
   const cm = copy.contextMenu;
 
@@ -77,6 +79,9 @@ export function SnippetCard({
     ? [
         {
           items: [
+            ...(onOpenInNewTab
+              ? [{ id: "open-in-new-tab", label: cm.openInNewTab, Icon: ExternalLink, onClick: () => onOpenInNewTab() }]
+              : []),
             {
               id: "copy-content",
               label: cm.copyContent,

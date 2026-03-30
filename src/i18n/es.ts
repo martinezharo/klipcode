@@ -92,6 +92,7 @@ export const es = {
     paste: "Pegar",
     delete: "Eliminar",
     copyContent: "Copiar contenido",
+    openInNewTab: "Abrir en nueva pestaña",
     moreOptions: "Más opciones",
   },
   languageSelect: {

@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import {
   Clipboard,
   Copy,
+  ExternalLink,
   FilePlus,
   FolderPlus,
   PenLine,
@@ -95,6 +96,16 @@ export function useContextMenuGroups({
           {
             items: [
               {
+                id: "open-in-new-tab",
+                label: cm.openInNewTab,
+                Icon: ExternalLink,
+                onClick: () => window.open(`/?folder=${id}`, "_blank", "noopener,noreferrer"),
+              },
+            ],
+          },
+          {
+            items: [
+              {
                 id: "new-folder",
                 label: cm.newFolder,
                 Icon: FolderPlus,
@@ -144,6 +155,16 @@ export function useContextMenuGroups({
         const snippet = snippets.find((s) => s.id === id);
         if (!snippet) return [];
         return [
+          {
+            items: [
+              {
+                id: "open-in-new-tab",
+                label: cm.openInNewTab,
+                Icon: ExternalLink,
+                onClick: () => window.open(`/?snippet=${id}`, "_blank", "noopener,noreferrer"),
+              },
+            ],
+          },
           {
             items: [{
               id: "copy-content",

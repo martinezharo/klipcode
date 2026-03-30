@@ -1,6 +1,6 @@
 "use client";
 
-import { Clipboard, Copy, Folder, MoreHorizontal, PenLine, Pin, PinOff, Scissors, Trash2 } from "lucide-react";
+import { Clipboard, Copy, ExternalLink, Folder, MoreHorizontal, PenLine, Pin, PinOff, Scissors, Trash2 } from "lucide-react";
 import { useState, type KeyboardEvent, type MouseEvent } from "react";
 
 import { cn } from "@/lib/utils";
@@ -15,12 +15,17 @@ import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 function buildMenuGroups(
   folder: FolderRecord,
   cm: Dictionary["contextMenu"],
-  callbacks: Pick<FolderCardProps, "onPinAside" | "onRename" | "onDelete" | "onCut" | "onCopy" | "onPaste" | "hasPaste">,
+  callbacks: Pick<FolderCardProps, "onPinAside" | "onRename" | "onDelete" | "onCut" | "onCopy" | "onPaste" | "hasPaste" | "onOpenInNewTab">,
   startRenaming: () => void,
 ): ContextMenuGroup[] {
-  const { onPinAside, onRename, onDelete, onCut, onCopy, onPaste, hasPaste } = callbacks;
+  const { onPinAside, onRename, onDelete, onCut, onCopy, onPaste, hasPaste, onOpenInNewTab } = callbacks;
 
   const groups: ContextMenuGroup[] = [
+    {
+      items: onOpenInNewTab
+        ? [{ id: "open-in-new-tab", label: cm.openInNewTab, Icon: ExternalLink, onClick: () => onOpenInNewTab() }]
+        : [],
+    },
     {
       items: [
         ...(onPinAside
@@ -58,6 +63,7 @@ export interface FolderCardProps {
   subFolderCount: number;
   copy: Dictionary;
   onClick: () => void;
+  onOpenInNewTab?: () => void;
   onPinAside?: (pinned: boolean) => void;
   onRename?: (newName: string) => void;
   onDelete?: () => void;
@@ -75,6 +81,7 @@ export function FolderCard({
   subFolderCount,
   copy,
   onClick,
+  onOpenInNewTab,
   onPinAside,
   onRename,
   onDelete,
@@ -91,7 +98,7 @@ export function FolderCard({
   const isDraggingThis = drag.dragging?.id === folder.id && drag.dragging.type === "folder";
   const isDropTarget = drag.dragOverId === folder.id && drag.canDropOnFolder(folder.id);
 
-  const hasMenu = !!(onPinAside || onRename || onDelete || onCut || onCopy);
+  const hasMenu = !!(onOpenInNewTab || onPinAside || onRename || onDelete || onCut || onCopy);
   const cm = copy.contextMenu;
 
   const startRenaming = () => {
@@ -100,7 +107,7 @@ export function FolderCard({
   };
 
   const menuGroups = hasMenu
-    ? buildMenuGroups(folder, cm, { onPinAside, onRename, onDelete, onCut, onCopy, onPaste, hasPaste }, startRenaming)
+    ? buildMenuGroups(folder, cm, { onOpenInNewTab, onPinAside, onRename, onDelete, onCut, onCopy, onPaste, hasPaste }, startRenaming)
     : [];
 
   const meta = [
