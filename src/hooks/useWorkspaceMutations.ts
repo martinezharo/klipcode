@@ -5,9 +5,10 @@ import { db } from "@/lib/db";
 import type { ClipboardEntry, FolderRecord, SnippetRecord, SyncStatus } from "@/lib/types";
 import { DEFAULT_LANGUAGE } from "@/lib/constants/languages";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
-import { getDictionary } from "@/i18n";
+import type { Dictionary } from "@/i18n";
 
 interface UseWorkspaceMutationsOptions {
+  copy: Dictionary;
   user: User | null;
   supabase: SupabaseClient | null;
   supabaseConfigured: boolean;
@@ -39,7 +40,6 @@ export function useWorkspaceMutations({
   setSnippetStatus,
 }: UseWorkspaceMutationsOptions) {
   const updateTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const copy = getDictionary();
 
   // Cleanup debounce timers on unmount
   useEffect(() => {

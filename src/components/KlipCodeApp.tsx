@@ -26,8 +26,8 @@ import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
 import { SnippetEditor } from "@/components/SnippetEditor/SnippetEditor";
 import { FolderView } from "@/components/FolderView/FolderView";
 
-export default function KlipCodeApp() {
-  const copy = getDictionary();
+export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
+  const copy = getDictionary(locale);
   const queryClient = useQueryClient();
   const { sidebarOpen, setSidebarOpen, isMobile } = useResponsiveSidebar();
 
@@ -95,6 +95,7 @@ export default function KlipCodeApp() {
   /* ── Mutations ────────────────────────────────────────────────────────── */
 
   const mutations = useWorkspaceMutations({
+    copy,
     user: auth.user,
     supabase: auth.supabase,
     supabaseConfigured: auth.supabaseConfigured,
