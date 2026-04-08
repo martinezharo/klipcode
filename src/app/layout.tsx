@@ -50,8 +50,8 @@ export const metadata: Metadata = {
       "Code snippet manager with cloud sync. Save, organize, and copy your snippets instantly across all your devices.",
   },
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: [{ url: "/favicon.svg", type: "image/svg+xml" }],
     apple: "/favicon.svg",
   },
   robots: {
