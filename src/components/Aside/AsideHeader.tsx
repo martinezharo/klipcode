@@ -38,7 +38,7 @@ export function AsideHeader({
             <Tooltip content={copy.auth.signOut} placement="bottom">
               <button
                 onClick={onSignOut}
-                className="shrink-0 rounded p-1 text-white/25 transition-colors hover:bg-white/[0.1] hover:text-white/60"
+                className="shrink-0 rounded p-1 text-white/25 transition-colors hover:bg-white/10 hover:text-white/60"
                 aria-label={copy.auth.signOut}
               >
                 <LogOut size={12} />
@@ -61,7 +61,7 @@ export function AsideHeader({
           <button
             type="button"
             onClick={onCollapse}
-            className="shrink-0 rounded-md p-1.5 text-white/20 transition-colors hover:bg-white/[0.06] hover:text-white/60"
+            className="shrink-0 rounded-md p-1.5 text-white/20 transition-colors hover:bg-white/6 hover:text-white/60"
             aria-label={copy.aside.collapse}
           >
             <ChevronsLeft size={14} />

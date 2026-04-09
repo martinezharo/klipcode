@@ -172,7 +172,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         type="button"
         aria-label={copy.aside.open}
         onClick={() => setSidebarOpen(true)}
-        className="shrink-0 rounded-md p-1.5 text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white/70"
+        className="shrink-0 rounded-md p-1.5 text-white/40 transition-colors hover:bg-white/6 hover:text-white/70"
       >
         <Menu size={16} />
       </button>
@@ -263,7 +263,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         ) : (
           <main className="flex-1 overflow-y-auto">
             {menuButton && (
-              <div className="sticky top-0 z-10 flex h-[44px] items-center border-b border-transparent px-3">
+              <div className="sticky top-0 z-10 flex h-11 items-center border-b border-transparent px-3">
                 {menuButton}
               </div>
             )}

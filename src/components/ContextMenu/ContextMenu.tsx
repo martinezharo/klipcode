@@ -58,7 +58,7 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
     <>
       {/* Full-screen backdrop: captures left-click and right-click to close */}
       <div
-        className="fixed inset-0 z-[998]"
+        className="fixed inset-0 z-998"
         onMouseDown={(e) => {
           e.preventDefault();
           onClose();
@@ -74,7 +74,7 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
         ref={menuRef}
         role="menu"
         aria-orientation="vertical"
-        className="klipcode-menu-animate fixed z-[999] min-w-[208px] overflow-hidden rounded-xl p-1"
+        className="klipcode-menu-animate fixed z-999 min-w-52 overflow-hidden rounded-xl p-1"
         style={{
           left: x,
           top: y,
@@ -115,7 +115,7 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
                       onClose();
                     }}
                     className={[
-                      "flex w-full items-center gap-[10px] rounded-lg px-2.5 py-[7px] text-left",
+                      "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.75 text-left",
                       "text-[13px] leading-none transition-colors duration-75",
                       "disabled:pointer-events-none disabled:opacity-25",
                       destructive

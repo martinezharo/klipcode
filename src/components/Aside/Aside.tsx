@@ -166,16 +166,16 @@ export function Aside({
         className={
           isMobile
             ? "contents"
-            : `overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]${
-                isOpen ? " w-[240px]" : " w-0"
+            : `overflow-hidden transition-[width] duration-300 ease-in-out${
+                isOpen ? " w-60" : " w-0"
               }`
         }
       >
         <aside
           className={[
-            "flex h-screen w-[240px] shrink-0 flex-col border-r border-white/[0.06] bg-surface",
+            "flex h-screen w-60 shrink-0 flex-col border-r border-white/6 bg-surface",
             isMobile
-              ? `fixed inset-y-0 left-0 z-50 shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+              ? `fixed inset-y-0 left-0 z-50 shadow-2xl transition-transform duration-300 ease-in-out ${
                   isOpen ? "translate-x-0" : "-translate-x-full"
                 }`
               : "",
@@ -191,21 +191,21 @@ export function Aside({
             onCollapse={() => onSetOpen(false)}
           />
 
-          <div className="mx-4 mb-2 border-t border-white/[0.05]" />
+          <div className="mx-4 mb-2 border-t border-white/5" />
 
           {/* Home */}
           <div className="px-2">
             <button
               type="button"
               onClick={onGoHome}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-white/[0.04] hover:text-foreground"
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-muted transition-colors hover:bg-white/4 hover:text-foreground"
             >
               <Home size={14} className="shrink-0" />
               <span>{copy.aside.home}</span>
             </button>
           </div>
 
-          <div className="mx-4 my-3 border-t border-white/[0.05]" />
+          <div className="mx-4 my-3 border-t border-white/5" />
 
           {/* My Space */}
           <div className="flex flex-1 flex-col overflow-hidden px-2">
@@ -213,7 +213,7 @@ export function Aside({
               <button
                 type="button"
                 onClick={onGoSpace}
-                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-white/[0.04] hover:text-foreground"
+                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-white/4 hover:text-foreground"
               >
                 <Layers size={12} className="text-white/25" />
                 <span className="text-[11px] font-medium uppercase tracking-wider text-white/35">
@@ -226,7 +226,7 @@ export function Aside({
                     type="button"
                     aria-label={copy.aside.addSnippet}
                     onClick={() => setCreatingSnippetFolderId(null)}
-                    className="rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
+                    className="rounded p-1 text-white/30 transition-colors hover:bg-white/6 hover:text-muted"
                   >
                     <FilePlus size={13} />
                   </button>
@@ -236,7 +236,7 @@ export function Aside({
                     type="button"
                     aria-label={copy.aside.addFolder}
                     onClick={() => setCreatingFolderParentId(null)}
-                    className="rounded p-1 text-white/30 transition-colors hover:bg-white/[0.06] hover:text-muted"
+                    className="rounded p-1 text-white/30 transition-colors hover:bg-white/6 hover:text-muted"
                   >
                     <FolderPlus size={13} />
                   </button>
@@ -286,8 +286,8 @@ export function Aside({
                   className={[
                     "mx-1 mt-1.5 flex items-center justify-center gap-1.5 rounded-md border border-dashed py-2 text-[11px] transition-all duration-150 select-none",
                     drag.dragOverId === "root"
-                      ? "border-white/30 bg-white/[0.05] text-white/55"
-                      : "border-white/[0.08] text-white/20",
+                      ? "border-white/30 bg-white/5 text-white/55"
+                      : "border-white/8 text-white/20",
                   ].join(" ")}
                 >
                   <Layers size={11} />
@@ -302,7 +302,7 @@ export function Aside({
               href="https://github.com/martinezharo/klipcode"
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex w-full items-center justify-center py-2 px-3 gap-2 rounded-md border border-white/[0.04] bg-white/[0.01] text-[12px] font-medium text-white/40 shadow-sm transition-all duration-300 hover:border-white/10 hover:bg-white/[0.04] hover:text-white"
+              className="group flex w-full items-center justify-center py-2 px-3 gap-2 rounded-md border border-white/4 bg-white/1 text-[12px] font-medium text-white/40 shadow-sm transition-all duration-300 hover:border-white/10 hover:bg-white/4 hover:text-white"
             >
               <GitHubIcon
                 size={14}
