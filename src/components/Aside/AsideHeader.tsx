@@ -1,10 +1,9 @@
 "use client";
 
-import { ChevronsLeft, LogOut } from "lucide-react";
+import { ChevronsLeft, LogIn, LogOut } from "lucide-react";
 import type { Dictionary } from "@/i18n";
 import type { User } from "@supabase/supabase-js";
 import { Tooltip } from "@/ui/Tooltip";
-import { GitHubIcon } from "./GitHubIcon";
 
 export function AsideHeader({
   user,
@@ -51,8 +50,8 @@ export function AsideHeader({
             onClick={onSignIn}
             className="group flex min-w-0 flex-1 items-center gap-2.5 py-1 pl-1 pr-2 text-left transition-colors hover:text-foreground"
           >
-            <GitHubIcon size={16} className="text-white/80 group-hover:text-white" />
-            <span className="truncate text-[12px] font-medium text-foreground/80 group-hover:text-foreground ml-2">
+            <LogIn size={15} className="shrink-0 text-white/60 group-hover:text-white" />
+            <span className="truncate text-[12px] font-medium text-foreground/80 group-hover:text-foreground">
               {copy.auth.signIn}
             </span>
           </button>
