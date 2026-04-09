@@ -36,7 +36,7 @@ export function AccountToast({ message }: AccountToastProps) {
   }, [message]);
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 pointer-events-none">
+    <div className="absolute bottom-4 left-4 z-50 pointer-events-none">
       {visibleMessage && (
         <div
           aria-live="polite"

@@ -219,7 +219,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         onSelectFolder={(folderId) => router.push(`/?folder=${folderId}`)}
       />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="relative flex flex-1 flex-col overflow-hidden">
         <AccountToast message={auth.accountMessage} />
 
         {selectedSnippet ? (
