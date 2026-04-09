@@ -16,6 +16,7 @@ import { SnippetNode } from "./SnippetNode";
 import { NewFolderInput } from "./NewFolderInput";
 import { NewSnippetInput } from "./NewSnippetInput";
 import { useContextMenuGroups } from "./useContextMenuGroups";
+import { GitHubIcon } from "./GitHubIcon";
 
 export type { AsideProps } from "./types";
 
@@ -294,6 +295,21 @@ export function Aside({
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="shrink-0 px-2 pb-4 pt-2">
+            <a
+              href="https://github.com/martinezharo/klipcode"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex w-full items-center justify-center py-2 px-3 gap-2 rounded-md border border-white/[0.04] bg-white/[0.01] text-[12px] font-medium text-white/40 shadow-sm transition-all duration-300 hover:border-white/10 hover:bg-white/[0.04] hover:text-white"
+            >
+              <GitHubIcon
+                size={14}
+                className="shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:text-white"
+              />
+              <span className="truncate tracking-wide">martinezharo/klipcode</span>
+            </a>
           </div>
         </aside>
       </div>
