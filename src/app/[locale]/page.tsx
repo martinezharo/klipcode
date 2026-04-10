@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getDictionary } from "@/i18n";
+import { LandingHeader } from "@/components/LandingHeader";
 import { Logo } from "@/ui/Logo";
 
 type Locale = "en" | "es";
@@ -97,8 +98,7 @@ export default async function LandingPage({
   return (
     <div className="relative min-h-full">
       {/* ─── Navbar ───────────────────────────────────────────────────────── */}
-      <header className="fixed top-0 z-50 w-full border-b border-white/6 bg-[#0a0a0a]/80 backdrop-blur-xl">
-        <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5">
+      <LandingHeader>
           <Link href={`/${locale}`} className="flex items-center gap-2 text-foreground">
             <Logo className="h-5 w-5" />
             <span className="text-sm font-semibold tracking-tight">KlipCode</span>
@@ -122,8 +122,7 @@ export default async function LandingPage({
               <IconArrowRight />
             </Link>
           </div>
-        </nav>
-      </header>
+      </LandingHeader>
 
       {/* ─── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative flex flex-col items-center px-5 pt-32 pb-20 md:pt-44 md:pb-28">
