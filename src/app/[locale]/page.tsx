@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getDictionary } from "@/i18n";
+import { HeroPerspective } from "@/components/HeroPerspective";
 import { LandingHeader } from "@/components/LandingHeader";
 import { Logo } from "@/ui/Logo";
 
@@ -125,7 +126,7 @@ export default async function LandingPage({
       </LandingHeader>
 
       {/* ─── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative flex flex-col items-center px-5 pt-32 pb-20 md:pt-44 md:pb-28">
+      <section className="relative flex flex-col items-center px-5 pt-28 pb-16 md:pt-36 md:pb-24">
         {/* Subtle top gradient glow */}
         <div
           aria-hidden="true"
@@ -153,17 +154,19 @@ export default async function LandingPage({
         </div>
 
         {/* App preview screenshot */}
-        <div className="landing-fade-in landing-delay-3 relative mt-16 w-full max-w-5xl md:mt-20">
-          <div className="overflow-hidden rounded-xl border border-white/8 shadow-[0_0_80px_-20px_rgba(255,255,255,0.06)]">
-            <Image
-              src="/landing/ui.webp"
-              alt={l.appPreview}
-              width={1920}
-              height={1080}
-              className="w-full"
-              priority
-            />
-          </div>
+        <div className="landing-fade-in landing-delay-3 relative mt-6 w-full max-w-5xl md:mt-8">
+          <HeroPerspective>
+            <div className="overflow-hidden rounded-xl border border-white/8 shadow-[0_0_80px_-20px_rgba(255,255,255,0.06)]">
+              <Image
+                src="/landing/ui.webp"
+                alt={l.appPreview}
+                width={1920}
+                height={1080}
+                className="w-full"
+                priority
+              />
+            </div>
+          </HeroPerspective>
           {/* Bottom fade */}
           <div
             aria-hidden="true"
