@@ -45,6 +45,16 @@ html { scrollbar-gutter: stable; }
 .landing-delay-2 { animation-delay: 0.2s; }
 .landing-delay-3 { animation-delay: 0.4s; }
 
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  animation: gradient 6s linear infinite;
+}
+
 /* ─── Landing grid background ────────────────────────────────────────────── */
 .landing-grid {
   background-image:

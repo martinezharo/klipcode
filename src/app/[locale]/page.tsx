@@ -138,7 +138,15 @@ export default async function LandingPage({
         />
 
         <h1 className="landing-fade-in relative max-w-3xl text-center text-4xl leading-[1.1] font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl whitespace-pre-line">
-          {l.hero.title}
+          {l.hero.titleBefore}
+          <span className="relative inline-block font-mono bg-linear-to-r from-[#8400FF] via-[#00A3FF] to-[#8400FF] bg-[length:200%_auto] animate-gradient bg-clip-text text-transparent">
+            {l.hero.titleHighlight}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 -bottom-0.5 h-px bg-linear-to-r from-[#8400FF]/0 via-[#4052FF]/60 to-[#8400FF]/0"
+            />
+          </span>
+          {l.hero.titleAfter}
         </h1>
 
         <p className="landing-fade-in landing-delay-1 mt-6 max-w-xl text-center text-base leading-relaxed text-muted sm:text-lg">

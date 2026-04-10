@@ -185,6 +185,9 @@ export const es = {
     },
     hero: {
       title: "Tus snippets de código,\nsiempre a mano.",
+      titleBefore: "Tus ",
+      titleHighlight: "snippets de código",
+      titleAfter: ",\nsiempre a mano.",
       subtitle:
         "Guarda, organiza y accede a tus fragmentos de código favoritos al instante desde cualquier dispositivo. Sincronización en la nube incluida.",
       cta: "Empieza ahora — gratis",

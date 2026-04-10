@@ -186,6 +186,9 @@ export const en = {
     },
     hero: {
       title: "Your code snippets,\nalways within reach.",
+      titleBefore: "Your ",
+      titleHighlight: "code snippets",
+      titleAfter: ",\nalways within reach.",
       subtitle:
         "Save, organize, and access your favorite code snippets instantly from any device. Cloud sync included.",
       cta: "Start now — free",
