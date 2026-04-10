@@ -103,7 +103,7 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "github",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: window.location.href },
     });
 
     if (error) setAccountMessage(copy.auth.syncFailed);
