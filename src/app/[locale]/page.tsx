@@ -4,6 +4,7 @@ import { getDictionary } from "@/i18n";
 import { HeroPerspective } from "@/components/HeroPerspective";
 import { LandingHeader } from "@/components/LandingHeader";
 import { Logo } from "@/ui/Logo";
+import { GitHubIcon } from "@/components/Aside/GitHubIcon";
 
 type Locale = "en" | "es";
 
@@ -329,9 +330,13 @@ export default async function LandingPage({
               href="https://github.com/martinezharo/klipcode"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-muted transition-colors hover:text-foreground"
+              className="group flex items-center justify-center py-2 px-3 gap-2 rounded-md border border-white/4 bg-white/1 text-[12px] font-medium text-white/40 shadow-sm transition-all duration-300 hover:border-white/10 hover:bg-white/4 hover:text-white"
             >
-              {l.footer.source}
+              <GitHubIcon
+                size={14}
+                className="shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:text-white"
+              />
+              <span className="truncate tracking-wide">martinezharo/klipcode</span>
             </a>
           </div>
         </div>
