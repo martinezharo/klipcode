@@ -1,6 +1,5 @@
-import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import KlipCodeApp from "@/components/KlipCodeApp";
 
 function detectLocale(acceptLanguage: string | null): "en" | "es" {
   if (!acceptLanguage) return "en";
@@ -16,9 +15,5 @@ function detectLocale(acceptLanguage: string | null): "en" | "es" {
 export default async function Home() {
   const headersList = await headers();
   const locale = detectLocale(headersList.get("accept-language"));
-  return (
-    <Suspense>
-      <KlipCodeApp locale={locale} />
-    </Suspense>
-  );
+  redirect(`/${locale}`);
 }

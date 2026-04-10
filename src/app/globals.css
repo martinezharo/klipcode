@@ -25,6 +25,26 @@
 /* Reserve space for the scrollbar to avoid layout shifts when it appears */
 html { scrollbar-gutter: stable; }
 
+/* ─── Landing page animations ─────────────────────────────────────────────── */
+@keyframes landing-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-fade-in {
+  animation: landing-fade-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.landing-delay-1 { animation-delay: 0.1s; }
+.landing-delay-2 { animation-delay: 0.2s; }
+.landing-delay-3 { animation-delay: 0.4s; }
+
 body {
   background: var(--background);
   color: var(--foreground);

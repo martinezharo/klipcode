@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  reactCompiler: true,
+  // React Compiler causes a benign Performance.measure timing error in
+  // Turbopack dev mode (React 19 issue). Keep it enabled only for production.
+  reactCompiler: process.env.NODE_ENV === "production",
   images: {
     remotePatterns: [
       {

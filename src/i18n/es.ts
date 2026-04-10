@@ -178,6 +178,81 @@ export const es = {
     cancel: "Cancelar",
     confirm: "Eliminar permanentemente",
   },
+  landing: {
+    nav: {
+      openApp: "Abrir App",
+      noSignUp: "Sin necesidad de registro",
+    },
+    hero: {
+      title: "Tus snippets de código,\nsiempre a mano.",
+      subtitle:
+        "Guarda, organiza y accede a tus fragmentos de código favoritos al instante desde cualquier dispositivo. Sincronización en la nube incluida.",
+      cta: "Empieza ahora — gratis",
+      ctaHint: "No necesitas cuenta para empezar",
+    },
+    appPreview: "Interfaz de la aplicación KlipCode",
+    features: {
+      title: "Todo lo que necesitas, nada que sobre",
+      subtitle: "Diseñado para desarrolladores que valoran la velocidad y la simplicidad.",
+      quickSave: {
+        title: "Guardado instantáneo",
+        description:
+          "Guarda un snippet en dos clics. Sin formularios, sin fricción.",
+      },
+      instantCopy: {
+        title: "Copia en un clic",
+        description:
+          "Copia cualquier snippet al portapapeles al instante.",
+      },
+      folders: {
+        title: "Carpetas anidadas",
+        description:
+          "Organiza con carpetas jerárquicas que se adaptan a tu modelo mental.",
+      },
+      dragAndDrop: {
+        title: "Arrastrar y soltar",
+        description:
+          "Reorganiza snippets y carpetas arrastrándolos donde quieras.",
+      },
+      cloudSync: {
+        title: "Sincronización en la nube",
+        description:
+          "Inicia sesión con GitHub y sincroniza todos tus dispositivos automáticamente.",
+      },
+      editor: {
+        title: "Editor avanzado",
+        description:
+          "Resaltado de sintaxis, guardado automático, formateo — todo integrado.",
+      },
+    },
+    demos: {
+      create: {
+        title: "Crea snippets en segundos",
+        description:
+          "Elige un lenguaje, pega tu código — listo. Sin configuración.",
+      },
+      copy: {
+        title: "Copia con un clic",
+        description:
+          "Cada snippet está a un clic de tu portapapeles.",
+      },
+      move: {
+        title: "Organiza intuitivamente",
+        description:
+          "Arrastra y suelta para reorganizar todo tu espacio de trabajo.",
+      },
+    },
+    cta: {
+      title: "¿Listo para organizar tu código?",
+      subtitle:
+        "Empieza a usar KlipCode ahora mismo. Sin cuenta, sin configuración, sin límites.",
+      button: "Abrir KlipCode",
+    },
+    footer: {
+      tagline: "Gestor de snippets multidispositivo.",
+      source: "Código fuente",
+    },
+  },
   seed: {
     folderName: "bienvenido",
     snippetName: "klipcode",

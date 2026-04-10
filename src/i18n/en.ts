@@ -179,6 +179,81 @@ export const en = {
     cancel: "Cancel",
     confirm: "Delete permanently",
   },
+  landing: {
+    nav: {
+      openApp: "Open App",
+      noSignUp: "No sign-up required",
+    },
+    hero: {
+      title: "Your code snippets,\nalways within reach.",
+      subtitle:
+        "Save, organize, and access your favorite code snippets instantly from any device. Cloud sync included.",
+      cta: "Start now — free",
+      ctaHint: "No account needed to begin",
+    },
+    appPreview: "KlipCode application interface",
+    features: {
+      title: "Everything you need, nothing you don't",
+      subtitle: "Built for developers who value speed and simplicity.",
+      quickSave: {
+        title: "Instant Save",
+        description:
+          "Save a snippet in two clicks. No sign-up walls, no friction.",
+      },
+      instantCopy: {
+        title: "One-click Copy",
+        description:
+          "Copy any snippet to your clipboard instantly.",
+      },
+      folders: {
+        title: "Nested Folders",
+        description:
+          "Organize with hierarchical folders that match your mental model.",
+      },
+      dragAndDrop: {
+        title: "Drag & Drop",
+        description:
+          "Rearrange snippets and folders by dragging them where you want.",
+      },
+      cloudSync: {
+        title: "Cloud Sync",
+        description:
+          "Sign in with GitHub and sync across all your devices automatically.",
+      },
+      editor: {
+        title: "Advanced Editor",
+        description:
+          "Syntax highlighting, auto-save, code formatting — all built in.",
+      },
+    },
+    demos: {
+      create: {
+        title: "Create snippets in seconds",
+        description:
+          "Pick a language, paste your code — done. No configuration required.",
+      },
+      copy: {
+        title: "Copy with one click",
+        description:
+          "Every snippet is one click away from your clipboard.",
+      },
+      move: {
+        title: "Organize intuitively",
+        description:
+          "Drag and drop to rearrange your entire workspace.",
+      },
+    },
+    cta: {
+      title: "Ready to organize your code?",
+      subtitle:
+        "Start using KlipCode right now. No account, no setup, no limits.",
+      button: "Launch KlipCode",
+    },
+    footer: {
+      tagline: "Multi-device snippet manager.",
+      source: "Source",
+    },
+  },
   seed: {
     folderName: "welcome",
     snippetName: "klipcode",
