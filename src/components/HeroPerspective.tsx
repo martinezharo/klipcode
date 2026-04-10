@@ -32,9 +32,9 @@ export function HeroPerspective({ children }: { children: React.ReactNode }) {
   const scale = 0.96 + 0.04 * progress;
 
   return (
-    <div ref={ref} className="group [perspective:1200px]">
+    <div ref={ref} className="group perspective-distant">
       <div
-        className="transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform group-hover:rotate-x-[2deg] group-hover:scale-[1.01]"
+        className="transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform group-hover:rotate-x-2 group-hover:scale-[1.01]"
         style={{
           transform: `rotateX(${rotateX}deg) scale(${scale})`,
           transformOrigin: "center bottom",
