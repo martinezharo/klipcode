@@ -45,6 +45,16 @@ html { scrollbar-gutter: stable; }
 .landing-delay-2 { animation-delay: 0.2s; }
 .landing-delay-3 { animation-delay: 0.4s; }
 
+/* ─── Landing grid background ────────────────────────────────────────────── */
+.landing-grid {
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 100% 65% at 50% 0%, black 10%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 100% 65% at 50% 0%, black 10%, transparent 100%);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

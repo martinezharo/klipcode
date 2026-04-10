@@ -98,6 +98,9 @@ export default async function LandingPage({
 
   return (
     <div className="relative min-h-full">
+      {/* ─── Grid background ──────────────────────────────────────────────── */}
+      <div aria-hidden="true" className="landing-grid pointer-events-none absolute inset-0" />
+
       {/* ─── Navbar ───────────────────────────────────────────────────────── */}
       <LandingHeader>
           <Link href={`/${locale}`} className="flex items-center gap-2 text-foreground">
