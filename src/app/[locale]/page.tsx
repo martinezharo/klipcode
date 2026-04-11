@@ -98,7 +98,7 @@ export default async function LandingPage({
   ];
 
   return (
-    <div className="relative min-h-full">
+    <div className="relative min-h-full overflow-x-clip">
       {/* ─── Grid background ──────────────────────────────────────────────── */}
       <div aria-hidden="true" className="landing-grid pointer-events-none absolute inset-0" />
 
@@ -112,7 +112,7 @@ export default async function LandingPage({
           <div className="flex items-center gap-3">
             <Link
               href={altHref}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-muted transition-colors hover:text-foreground"
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] text-muted transition-colors hover:text-foreground sm:text-xs"
               aria-label={altLocale === "es" ? "Español" : "English"}
             >
               <IconGlobe />
@@ -121,7 +121,7 @@ export default async function LandingPage({
 
             <Link
               href={appHref}
-              className="group flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-medium text-[#0a0a0a] transition-all hover:bg-white/90 active:scale-[0.97]"
+              className="group hidden items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-medium text-[#0a0a0a] transition-all hover:bg-white/90 active:scale-[0.97] md:flex"
             >
               {l.nav.openApp}
               <IconArrowRight />
@@ -130,7 +130,7 @@ export default async function LandingPage({
       </LandingHeader>
 
       {/* ─── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative flex flex-col items-center px-5 pt-28 pb-16 md:pt-36 md:pb-24">
+      <section className="relative flex flex-col items-center px-4 pt-24 pb-14 sm:px-5 sm:pt-28 sm:pb-16 md:pt-36 md:pb-24">
         {/* Subtle top gradient glow */}
         <div
           aria-hidden="true"
@@ -138,13 +138,13 @@ export default async function LandingPage({
           style={{ background: "radial-gradient(ellipse, #ffffff 0%, transparent 70%)" }}
         />
 
-        <h1 className="landing-fade-in relative max-w-3xl text-center text-4xl leading-[1.1] font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl whitespace-pre-line">
+        <h1 className="landing-fade-in relative max-w-3xl text-balance text-center text-4xl leading-[1.1] font-bold tracking-tight text-foreground whitespace-normal sm:text-5xl md:text-6xl md:whitespace-pre-line">
           {l.hero.titleBefore}
-          <span className="relative inline-block font-mono bg-linear-to-r from-[#8400FF] via-[#00A3FF] to-[#8400FF] bg-[length:200%_auto] animate-gradient bg-clip-text text-transparent">
+          <span className="relative inline font-mono bg-linear-to-r from-[#8400FF] via-[#00A3FF] to-[#8400FF] bg-size-[200%_auto] animate-gradient bg-clip-text text-transparent md:inline-block">
             {l.hero.titleHighlight}
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 -bottom-0.5 h-px bg-linear-to-r from-[#8400FF]/0 via-[#4052FF]/60 to-[#8400FF]/0"
+              className="pointer-events-none absolute inset-x-0 -bottom-0.5 hidden h-px bg-linear-to-r from-[#8400FF]/0 via-[#4052FF]/60 to-[#8400FF]/0 md:block"
             />
           </span>
           {l.hero.titleAfter}
@@ -188,9 +188,9 @@ export default async function LandingPage({
       </section>
 
       {/* ─── Demo sections ────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl space-y-24 px-5 py-20 md:space-y-32 md:py-28">
+      <section className="mx-auto max-w-6xl space-y-20 px-4 py-16 sm:px-5 md:space-y-32 md:py-28">
         {/* Create snippet */}
-        <div className="flex flex-col items-center gap-10 md:flex-row md:gap-16">
+        <div className="flex flex-col items-center gap-8 md:flex-row md:gap-16">
           <div className="flex-1 space-y-4 text-center md:text-left">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
               {l.demos.create.title}
@@ -214,7 +214,7 @@ export default async function LandingPage({
         </div>
 
         {/* Copy snippet — reversed */}
-        <div className="flex flex-col-reverse items-center gap-10 md:flex-row md:gap-16">
+        <div className="flex flex-col-reverse items-center gap-8 md:flex-row md:gap-16">
           <div className="flex-1">
             <div className="overflow-hidden rounded-xl border border-white/8">
               <Image
@@ -238,7 +238,7 @@ export default async function LandingPage({
         </div>
 
         {/* Move elements */}
-        <div className="flex flex-col items-center gap-10 md:flex-row md:gap-16">
+        <div className="flex flex-col items-center gap-8 md:flex-row md:gap-16">
           <div className="flex-1 space-y-4 text-center md:text-left">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
               {l.demos.move.title}
@@ -263,7 +263,7 @@ export default async function LandingPage({
       </section>
 
       {/* ─── Features grid ────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-5 py-20 md:py-28">
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-5 md:py-28">
         <div className="mb-14 text-center">
           <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             {l.features.title}
@@ -292,7 +292,7 @@ export default async function LandingPage({
       </section>
 
       {/* ─── Final CTA ────────────────────────────────────────────────────── */}
-      <section className="relative px-5 py-24 md:py-32">
+      <section className="relative px-4 py-20 sm:px-5 md:py-32">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 flex items-center justify-center"
@@ -319,7 +319,7 @@ export default async function LandingPage({
       </section>
 
       {/* ─── Footer ───────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/6 px-5 py-8">
+      <footer className="border-t border-white/6 px-4 py-8 sm:px-5">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-2 text-muted">
             <Logo className="h-4 w-4" />
@@ -330,7 +330,7 @@ export default async function LandingPage({
               href="https://github.com/martinezharo/klipcode"
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex items-center justify-center py-2 px-3 gap-2 rounded-md border border-white/4 bg-white/1 text-[12px] font-medium text-white/40 shadow-sm transition-all duration-300 hover:border-white/10 hover:bg-white/4 hover:text-white"
+              className="group flex max-w-full items-center justify-center gap-2 rounded-md border border-white/4 bg-white/1 px-3 py-2 text-[12px] font-medium text-white/40 shadow-sm transition-all duration-300 hover:border-white/10 hover:bg-white/4 hover:text-white"
             >
               <GitHubIcon
                 size={14}
