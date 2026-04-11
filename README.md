@@ -1,66 +1,66 @@
 # KlipCode
 
-KlipCode es un gestor de snippets de código con almacenamiento local y sincronización opcional en la nube. Permite guardar, organizar y copiar fragmentos rápidamente, trabajar con carpetas jerárquicas y fijar elementos importantes.
+KlipCode is a code snippet manager with local storage and optional cloud synchronization. It lets you quickly save, organize, and copy snippets, work with nested folders, and pin important items.
 
-## Características
+## Features
 
-- Guardado local inmediato en IndexedDB.
-- Sincronización con la nube cuando Supabase está configurado.
-- Organización por carpetas con varios niveles de profundidad.
-- Arrastrar y soltar para mover carpetas y snippets.
-- Copia rápida al portapapeles.
-- Editor con guardado automático.
-- Snippets fijados en inicio y en la barra lateral.
-- Interfaz y textos en español.
+- Immediate local saving using IndexedDB.
+- Cloud synchronization when Supabase is configured.
+- Folder-based organization with multiple nesting levels.
+- Drag-and-drop to move folders and snippets.
+- Quick copy-to-clipboard.
+- Editor with automatic saving.
+- Pinned snippets in the home view and sidebar.
+- UI text is internationalized (i18n).
 
-## Tecnologías
+## Technologies
 
-- Next.js 16 con App Router.
+- Next.js 16 (App Router).
 - React 19.
 - Tailwind CSS v4.
 - CodeMirror 6.
-- Dexie.js para persistencia local.
-- Supabase para autenticación y sincronización.
-- TanStack Query para el estado remoto.
+- Dexie.js for local persistence.
+- Supabase for authentication and synchronization.
+- TanStack Query for remote state management.
 
-## Requisitos
+## Requirements
 
-- Node.js 20 o superior.
+- Node.js 20 or newer.
 - pnpm.
-- Opcional: cuenta de Supabase para activar la sincronización en la nube.
+- Optional: a Supabase account to enable cloud sync.
 
-## Instalación
+## Installation
 
-1. Instala dependencias:
+1. Install dependencies:
 
 ```bash
 pnpm install
 ```
 
-2. Inicia el entorno de desarrollo:
+2. Start the development server:
 
 ```bash
 pnpm dev
 ```
 
-3. Abre [http://localhost:3000](http://localhost:3000).
+3. Open http://localhost:3000 in your browser.
 
-## Variables de entorno
+## Environment variables
 
-Para usar Supabase y la sincronización entre dispositivos, define estas variables:
+To use Supabase and enable cross-device synchronization, set the following variables:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=
 ```
 
-Opcionalmente, puedes definir la URL pública del sitio:
+Optionally, set the public site URL:
 
 ```bash
 NEXT_PUBLIC_SITE_URL=
 ```
 
-Si no configuras Supabase, la aplicación sigue funcionando en modo local con IndexedDB.
+If Supabase is not configured, the app continues to work locally using IndexedDB.
 
 ## Scripts
 
@@ -73,25 +73,25 @@ pnpm test
 pnpm test:watch
 ```
 
-## Base de datos
+## Database
 
-El esquema de Supabase está en [db-structure.sql](db-structure.sql). Incluye las tablas de perfiles, carpetas y snippets, además de las políticas RLS necesarias para trabajar con datos propios de cada usuario.
+The Supabase schema is in [db-structure.sql](db-structure.sql). It includes tables for profiles, folders, and snippets, as well as the RLS policies required for per-user data.
 
-## Estructura general
+## Project structure
 
-- [src/app](src/app) contiene la entrada principal de Next.js.
-- [src/components](src/components) agrupa la UI de la aplicación.
-- [src/hooks](src/hooks) contiene la lógica de mutaciones, auth y sincronización.
-- [src/lib](src/lib) reúne acceso a datos, tipos y utilidades.
-- [src/i18n](src/i18n) centraliza los textos visibles de la interfaz.
+- [src/app](src/app) contains the main Next.js entry.
+- [src/components](src/components) holds the application UI components.
+- [src/hooks](src/hooks) contains auth, mutation, and sync logic.
+- [src/lib](src/lib) groups data access, types, and utilities.
+- [src/i18n](src/i18n) centralizes user-facing text for translations.
 
-## Uso rápido
+## Quick start
 
-1. Crea un snippet desde la pantalla principal o desde la barra lateral.
-2. Organízalo en una carpeta o muévelo con drag and drop.
-3. Edita el código y deja que el guardado automático sincronice los cambios.
-4. Inicia sesión con GitHub para llevar tus snippets a la nube.
+1. Create a snippet from the main screen or from the sidebar.
+2. Organize it into a folder or move it using drag-and-drop.
+3. Edit the code and let the auto-save synchronize changes.
+4. Sign in with GitHub to sync your snippets to the cloud.
 
-## Despliegue
+## Deployment
 
-La aplicación puede desplegarse como cualquier proyecto de Next.js. Si vas a publicarla, asegúrate de configurar `NEXT_PUBLIC_SITE_URL` y las variables de Supabase en el entorno de producción.
+The app can be deployed like any Next.js project. When publishing, be sure to configure `NEXT_PUBLIC_SITE_URL` and the Supabase environment variables for production.
