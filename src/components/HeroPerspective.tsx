@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 export function HeroPerspective({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isHovering, setIsHovering] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
@@ -27,17 +29,43 @@ export function HeroPerspective({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width; // 0 to 1
+    const y = (e.clientY - rect.top) / rect.height; // 0 to 1
+    
+    // Convert to -1 to 1
+    setMousePos({ x: (x - 0.5) * 2, y: (y - 0.5) * 2 });
+  };
+
+  const handleMouseEnter = () => setIsHovering(true);
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    setMousePos({ x: 0, y: 0 });
+  };
+
   // rotateX goes from 12deg (tilted back) to 0deg (flat)
-  const rotateX = 12 * (1 - progress);
-  const scale = 0.96 + 0.04 * progress;
+  const baseRotateX = 12 * (1 - progress);
+  
+  // Apply hover modifiers
+  const rotateX = isHovering ? baseRotateX - (mousePos.y * 3) : baseRotateX;
+  const rotateY = isHovering ? mousePos.x * 5 : 0;
+  const scale = (0.96 + 0.04 * progress) * (isHovering ? 1.01 : 1);
 
   return (
-    <div ref={ref} className="group perspective-distant">
+    <div 
+      ref={ref} 
+      className="group perspective-distant"
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <div
-        className="transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform group-hover:rotate-x-2 group-hover:scale-[1.01]"
+        className="transition-transform duration-300 ease-out will-change-transform"
         style={{
-          transform: `rotateX(${rotateX}deg) scale(${scale})`,
-          transformOrigin: "center bottom",
+          transform: `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${scale})`,
+          transformOrigin: "center center",
         }}
       >
         {children}
