@@ -56,7 +56,7 @@ export function HeroPerspective({ children }: { children: React.ReactNode }) {
   return (
     <div 
       ref={ref} 
-      className="group perspective-distant"
+      className="group perspective-distant md:perspective-[2000px]"
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
