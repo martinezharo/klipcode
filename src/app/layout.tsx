@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./pwa.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://klipcode.com";
 
