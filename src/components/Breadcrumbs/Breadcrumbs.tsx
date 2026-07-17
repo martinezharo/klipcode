@@ -27,7 +27,6 @@ export interface BreadcrumbItem {
    */
   raw?: boolean;
 }
-
 interface BreadcrumbsProps {
   items: BreadcrumbItem[];
   /** Slot rendered before the breadcrumb trail (e.g. hamburger toggle button). */
@@ -114,7 +113,7 @@ export function Breadcrumbs({
       ref={navRef}
       aria-label="breadcrumb"
       className={cn(
-        "sticky top-0 z-10 flex w-full items-center gap-2 px-6 py-2.5 min-h-[44px] border-b border-transparent",
+        "sticky top-0 z-10 flex min-h-11 w-full items-center gap-2 border-b border-transparent px-6 py-1.5",
         "transition-[background-color,border-color] duration-200",
         stackActionsOnMobile && "flex-wrap sm:flex-nowrap",
         isStuck

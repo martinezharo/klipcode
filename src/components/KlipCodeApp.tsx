@@ -301,6 +301,14 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     </Tooltip>
   ) : null;
 
+  // Keep the top-bar footprint stable while the desktop aside opens and closes.
+  // Only the toggle changes visibility; content below it must not move vertically.
+  const menuBar = (
+    <div className="sticky top-0 z-10 flex h-11 shrink-0 items-center border-b border-transparent px-3">
+      {menuButton}
+    </div>
+  );
+
   /* ── Render ───────────────────────────────────────────────────────────── */
 
   // IndexedDB can be unavailable (Safari private mode, storage pressure). Surface
@@ -432,11 +440,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
           </div>
         ) : snippetNotFound ? (
           <main className="flex flex-1 flex-col overflow-y-auto">
-            {menuButton && (
-              <div className="sticky top-0 z-10 flex h-11 items-center border-b border-transparent px-3">
-                {menuButton}
-              </div>
-            )}
+            {menuBar}
             <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
               <p className="text-sm font-medium text-ink/70">{copy.workspace.snippetNotFoundTitle}</p>
               <p className="max-w-sm text-sm text-ink/50">{copy.workspace.snippetNotFoundDescription}</p>
@@ -494,11 +498,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
           />
         ) : (
           <main className="flex-1 overflow-y-auto">
-            {menuButton && (
-              <div className="sticky top-0 z-10 flex h-11 items-center border-b border-transparent px-3">
-                {menuButton}
-              </div>
-            )}
+            {menuBar}
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8">
               <NewSnippet
                 copy={copy}
