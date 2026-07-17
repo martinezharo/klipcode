@@ -1,0 +1,7 @@
+/* Prevent Chromium's pull-to-refresh gesture only when KlipCode runs as an installed PWA. */
+@media (display-mode: standalone) {
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
+}
