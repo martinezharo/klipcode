@@ -317,7 +317,7 @@ export default async function LandingPage({
         </div>
 
         {/* App preview screenshot */}
-        <div className="landing-fade-in landing-delay-3 relative mt-6 w-full max-w-5xl md:mt-8">
+        <div className="relative mt-6 w-full max-w-5xl md:mt-8">
           <HeroPerspective>
             <div className="overflow-hidden rounded-xl border border-ink/8 shadow-[0_0_80px_-20px_rgba(var(--ink-rgb),0.06)]">
               <LandingHeroImage

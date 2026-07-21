@@ -36,7 +36,7 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 import { db } from "@/lib/db";
-import { seedWelcomeContent } from "@/lib/seed";
+import { readInitialWorkspace, seedWelcomeContent } from "@/lib/seed";
 import type { Dictionary } from "@/i18n";
 
 const copy = {
@@ -73,6 +73,14 @@ afterEach(() => {
 });
 
 describe("seedWelcomeContent", () => {
+  it("returns the seeded welcome records in the first paintable snapshot", async () => {
+    const workspace = await readInitialWorkspace(copy, null);
+
+    expect(workspace.folders).toHaveLength(1);
+    expect(workspace.snippets).toHaveLength(1);
+    expect(workspace.snippets[0]?.title).toBe("Getting started");
+  });
+
   it("seeds a welcome folder and snippet on a truly empty first visit", async () => {
     const seeded = await seedWelcomeContent(copy);
 

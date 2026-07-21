@@ -1,5 +1,6 @@
-import { db } from "@/lib/db";
+import { db, readWorkspace } from "@/lib/db";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
+import type { WorkspaceSnapshot } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 
 const SEEDED_KEY = "klipcode.seeded";
@@ -114,4 +115,17 @@ export async function seedWelcomeContent(copy: Dictionary): Promise<boolean> {
   });
 
   return true;
+}
+
+/**
+ * Loads the first workspace state that is safe to paint. Anonymous first-time
+ * visitors receive their welcome records before the snapshot is read, so the
+ * UI never renders an empty state that immediately shifts to seeded content.
+ */
+export async function readInitialWorkspace(
+  copy: Dictionary,
+  userId: string | null,
+): Promise<WorkspaceSnapshot> {
+  if (!userId) await seedWelcomeContent(copy);
+  return readWorkspace(userId);
 }

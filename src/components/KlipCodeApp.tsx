@@ -5,8 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Menu } from "lucide-react";
 
-import { readTrash, readWorkspace } from "@/lib/db";
-import { seedWelcomeContent } from "@/lib/seed";
+import { readTrash } from "@/lib/db";
+import { readInitialWorkspace } from "@/lib/seed";
 import type { ClipboardEntry, SnippetRecord, WorkspaceSnapshot } from "@/lib/types";
 import { getDictionary } from "@/i18n";
 import { localeHref, LOCALE_COOKIE, type Locale } from "@/lib/locale";
@@ -170,7 +170,8 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
 
   const workspaceQuery = useQuery({
     queryKey: ["workspace", auth.user?.id ?? "guest"],
-    queryFn: () => readWorkspace(auth.user?.id ?? null),
+    queryFn: () => readInitialWorkspace(copy, auth.user?.id ?? null),
+    enabled: auth.authReady,
   });
 
   const folders = useMemo(() => workspaceQuery.data?.folders ?? [], [workspaceQuery.data]);
@@ -179,6 +180,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const trashQuery = useQuery({
     queryKey: ["trash", auth.user?.id ?? "guest"],
     queryFn: () => readTrash(auth.user?.id ?? null),
+    enabled: auth.authReady,
   });
 
   const trashedFolders = useMemo(() => trashQuery.data?.folders ?? [], [trashQuery.data]);
@@ -211,16 +213,6 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     setTitleGenerating,
     autoGenerateTitle: preferences.autoGenerateTitle,
   });
-
-  /* ── First-visit seeding ────────────────────────────────────────────────── */
-
-  useEffect(() => {
-    if (!auth.authReady || auth.user) return;
-    void seedWelcomeContent(copy).then((seeded) => {
-      if (seeded) refreshWorkspace();
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auth.authReady, auth.user]);
 
   /* ── Derived state & side-effects ─────────────────────────────────────── */
 
