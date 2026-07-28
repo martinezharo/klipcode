@@ -160,3 +160,29 @@ test("/es/app renders the app in Spanish", async ({ page }) => {
     page.getByRole("complementary").getByRole("button", { name: "Nuevo snippet" }),
   ).toBeVisible();
 });
+
+test("installed PWA disables the browser pull-to-refresh gesture", async ({ page }) => {
+  await page.goto("/app");
+
+  const pullToRefreshRule = await page.evaluate(() => {
+    for (const sheet of document.styleSheets) {
+      for (const rule of sheet.cssRules) {
+        if (rule instanceof CSSMediaRule && rule.conditionText === "(display-mode: standalone)") {
+          const styleRule = [...rule.cssRules].find(
+            (nestedRule): nestedRule is CSSStyleRule => nestedRule instanceof CSSStyleRule,
+          );
+          return {
+            selector: styleRule?.selectorText,
+            overscrollBehaviorY: styleRule?.style.overscrollBehaviorY,
+          };
+        }
+      }
+    }
+    return null;
+  });
+
+  expect(pullToRefreshRule).toEqual({
+    selector: "html, body",
+    overscrollBehaviorY: "none",
+  });
+});
