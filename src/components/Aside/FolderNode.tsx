@@ -6,7 +6,7 @@ import type { FolderRecord, SnippetRecord } from "@/lib/types";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
 import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
-import { PinnedIcon } from "./PinnedIcon";
+import { PinnedAccent } from "./PinnedAccent";
 import { NewFolderInput } from "./NewFolderInput";
 import { SnippetNode } from "./SnippetNode";
 import { STEP, sortByPinThenAlpha, suppressRowDragStart } from "./utils";
@@ -151,6 +151,7 @@ export function FolderNode({
             ctx.dropOnTarget(folder.id);
           }}
         >
+          <PinnedAccent pinned={!!folder.isPinnedAside} label={ctx.copy.aside.pinned} />
           <Tooltip content={isOpen ? ctx.copy.aside.collapseFolder : ctx.copy.aside.expandFolder}>
             <button
               type="button"
@@ -173,13 +174,11 @@ export function FolderNode({
             type="button"
             className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
           >
-            <PinnedIcon pinned={!!folder.isPinnedAside} label={ctx.copy.aside.pinned}>
-              {isOpen && hasChildren ? (
-                <FolderOpen size={13} className="shrink-0 text-ink/25" />
-              ) : (
-                <Folder size={13} className="shrink-0 text-ink/25" />
-              )}
-            </PinnedIcon>
+            {isOpen && hasChildren ? (
+              <FolderOpen size={13} className="shrink-0 text-ink/25" />
+            ) : (
+              <Folder size={13} className="shrink-0 text-ink/25" />
+            )}
             <TruncateTooltip text={folder.name} className="flex-1 truncate leading-none" />
           </button>
 

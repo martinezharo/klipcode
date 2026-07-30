@@ -15,6 +15,7 @@ import { useMultiSelection } from "@/hooks/useMultiSelection";
 import { AsideCtx } from "./AsideContext";
 import { AsideHeader } from "./AsideHeader";
 import { FolderNode } from "./FolderNode";
+import { PinnedDivider } from "./PinnedAccent";
 import { SnippetNode } from "./SnippetNode";
 import { NewFolderInput } from "./NewFolderInput";
 import { useContextMenuGroups } from "./useContextMenuGroups";
@@ -224,6 +225,10 @@ export function Aside({
   const unpinnedFolders  = sortByPinThenAlpha(rootFolders.filter((f) => !f.isPinnedAside), (f) => f.name);
   const unpinnedSnippets = sortByPinThenAlpha(rootSnippets.filter((s) => !s.isPinnedAside), (s) => s.title ?? "");
   const isEmpty = rootFolders.length === 0 && rootSnippets.length === 0;
+  // The divider only earns its place when there is something on both sides.
+  const hasPinnedBoundary =
+    pinnedFolders.length + pinnedSnippets.length > 0 &&
+    unpinnedFolders.length + unpinnedSnippets.length > 0;
   const isRootDropTarget = drag.dragging !== null && drag.dragOverId === "root";
 
   /* ── Render ────────────────────────────────────────────────────────────── */
@@ -418,6 +423,7 @@ export function Aside({
                   {pinnedSnippets.map((snippet) => (
                     <SnippetNode key={snippet.id} snippet={snippet} depth={0} />
                   ))}
+                  {hasPinnedBoundary && <PinnedDivider />}
                   {unpinnedFolders.map((folder) => (
                     <FolderNode key={folder.id} folder={folder} folders={folders} snippets={snippets} depth={0} />
                   ))}

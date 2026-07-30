@@ -8,7 +8,7 @@ import { TruncateTooltip } from "@/ui/Tooltip";
 import { GeneratingTitle, useIsGeneratingTitle } from "@/components/TitleGeneration";
 import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
-import { PinnedIcon } from "./PinnedIcon";
+import { PinnedAccent } from "./PinnedAccent";
 import { STEP, suppressRowDragStart } from "./utils";
 
 /**
@@ -125,10 +125,9 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
       className={`${sharedRowClass} cursor-pointer select-none active:cursor-grabbing`}
       style={{ paddingLeft }}
     >
+      <PinnedAccent pinned={!!snippet.isPinnedAside} label={ctx.copy.aside.pinned} />
       <span className="flex min-w-0 flex-1 items-center gap-1.5">
-        <PinnedIcon pinned={!!snippet.isPinnedAside} label={ctx.copy.aside.pinned}>
-          <LanguageIcon language={snippet.language} size={13} className="shrink-0" />
-        </PinnedIcon>
+        <LanguageIcon language={snippet.language} size={13} className="shrink-0" />
         {isGeneratingTitle ? (
           <GeneratingTitle label={ctx.copy.snippetCard.generatingTitle} className="flex-1 leading-none" />
         ) : (
