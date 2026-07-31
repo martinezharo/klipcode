@@ -156,7 +156,15 @@ export function useMenuKeyboardNav(onClose: () => void) {
     const [first] = items();
     first?.focus();
     return () => {
-      if (previouslyFocused?.isConnected) previouslyFocused.focus();
+      // Several menu items open something that takes focus itself (a rename
+      // input, a dialog). Restoring the trigger synchronously would blur it —
+      // and a rename input commits on blur. Defer, then only restore if nothing
+      // else claimed focus after the menu went away.
+      queueMicrotask(() => {
+        const active = document.activeElement;
+        if (active && active !== document.body) return;
+        if (previouslyFocused?.isConnected) previouslyFocused.focus();
+      });
     };
   }, [items]);
 
