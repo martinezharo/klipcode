@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useId } from "react";
 import { createPortal } from "react-dom";
-import { Lock, Settings } from "lucide-react";
+import { Lock, Settings, X } from "lucide-react";
+
+import { useDialogA11y } from "@/hooks/useDialogA11y";
 
 import type { Dictionary } from "@/i18n";
 import type { FolderRecord } from "@/lib/types";
@@ -55,7 +57,7 @@ function Segmented<T extends string>({
             aria-pressed={active}
             className={[
               "rounded-md px-2.5 py-1 text-xs transition-colors",
-              active ? "bg-ink/[0.08] text-ink" : "text-ink/50 hover:text-ink/80",
+              active ? "bg-ink/[0.08] text-ink" : "text-ink/65 hover:text-ink/90",
             ].join(" ")}
           >
             {opt.label}
@@ -103,7 +105,12 @@ function Toggle({
   );
 }
 
-/** A labelled preference row: title + helper text on the left, control on the right. */
+/**
+ * A labelled preference row: title + helper text on the left, control on the
+ * right. Wrapped in a `group` so assistive tech announces the row's title and
+ * helper text as context for the control, which otherwise carries only its own
+ * option labels ("Light", "Dark", …).
+ */
 function Row({
   title,
   description,
@@ -113,11 +120,23 @@ function Row({
   description: string;
   control: React.ReactNode;
 }) {
+  const titleId = useId();
+  const descriptionId = useId();
+
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+    <div
+      role="group"
+      aria-labelledby={titleId}
+      aria-describedby={descriptionId}
+      className="flex items-center justify-between gap-4 px-4 py-3.5"
+    >
       <div className="min-w-0">
-        <p className="text-[13px] text-foreground/90">{title}</p>
-        <p className="mt-0.5 text-[12px] text-ink/35">{description}</p>
+        <p id={titleId} className="text-[13px] text-foreground/90">
+          {title}
+        </p>
+        <p id={descriptionId} className="mt-0.5 text-[12px] text-faint">
+          {description}
+        </p>
       </div>
       <div className="shrink-0">{control}</div>
     </div>
@@ -142,17 +161,8 @@ export function PreferencesDialog({
   onClose,
 }: PreferencesDialogProps) {
   const t = copy.preferences;
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  const panelRef = useDialogA11y({ onClose });
+  const titleId = useId();
 
   // The snippet creator's default language is constrained to a known LanguageId;
   // fall back to the first language if a persisted value somehow drifts.
@@ -170,11 +180,13 @@ export function PreferencesDialog({
 
       {/* Dialog */}
       <div
+        ref={panelRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        aria-label={t.title}
+        aria-labelledby={titleId}
         onMouseDown={(e) => e.stopPropagation()}
-        className="klipcode-menu-animate relative flex w-full max-w-md flex-col overflow-hidden rounded-xl"
+        className="klipcode-menu-animate relative flex w-full max-w-md flex-col overflow-hidden rounded-xl focus:outline-none"
         style={{
           background: "var(--panel-bg)",
           border: "1px solid rgba(var(--ink-rgb),0.08)",
@@ -184,8 +196,18 @@ export function PreferencesDialog({
       >
         {/* Header */}
         <div className="flex items-center gap-2.5 border-b border-ink/[0.07] px-4 py-3">
-          <Settings size={16} className="shrink-0 text-ink/35" />
-          <span className="text-sm font-medium text-foreground">{t.title}</span>
+          <Settings size={16} className="shrink-0 text-ink/35" aria-hidden="true" />
+          <h2 id={titleId} className="flex-1 text-sm font-medium text-foreground">
+            {t.title}
+          </h2>
+          <button
+            type="button"
+            aria-label={copy.common.close}
+            onClick={onClose}
+            className="-mr-1 rounded-md p-1 text-ink/45 transition-colors hover:bg-ink/6 hover:text-ink/80"
+          >
+            <X size={15} aria-hidden="true" />
+          </button>
         </div>
 
         {/* Body */}
@@ -263,7 +285,7 @@ export function PreferencesDialog({
                   <Lock size={11} className="shrink-0 text-ink/30" aria-hidden="true" />
                 )}
               </p>
-              <p className="mt-0.5 text-[12px] text-ink/35">
+              <p className="mt-0.5 text-[12px] text-faint">
                 {isAuthenticated
                   ? t.autoGenerateTitle.description
                   : t.autoGenerateTitle.lockedHint}

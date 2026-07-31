@@ -4,6 +4,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link as LinkIcon } from "lucide-react";
 
+import { useDialogA11y } from "@/hooks/useDialogA11y";
+
 interface LinkDialogProps {
   /** Current href of the mark, if any (drives "edit" vs "insert" wording). */
   initialHref?: string;
@@ -42,6 +44,9 @@ function isValidUrl(value: string): boolean {
 export function LinkDialog({ initialHref, copy, onCancel, onSubmit, onRemove }: LinkDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
+  const errorId = useId();
+  const titleId = useId();
+  const panelRef = useDialogA11y({ onClose: onCancel, initialFocusRef: inputRef });
   const isEditing = Boolean(initialHref);
 
   const [value, setValue] = useState(initialHref ?? "https://");
@@ -50,24 +55,11 @@ export function LinkDialog({ initialHref, copy, onCancel, onSubmit, onRemove }: 
   useEffect(() => {
     const el = inputRef.current;
     if (!el) return;
-    el.focus();
-    // Pre-fill https:// and place the caret at the end so the user continues
-    // typing the host straight after the scheme.
+    // useDialogA11y already focused the input; place the caret after the
+    // pre-filled https:// so the user continues typing the host.
     const len = el.value.length;
     el.setSelectionRange(len, len);
   }, []);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        onCancel();
-      }
-    };
-    window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, [onCancel]);
 
   const trimmed = value.trim();
   const showError = touched && trimmed !== "" && !isValidUrl(trimmed);
@@ -82,6 +74,7 @@ export function LinkDialog({ initialHref, copy, onCancel, onSubmit, onRemove }: 
     <>
       {/* Backdrop */}
       <div
+        aria-hidden="true"
         className="fixed inset-0 z-[var(--z-dialog)] bg-[var(--scrim)] backdrop-blur-[2px]"
         onMouseDown={onCancel}
       />
@@ -89,10 +82,12 @@ export function LinkDialog({ initialHref, copy, onCancel, onSubmit, onRemove }: 
       {/* Dialog panel */}
       <div className="fixed inset-0 z-[var(--z-dialog-sticky)] flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="klipcode-dialog-animate pointer-events-auto flex w-full max-w-[380px] flex-col rounded-xl"
+          ref={panelRef}
+          tabIndex={-1}
+          className="klipcode-dialog-animate pointer-events-auto flex w-full max-w-[380px] flex-col rounded-xl focus:outline-none"
           role="dialog"
           aria-modal="true"
-          aria-label={isEditing ? copy.editTitle : copy.title}
+          aria-labelledby={titleId}
           style={{
             background: "var(--panel-bg)",
             border: "1px solid rgba(var(--ink-rgb),0.09)",
@@ -102,10 +97,10 @@ export function LinkDialog({ initialHref, copy, onCancel, onSubmit, onRemove }: 
         >
           {/* Header */}
           <div className="flex items-center gap-2.5 border-b border-ink/[0.07] px-4 py-3">
-            <LinkIcon size={16} className="shrink-0 text-ink/35" />
-            <span className="text-sm font-medium text-foreground">
+            <LinkIcon size={16} className="shrink-0 text-ink/35" aria-hidden="true" />
+            <h2 id={titleId} className="text-sm font-medium text-foreground">
               {isEditing ? copy.editTitle : copy.title}
-            </span>
+            </h2>
           </div>
 
           {/* Body */}
@@ -134,11 +129,14 @@ export function LinkDialog({ initialHref, copy, onCancel, onSubmit, onRemove }: 
               }}
               onBlur={() => setTouched(true)}
               aria-invalid={showError || undefined}
-              className="w-full rounded-lg bg-ink/[0.04] px-3 py-2 text-[13px] text-ink/90 outline-none transition-colors placeholder:text-ink/30 focus:bg-ink/[0.06]"
+              aria-describedby={showError ? errorId : undefined}
+              className="w-full rounded-lg bg-ink/[0.04] px-3 py-2 text-[13px] text-ink/90 transition-colors placeholder:text-faint focus:bg-ink/[0.06]"
               style={{ border: "1px solid rgba(var(--ink-rgb),0.08)" }}
             />
             {showError && (
-              <p className="mt-1.5 text-[12px] text-red-400/80">{copy.invalid}</p>
+              <p id={errorId} role="alert" className="mt-1.5 text-[12px] text-danger">
+                {copy.invalid}
+              </p>
             )}
           </div>
 
@@ -151,17 +149,17 @@ export function LinkDialog({ initialHref, copy, onCancel, onSubmit, onRemove }: 
                   onClick={onRemove}
                   className="truncate rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-75"
                   style={{
-                    color: "rgba(239,68,68,0.9)",
+                    color: "var(--danger)",
                     background: "rgba(239,68,68,0.08)",
                     border: "1px solid rgba(239,68,68,0.18)",
                   }}
                   onMouseEnter={(e) => {
                     (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.15)";
-                    (e.currentTarget as HTMLButtonElement).style.color = "rgb(248,113,113)";
+                    (e.currentTarget as HTMLButtonElement).style.color = "var(--danger-strong)";
                   }}
                   onMouseLeave={(e) => {
                     (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.08)";
-                    (e.currentTarget as HTMLButtonElement).style.color = "rgba(239,68,68,0.9)";
+                    (e.currentTarget as HTMLButtonElement).style.color = "var(--danger)";
                   }}
                 >
                   {copy.remove}
@@ -174,7 +172,7 @@ export function LinkDialog({ initialHref, copy, onCancel, onSubmit, onRemove }: 
                 onClick={onCancel}
                 className="rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-75"
                 style={{
-                  color: "rgba(var(--ink-rgb),0.55)",
+                  color: "rgba(var(--ink-rgb),0.7)",
                   background: "transparent",
                   border: "1px solid rgba(var(--ink-rgb),0.08)",
                 }}
@@ -184,7 +182,7 @@ export function LinkDialog({ initialHref, copy, onCancel, onSubmit, onRemove }: 
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                  (e.currentTarget as HTMLButtonElement).style.color = "rgba(var(--ink-rgb),0.55)";
+                  (e.currentTarget as HTMLButtonElement).style.color = "rgba(var(--ink-rgb),0.7)";
                 }}
               >
                 {copy.cancel}

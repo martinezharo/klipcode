@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Trash2, FolderOpen, FileCode2 } from "lucide-react";
+
+import { useDialogA11y } from "@/hooks/useDialogA11y";
 
 interface ConfirmDialogProps {
   title: string;
@@ -34,26 +36,16 @@ export function ConfirmDialog({
   onConfirm,
 }: ConfirmDialogProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    cancelRef.current?.focus();
-  }, []);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onCancel();
-      }
-    };
-    window.addEventListener("keydown", handler, true);
-    return () => window.removeEventListener("keydown", handler, true);
-  }, [onCancel]);
+  // Destructive confirmation: land focus on Cancel, not on the destructive action.
+  const panelRef = useDialogA11y({ onClose: onCancel, initialFocusRef: cancelRef });
+  const titleId = useId();
+  const descriptionId = useId();
 
   return createPortal(
     <>
       {/* Backdrop */}
       <div
+        aria-hidden="true"
         className="fixed inset-0 z-[var(--z-dialog)] bg-[var(--scrim)] backdrop-blur-[2px]"
         onMouseDown={onCancel}
       />
@@ -61,10 +53,13 @@ export function ConfirmDialog({
       {/* Dialog panel */}
       <div className="fixed inset-0 z-[var(--z-dialog-sticky)] flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="klipcode-dialog-animate pointer-events-auto w-full max-w-[360px] rounded-xl p-5"
+          ref={panelRef}
+          tabIndex={-1}
+          className="klipcode-dialog-animate pointer-events-auto w-full max-w-[360px] rounded-xl p-5 focus:outline-none"
           role="alertdialog"
           aria-modal="true"
-          aria-labelledby="confirm-dialog-title"
+          aria-labelledby={titleId}
+          aria-describedby={descriptionId}
           style={{
             background: "var(--panel-bg)",
             border: "1px solid rgba(var(--ink-rgb),0.09)",
@@ -79,19 +74,16 @@ export function ConfirmDialog({
               className="mt-0.5 flex shrink-0 items-center justify-center rounded-lg w-8 h-8"
               style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.2)" }}
             >
-              <Trash2 size={14} className="text-red-400" />
+              <Trash2 size={14} className="text-danger" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h2
-                id="confirm-dialog-title"
-                className="text-[13px] font-medium leading-snug text-ink/90"
-              >
+              <h2 id={titleId} className="text-[13px] font-medium leading-snug text-ink/90">
                 {title}
               </h2>
               {subtitle && (
                 <p
                   className="mt-0.5 text-[12px] leading-snug truncate max-w-[260px]"
-                  style={{ color: "rgba(var(--ink-rgb),0.4)" }}
+                  style={{ color: "rgba(var(--ink-rgb),0.62)" }}
                   title={subtitle}
                 >
                   {subtitle}
@@ -109,7 +101,7 @@ export function ConfirmDialog({
               {folderCount > 0 && folderCountLabel && (
                 <div className="flex items-center gap-2">
                   <FolderOpen size={12} style={{ color: "rgba(var(--ink-rgb),0.35)" }} />
-                  <span className="text-[12px]" style={{ color: "rgba(var(--ink-rgb),0.55)" }}>
+                  <span className="text-[12px]" style={{ color: "rgba(var(--ink-rgb),0.68)" }}>
                     {folderCountLabel(folderCount)}
                   </span>
                 </div>
@@ -117,7 +109,7 @@ export function ConfirmDialog({
               {snippetCount > 0 && snippetCountLabel && (
                 <div className="flex items-center gap-2">
                   <FileCode2 size={12} style={{ color: "rgba(var(--ink-rgb),0.35)" }} />
-                  <span className="text-[12px]" style={{ color: "rgba(var(--ink-rgb),0.55)" }}>
+                  <span className="text-[12px]" style={{ color: "rgba(var(--ink-rgb),0.68)" }}>
                     {snippetCountLabel(snippetCount)}
                   </span>
                 </div>
@@ -126,7 +118,11 @@ export function ConfirmDialog({
           )}
 
           {/* Warning */}
-          <p className="mb-4 text-[12px] leading-relaxed" style={{ color: "rgba(var(--ink-rgb),0.38)" }}>
+          <p
+            id={descriptionId}
+            className="mb-4 text-[12px] leading-relaxed"
+            style={{ color: "rgba(var(--ink-rgb),0.62)" }}
+          >
             {warning}
           </p>
 
@@ -138,7 +134,7 @@ export function ConfirmDialog({
               onClick={onCancel}
               className="rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-75"
               style={{
-                color: "rgba(var(--ink-rgb),0.55)",
+                color: "rgba(var(--ink-rgb),0.7)",
                 background: "transparent",
                 border: "1px solid rgba(var(--ink-rgb),0.08)",
               }}
@@ -148,7 +144,7 @@ export function ConfirmDialog({
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                (e.currentTarget as HTMLButtonElement).style.color = "rgba(var(--ink-rgb),0.55)";
+                (e.currentTarget as HTMLButtonElement).style.color = "rgba(var(--ink-rgb),0.7)";
               }}
             >
               {cancelLabel}
@@ -158,17 +154,17 @@ export function ConfirmDialog({
               onClick={onConfirm}
               className="rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-75"
               style={{
-                color: "rgba(239,68,68,0.9)",
+                color: "var(--danger)",
                 background: "rgba(239,68,68,0.08)",
                 border: "1px solid rgba(239,68,68,0.18)",
               }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.15)";
-                (e.currentTarget as HTMLButtonElement).style.color = "rgb(248,113,113)";
+                (e.currentTarget as HTMLButtonElement).style.color = "var(--danger-strong)";
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.08)";
-                (e.currentTarget as HTMLButtonElement).style.color = "rgba(239,68,68,0.9)";
+                (e.currentTarget as HTMLButtonElement).style.color = "var(--danger)";
               }}
             >
               {confirmLabel}

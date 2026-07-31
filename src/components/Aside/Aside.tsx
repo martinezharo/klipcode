@@ -295,6 +295,7 @@ export function Aside({
         }
       >
         <aside
+          aria-label={copy.aside.mySpace}
           className={[
             "flex h-dvh w-60 shrink-0 flex-col border-r border-ink/6 bg-surface",
             isMobile
@@ -369,7 +370,7 @@ export function Aside({
                 ].filter(Boolean).join(" ")}
               >
                 <Layers size={12} className="text-ink/25" />
-                <span className="text-[11px] font-medium uppercase tracking-wider text-ink/35">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-faint">
                   {copy.aside.mySpace}
                 </span>
               </button>
@@ -400,6 +401,9 @@ export function Aside({
             {/* Tree */}
             <div
               ref={treeContainerRef}
+              role="tree"
+              aria-label={copy.aside.mySpace}
+              aria-multiselectable="true"
               className="flex-1 overflow-y-auto pb-4"
               onClick={(e) => {
                 // Clicking empty space below/around the rows clears the selection.
@@ -411,7 +415,7 @@ export function Aside({
               }}
             >
               {isEmpty && creatingFolderParentId === undefined ? (
-                <p className="px-3 pt-1 text-xs text-ink/20">{copy.aside.emptySpace}</p>
+                <p className="px-3 pt-1 text-xs text-faint">{copy.aside.emptySpace}</p>
               ) : (
                 <div>
                   {creatingFolderParentId === null && (
@@ -443,7 +447,7 @@ export function Aside({
                     "mx-1 mt-1.5 flex items-center justify-center gap-1.5 rounded-md border border-dashed py-2 text-[11px] transition-all duration-150 select-none",
                     drag.dragOverId === "root"
                       ? "border-ink/30 bg-ink/5 text-ink/55"
-                      : "border-ink/8 text-ink/20",
+                      : "border-ink/8 text-faint",
                   ].join(" ")}
                 >
                   <Layers size={11} />
@@ -494,8 +498,8 @@ export function Aside({
                 drag.dragging?.origin === "workspace"
                   ? "justify-center gap-1.5 border-dashed text-[11px] select-none " +
                     (drag.dragOverId === "trash-button"
-                      ? "border-red-500/50 bg-red-500/10 text-red-300"
-                      : "border-ink/10 text-ink/30")
+                      ? "border-red-500/50 bg-red-500/10 text-danger-strong"
+                      : "border-ink/10 text-faint")
                   : "gap-2 text-[13px] text-muted hover:bg-ink/4 hover:text-foreground",
               ].join(" ")}
             >
@@ -539,7 +543,7 @@ export function Aside({
               href="https://github.com/martinezharo/klipcode"
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex w-full items-center justify-center py-2 px-3 gap-2 rounded-md border border-ink/4 bg-ink/1 text-[12px] font-medium text-ink/40 shadow-sm transition-all duration-300 hover:border-ink/10 hover:bg-ink/4 hover:text-ink"
+              className="group flex w-full items-center justify-center py-2 px-3 gap-2 rounded-md border border-ink/4 bg-ink/1 text-[12px] font-medium text-ink/65 shadow-sm transition-all duration-300 hover:border-ink/10 hover:bg-ink/4 hover:text-ink"
             >
               <GitHubIcon
                 size={14}

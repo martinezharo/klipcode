@@ -19,8 +19,8 @@ export function ShortcutHint({ id, tone = "light", className }: ShortcutHintProp
   const mac = useIsMac();
   const kbdClass =
     tone === "dark"
-      ? "rounded bg-background/10 px-1 py-0.5 font-mono text-[10px] text-background/55"
-      : "rounded bg-ink/[0.07] px-1 py-0.5 font-mono text-[10px] text-ink/40";
+      ? "rounded bg-background/10 px-1 py-0.5 font-mono text-[10px] text-background/80"
+      : "rounded bg-ink/[0.07] px-1 py-0.5 font-mono text-[10px] text-ink/75";
 
   return (
     <span className={`flex shrink-0 items-center gap-0.5 ${className ?? ""}`}>

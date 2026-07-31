@@ -34,6 +34,7 @@ export function CopyToast({ nonce, message }: CopyToastProps) {
       className={`pointer-events-none fixed bottom-4 left-1/2 z-[var(--z-toast)] -translate-x-1/2 transition-opacity duration-200 ${
         visible ? "opacity-100" : "opacity-0"
       }`}
+      role="status"
       aria-live="polite"
     >
       <div className="flex items-center gap-1.5 rounded-full border border-ink/[0.08] bg-background/90 px-3 py-1.5 text-[12px] text-ink/80 backdrop-blur-sm">

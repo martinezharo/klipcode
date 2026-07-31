@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useId } from "react";
 import { createPortal } from "react-dom";
-import { Keyboard } from "lucide-react";
+import { Keyboard, X } from "lucide-react";
 
 import type { Dictionary } from "@/i18n";
+import { useDialogA11y } from "@/hooks/useDialogA11y";
 import {
   SHORTCUTS,
   SHORTCUT_SECTION_ORDER,
@@ -20,17 +21,8 @@ interface ShortcutsDialogProps {
 export function ShortcutsDialog({ copy, onClose }: ShortcutsDialogProps) {
   const t = copy.shortcuts;
   const mac = isMac();
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  const panelRef = useDialogA11y({ onClose });
+  const titleId = useId();
 
   const groups = SHORTCUT_SECTION_ORDER.map((section) => ({
     section,
@@ -47,11 +39,13 @@ export function ShortcutsDialog({ copy, onClose }: ShortcutsDialogProps) {
 
       {/* Dialog */}
       <div
+        ref={panelRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        aria-label={t.title}
+        aria-labelledby={titleId}
         onMouseDown={(e) => e.stopPropagation()}
-        className="klipcode-menu-animate relative flex max-h-[70vh] w-full max-w-lg flex-col overflow-hidden rounded-xl"
+        className="klipcode-menu-animate relative flex max-h-[70vh] w-full max-w-lg flex-col overflow-hidden rounded-xl focus:outline-none"
         style={{
           background: "var(--panel-bg)",
           border: "1px solid rgba(var(--ink-rgb),0.08)",
@@ -61,17 +55,27 @@ export function ShortcutsDialog({ copy, onClose }: ShortcutsDialogProps) {
       >
         {/* Header */}
         <div className="flex items-center gap-2.5 border-b border-ink/[0.07] px-4 py-3">
-          <Keyboard size={16} className="shrink-0 text-ink/35" />
-          <span className="text-sm font-medium text-foreground">{t.title}</span>
+          <Keyboard size={16} className="shrink-0 text-ink/35" aria-hidden="true" />
+          <h2 id={titleId} className="flex-1 text-sm font-medium text-foreground">
+            {t.title}
+          </h2>
+          <button
+            type="button"
+            aria-label={copy.common.close}
+            onClick={onClose}
+            className="-mr-1 rounded-md p-1 text-ink/45 transition-colors hover:bg-ink/6 hover:text-ink/80"
+          >
+            <X size={15} aria-hidden="true" />
+          </button>
         </div>
 
         {/* Body */}
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {groups.map(({ section, items }) => (
             <div key={section} className="mb-1 last:mb-0">
-              <p className="px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wider text-ink/30">
+              <h3 className="px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wider text-faint">
                 {t.sections[section]}
-              </p>
+              </h3>
               {items.map((shortcut) => (
                 <div
                   key={shortcut.id}

@@ -80,14 +80,14 @@ function SyncIndicator({
       );
     case "error":
       return (
-        <span className={`${shared} text-red-400/80`}>
+        <span className={`${shared} text-danger`}>
           <CloudOff size={11} />
           {copy.syncError}
         </span>
       );
     default:
       return (
-        <span className={`${shared} text-ink/20`}>
+        <span className={`${shared} text-faint`}>
           <Cloud size={11} />
           {copy.syncIdle}
         </span>
@@ -324,7 +324,7 @@ export function SnippetEditor({
       ) : snippet.title.trim() ? (
         snippet.title
       ) : (
-        <span className="text-ink/25">{editorCopy.titlePlaceholder}</span>
+        <span className="text-faint">{editorCopy.titlePlaceholder}</span>
       ),
       raw: titleEditable,
     },
@@ -381,7 +381,7 @@ export function SnippetEditor({
               type="button"
               aria-label={copy.trash.deletePermanently}
               onClick={trashActions.onDeletePermanently}
-              className="flex items-center justify-center rounded p-1.5 text-red-400/70 transition-colors hover:bg-red-500/10 hover:text-red-300"
+              className="flex items-center justify-center rounded p-1.5 text-danger transition-colors hover:bg-red-500/10 hover:text-danger-strong"
             >
               <Trash2 size={13} />
             </button>
@@ -428,7 +428,17 @@ export function SnippetEditor({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex h-full flex-col overflow-hidden focus:outline-none"
+    >
+      {/* The snippet's name lives in the (editable) breadcrumb crumb, so the
+          view's heading is exposed to assistive tech only. */}
+      <h1 className="sr-only">
+        {snippet.title.trim() || editorCopy.titlePlaceholder}
+      </h1>
+
       {/* ── Breadcrumb top bar ───────────────────────────────────────────── */}
       <Breadcrumbs
         items={breadcrumbItems}
@@ -440,7 +450,7 @@ export function SnippetEditor({
 
       {/* ── Trash notice ─────────────────────────────────────────────────── */}
       {readOnly && (
-        <div className="flex items-center gap-2 border-b border-red-500/15 bg-red-500/[0.06] px-6 py-2 text-[12px] text-red-300/80">
+        <div className="flex items-center gap-2 border-b border-red-500/15 bg-red-500/[0.06] px-6 py-2 text-[12px] text-danger">
           <Trash2 size={13} className="shrink-0" />
           <span>{editorCopy.trashedNotice}</span>
         </div>
@@ -519,6 +529,6 @@ export function SnippetEditor({
       )}
 
       <FormatErrorToast nonce={formatErrorNonce} message={editorCopy.formatError} />
-    </div>
+    </main>
   );
 }

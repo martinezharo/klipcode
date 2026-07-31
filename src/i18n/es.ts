@@ -46,6 +46,7 @@ export const es = {
   },
   common: {
     close: "Cerrar",
+    skipToContent: "Saltar al contenido principal",
   },
   auth: {
     statusLabel: "Estado de sesión",
@@ -264,6 +265,8 @@ export const es = {
     placeholder: "Buscar snippets por título o código…",
     empty: "Escribe para buscar tus snippets",
     noResults: "No se encontraron snippets",
+    /** Anuncio solo para lectores de pantalla del número de resultados. */
+    resultCount: (n: number) => (n === 1 ? "1 snippet encontrado" : `${n} snippets encontrados`),
     rootFolder: "Raíz",
     navigateHint: "para navegar",
     selectHint: "para abrir",

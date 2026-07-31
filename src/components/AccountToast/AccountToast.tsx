@@ -40,11 +40,19 @@ export function AccountToast({ message }: AccountToastProps) {
   }, [message]);
 
   return (
-    <div className="absolute bottom-4 left-4 z-50 pointer-events-none">
+    // The live region is the always-mounted wrapper: screen readers only
+    // announce changes inside a region that already existed, so putting
+    // aria-live on the conditionally rendered bubble would announce nothing.
+    <div
+      role="status"
+      aria-live="polite"
+      className="absolute bottom-4 left-4 z-50 pointer-events-none"
+    >
       {visibleMessage && (
         <div
-          aria-live="polite"
-          className={`pointer-events-auto max-w-xs rounded-md px-3 py-1 text-[11px] transition-opacity duration-300 ${
+          // Sits over the main canvas, so it needs its own surface + ink rather
+          // than inheriting whatever is behind it (previously unreadable text).
+          className={`pointer-events-auto max-w-xs rounded-md border border-ink/[0.08] bg-background/90 px-3 py-1 text-[11px] text-ink/80 backdrop-blur-sm transition-opacity duration-300 ${
             isVisible ? "opacity-100" : "opacity-0"
           }`}
         >

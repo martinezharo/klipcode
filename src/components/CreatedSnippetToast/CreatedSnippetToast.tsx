@@ -71,6 +71,7 @@ export function CreatedSnippetToast({ nonce, snippetId, copy, onOpen }: CreatedS
       className={`pointer-events-none fixed bottom-4 left-1/2 z-[var(--z-toast)] -translate-x-1/2 transition-opacity duration-200 ${
         isVisible ? "opacity-100" : "opacity-0"
       }`}
+      role="status"
       aria-live="polite"
     >
       {visibleId && (

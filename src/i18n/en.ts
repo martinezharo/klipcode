@@ -45,6 +45,7 @@ export const en = {
   },
   common: {
     close: "Close",
+    skipToContent: "Skip to main content",
   },
   auth: {
     statusLabel: "Session status",
@@ -263,6 +264,8 @@ export const en = {
     placeholder: "Search snippets by title or code…",
     empty: "Type to search your snippets",
     noResults: "No snippets found",
+    /** Screen-reader-only announcement of how many results the query matched. */
+    resultCount: (n: number) => (n === 1 ? "1 snippet found" : `${n} snippets found`),
     rootFolder: "Root",
     navigateHint: "to navigate",
     selectHint: "to open",

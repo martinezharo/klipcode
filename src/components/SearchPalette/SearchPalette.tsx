@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CornerDownLeft, Search } from "lucide-react";
 
 import type { FolderRecord, SnippetRecord } from "@/lib/types";
 import { getSnippetDisplayName } from "@/lib/utils";
+import { useDialogA11y } from "@/hooks/useDialogA11y";
 import { LanguageIcon } from "@/ui/LanguageIcon";
 import type { Dictionary } from "@/i18n";
 
@@ -39,6 +40,12 @@ export function SearchPalette({
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  // The palette keeps its own Escape handling (below) so it can preventDefault
+  // alongside the arrow-key navigation on the same handler.
+  const panelRef = useDialogA11y({ onClose, initialFocusRef: inputRef, closeOnEscape: false });
+  const listboxId = useId();
+  const optionIdPrefix = useId();
+  const optionId = (index: number) => `${optionIdPrefix}-${index}`;
 
   const foldersById = useMemo(
     () => new Map(folders.map((f) => [f.id, f])),
@@ -98,10 +105,6 @@ export function SearchPalette({
     setActiveIndex(0);
   }, [query]);
 
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
   function choose(index: number) {
     const result = results[index];
     if (!result) return;
@@ -143,12 +146,14 @@ export function SearchPalette({
 
       {/* Palette */}
       <div
+        ref={panelRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={t.placeholder}
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
-        className="klipcode-menu-animate relative flex max-h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-xl"
+        className="klipcode-menu-animate relative flex max-h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-xl focus:outline-none"
         style={{
           background: "var(--panel-bg)",
           border: "1px solid rgba(var(--ink-rgb),0.08)",
@@ -158,35 +163,56 @@ export function SearchPalette({
       >
         {/* Search input */}
         <div className="flex items-center gap-2.5 border-b border-ink/[0.07] px-4 py-3">
-          <Search size={16} className="shrink-0 text-ink/35" />
+          <Search size={16} className="shrink-0 text-ink/35" aria-hidden="true" />
           <input
             ref={inputRef}
             type="text"
+            role="combobox"
+            aria-label={t.placeholder}
+            aria-expanded={results.length > 0}
+            aria-controls={listboxId}
+            aria-autocomplete="list"
+            aria-activedescendant={results.length > 0 ? optionId(activeIndex) : undefined}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t.placeholder}
-            className="w-full bg-transparent text-sm text-foreground placeholder:text-ink/30 outline-none"
+            className="w-full bg-transparent text-sm text-foreground placeholder:text-faint outline-none"
           />
         </div>
 
+        {/* Announces how many snippets matched as the user types. */}
+        <p className="sr-only" role="status">
+          {query.trim() === "" ? "" : t.resultCount(results.length)}
+        </p>
+
         {/* Results */}
-        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto p-2">
+        <div
+          ref={listRef}
+          id={listboxId}
+          role="listbox"
+          aria-label={t.placeholder}
+          className="min-h-0 flex-1 overflow-y-auto p-2"
+        >
           {query.trim() === "" ? (
-            <p className="px-3 py-6 text-center text-[13px] text-ink/30">{t.empty}</p>
+            <p className="px-3 py-6 text-center text-[13px] text-faint">{t.empty}</p>
           ) : results.length === 0 ? (
-            <p className="px-3 py-6 text-center text-[13px] text-ink/30">{t.noResults}</p>
+            <p className="px-3 py-6 text-center text-[13px] text-faint">{t.noResults}</p>
           ) : (
             results.map((result, index) => {
               const isActive = index === activeIndex;
               return (
-                <button
+                // Focus stays in the combobox input; the active option is exposed
+                // through aria-activedescendant, so these are options, not buttons.
+                <div
                   key={result.snippet.id}
-                  type="button"
+                  id={optionId(index)}
+                  role="option"
+                  aria-selected={isActive}
                   data-index={index}
                   onMouseMove={() => setActiveIndex(index)}
                   onClick={() => choose(index)}
                   className={[
-                    "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors",
+                    "flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors",
                     isActive ? "bg-ink/[0.08]" : "hover:bg-ink/[0.04]",
                   ].join(" ")}
                 >
@@ -200,27 +226,27 @@ export function SearchPalette({
                       <span className="truncate text-[13px] text-foreground">
                         {result.displayName}
                       </span>
-                      <span className="shrink-0 truncate text-[11px] text-ink/30">
+                      <span className="shrink-0 truncate text-[11px] text-faint">
                         {result.folderPath}
                       </span>
                     </div>
                     {result.preview && (
-                      <p className="truncate font-mono text-[11px] text-ink/35">
+                      <p className="truncate font-mono text-[11px] text-faint">
                         {result.preview}
                       </p>
                     )}
                   </div>
                   {isActive && (
-                    <CornerDownLeft size={13} className="shrink-0 text-ink/35" />
+                    <CornerDownLeft size={13} className="shrink-0 text-ink/35" aria-hidden="true" />
                   )}
-                </button>
+                </div>
               );
             })
           )}
         </div>
 
         {/* Footer hints */}
-        <div className="flex items-center gap-4 border-t border-ink/[0.07] px-4 py-2 text-[11px] text-ink/30">
+        <div className="flex items-center gap-4 border-t border-ink/[0.07] px-4 py-2 text-[11px] text-faint">
           <span className="flex items-center gap-1.5">
             <kbd className="rounded bg-ink/[0.07] px-1.5 py-0.5 font-mono">↑↓</kbd>
             {t.navigateHint}

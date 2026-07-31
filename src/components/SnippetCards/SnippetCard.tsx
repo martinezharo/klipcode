@@ -375,17 +375,17 @@ export function SnippetCard({
         <div className="max-h-[140px] overflow-hidden rounded-lg border border-ink/[0.04] bg-[var(--code-surface)] px-3 py-2 font-mono text-[12px] leading-5 text-ink/90">
           <div
             className={cn(
-              "pointer-events-none select-none text-ink/60",
+              "pointer-events-none select-none text-ink/75",
               // Reuse the Markdown editor's hljs token colors, kept slightly
               // muted so the preview keeps its subdued, faded look.
-              highlightedLines && "klipcode-code-preview opacity-[0.85]",
+              highlightedLines && "klipcode-code-preview",
             )}
           >
             {previewLines.map((line, index) => {
               const highlighted = highlightedLines?.[index];
               return (
                 <div key={`${snippet.id}-${index}`} className="flex gap-3">
-                  <span className="w-5 shrink-0 text-right tabular-nums text-ink/25">
+                  <span className="w-5 shrink-0 text-right tabular-nums text-faint">
                     {index + 1}
                   </span>
                   <span className="min-w-0 flex-1 truncate whitespace-pre">

@@ -70,10 +70,10 @@ export const SlashCommandList = forwardRef<SlashCommandListRef, SlashCommandList
         }}
       >
         {items.length === 0 ? (
-          <p className="px-3 py-3 text-xs text-ink/30">{emptyText}</p>
+          <p className="px-3 py-3 text-xs text-faint">{emptyText}</p>
         ) : (
           <>
-            <p className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wide text-ink/25">
+            <p className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wide text-faint">
               {groupLabel}
             </p>
             <div ref={listRef} className="max-h-[300px] overflow-y-auto p-1">
@@ -107,7 +107,7 @@ export const SlashCommandList = forwardRef<SlashCommandListRef, SlashCommandList
                       <span className="block truncate text-[13px] leading-tight text-ink/90">
                         {item.title}
                       </span>
-                      <span className="block truncate text-[11px] leading-tight text-ink/35">
+                      <span className="block truncate text-[11px] leading-tight text-faint">
                         {item.description}
                       </span>
                     </span>

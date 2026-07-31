@@ -1,4 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
+import { aside, asideRow, gotoApp } from "./helpers";
 
 /**
  * Smoke tests for the core product flows (AGENTS.md priorities: create and
@@ -7,12 +8,6 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
  * seed: a "welcome" folder containing a "klipcode" snippet pinned to Home.
  * No backend is needed — the whole workspace lives in IndexedDB.
  */
-
-async function gotoApp(page: Page) {
-  await page.goto("/app");
-  // The aside header renders once the workspace has loaded client-side.
-  await expect(page.getByRole("button", { name: "My Space" })).toBeVisible();
-}
 
 async function selectInputTextWithMouse(page: Page, input: Locator) {
   const box = await input.boundingBox();
@@ -32,8 +27,7 @@ async function selectInputTextWithMouse(page: Page, input: Locator) {
 test("first visit seeds the welcome workspace on Home", async ({ page }) => {
   await gotoApp(page);
 
-  const aside = page.getByRole("complementary");
-  await expect(aside.getByRole("button", { name: "welcome", exact: true })).toBeVisible();
+  await expect(asideRow(page, "welcome")).toBeVisible();
 
   // The seeded snippet is pinned to Home, so its card shows up there. Cards
   // are named by display name: the title plus the language extension.
@@ -43,7 +37,7 @@ test("first visit seeds the welcome workspace on Home", async ({ page }) => {
 test("creates a snippet and copies its content", async ({ page }) => {
   await gotoApp(page);
 
-  await page.getByRole("complementary").getByRole("button", { name: "New snippet" }).click();
+  await aside(page).getByRole("button", { name: "New snippet" }).click();
 
   const dialog = page.getByRole("dialog");
   // A ".js" title pins the language, so the display name stays "greeting.js".
@@ -57,7 +51,7 @@ test("creates a snippet and copies its content", async ({ page }) => {
   await expect(dialog).toBeHidden();
 
   // Open it from the aside tree and copy its content from the editor.
-  await page.getByRole("complementary").getByRole("button", { name: "greeting.js" }).click();
+  await asideRow(page, "greeting.js").click();
   await expect(page).toHaveURL(/\/app\?snippet=/);
   await page.getByRole("button", { name: "Copy code" }).first().click();
 
@@ -68,7 +62,7 @@ test("creates a snippet and copies its content", async ({ page }) => {
 test("creates folders from a path typed in the snippet title", async ({ page }) => {
   await gotoApp(page);
 
-  await page.getByRole("complementary").getByRole("button", { name: "New snippet" }).click();
+  await aside(page).getByRole("button", { name: "New snippet" }).click();
 
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("textbox", { name: "Snippet title" }).fill("recipes/utils/greeting.js");
@@ -78,9 +72,8 @@ test("creates folders from a path typed in the snippet title", async ({ page }) 
   await dialog.getByRole("button", { name: "Create snippet" }).click();
   await expect(dialog).toBeHidden();
 
-  const aside = page.getByRole("complementary");
-  await expect(aside.getByRole("button", { name: "recipes", exact: true })).toBeVisible();
-  await aside.getByRole("button", { name: "recipes", exact: true }).click();
+  await expect(asideRow(page, "recipes")).toBeVisible();
+  await asideRow(page, "recipes").click();
   await expect(page.getByRole("main").getByText("utils", { exact: true }).first()).toBeVisible();
   await page.getByRole("main").getByText("utils", { exact: true }).first().click();
   await expect(page.getByRole("main").getByRole("button", { name: "greeting.js" })).toBeVisible();
@@ -121,7 +114,7 @@ test("rename inputs allow mouse text selection without dragging cards", async ({
 test("navigates into a folder and back to Home", async ({ page }) => {
   await gotoApp(page);
 
-  await page.getByRole("complementary").getByRole("button", { name: "welcome", exact: true }).click();
+  await asideRow(page, "welcome").click();
   await expect(page).toHaveURL(/\/app\?folder=/);
 
   // The folder view lists the seeded snippet.
@@ -157,6 +150,6 @@ test("/es/app renders the app in Spanish", async ({ page }) => {
 
   await expect(page.getByRole("button", { name: "Mi Espacio" })).toBeVisible();
   await expect(
-    page.getByRole("complementary").getByRole("button", { name: "Nuevo snippet" }),
+    aside(page).getByRole("button", { name: "Nuevo snippet" }),
   ).toBeVisible();
 });

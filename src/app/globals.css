@@ -35,6 +35,18 @@
   /* Foreground ink + its raw RGB triple for rgba() composites. */
   --ink: #ffffff;
   --ink-rgb: 255, 255, 255;
+  /* Tertiary text (hints, placeholders, empty states). Opacity-based inks like
+     text-ink/30 fall well under WCAG AA, so this token is a fixed value chosen
+     to clear 4.5:1 against the *lightest* surface it lands on in each theme —
+     not just --background, but panels, chips and the editor gutter too. */
+  --faint: #8a8a90; /* 5.7:1 on #0a0a0a, 4.8:1 on the #1f1f1f editor surface */
+  /* Destructive text (delete actions, error messages). Tailwind's red-400 reads
+     fine on the dark surfaces but drops to 2.9:1 on the light panel, so the
+     danger ink is themed rather than a fixed palette step. */
+  --danger: #f87171; /* 6.5:1 on the dark panel */
+  --danger-strong: #fca5a5; /* hover */
+  /* Keyboard focus ring — see the :focus-visible rule below. */
+  --focus-ring: #7fb4ff;
   /* Text selection highlight (brand purple). Tweak freely. */
   --selection-background: rgba(132, 0, 255, 0.4);
   --selection-foreground: #ffffff;
@@ -66,6 +78,10 @@
   --accent: #0a0a0a;
   --ink: #0a0a0a;
   --ink-rgb: 10, 10, 10;
+  --faint: #65656b; /* 5.9:1 on #ffffff, 4.8:1 on the #ebebeb chip surface */
+  --danger: #b91c1c; /* 6.5:1 on the light panel */
+  --danger-strong: #991b1b; /* hover */
+  --focus-ring: #0b5cd5;
   --selection-background: rgba(132, 0, 255, 0.18);
   --selection-foreground: #18181b;
   --panel-bg: #ffffff;
@@ -92,12 +108,76 @@
   --color-surface-hover: var(--surface-hover);
   --color-accent: var(--accent);
   --color-ink: var(--ink);
+  --color-faint: var(--faint);
+  --color-danger: var(--danger);
+  --color-danger-strong: var(--danger-strong);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 /* Reserve space for the scrollbar to avoid layout shifts when it appears */
 html { scrollbar-gutter: stable; }
+
+/* ─── Keyboard focus ─────────────────────────────────────────────────────────
+   A single visible focus indicator for every interactive element (WCAG 2.4.7).
+   :focus-visible means pointer users never see it, so the many
+   `outline-none` inputs across the app keep their clean look while keyboard
+   users get a ring. The editors (CodeMirror, TipTap) draw their own caret and
+   opt out via their higher-specificity rules further down. */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Sticky top bars must not hide the element that was just focused (WCAG 2.4.11). */
+:focus-visible,
+:target {
+  scroll-margin-top: 5rem;
+  scroll-margin-bottom: 3rem;
+}
+
+/* ─── Skip link ──────────────────────────────────────────────────────────────
+   Off-screen until focused, then pinned to the top-left so keyboard users can
+   jump past the sidebar / navbar straight to the page content (WCAG 2.4.1). */
+.klipcode-skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -100%;
+  z-index: var(--z-dialog-sticky);
+  border-radius: 0.5rem;
+  background: var(--background);
+  border: 1px solid rgba(var(--ink-rgb), 0.2);
+  color: var(--foreground);
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.klipcode-skip-link:focus {
+  top: 0.5rem;
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────────────────────
+   Honour the OS "reduce motion" setting across every animation and transition
+   (WCAG 2.3.3). Durations collapse instead of being removed so animation-driven
+   `both`/fill states (the landing fade-ins) still settle on their end frame
+   rather than staying invisible. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
 
 /* Theme changes use the browser's old/new root snapshots. JavaScript clips the
    new palette to an expanding circle centred on the control that was pressed. */
@@ -289,6 +369,11 @@ body {
 
 .cm-editor.cm-focused {
   outline: none !important;
+}
+
+/* CodeMirror ships a hardcoded #888 placeholder that fails AA on both themes. */
+.cm-editor .cm-placeholder {
+  color: var(--faint) !important;
 }
 
 /* Breathing room below the last line so clicking near the bottom comfortably

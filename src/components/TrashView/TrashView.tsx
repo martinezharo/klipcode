@@ -180,7 +180,9 @@ export function TrashView({
 
   return (
     <main
-      className="flex-1 overflow-y-auto"
+      id="main-content"
+      tabIndex={-1}
+      className="flex-1 overflow-y-auto focus:outline-none"
       onKeyDown={handleCanvasKeyDown}
       onClick={(e) => {
         // Clicking empty canvas (anywhere outside a card) clears the selection.
