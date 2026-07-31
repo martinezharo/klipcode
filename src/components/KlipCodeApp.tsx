@@ -350,6 +350,11 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
       onRestoreMany={(items, targetFolderId) => void mutations.handleRestoreMany(items, targetFolderId)}
     >
     <div className="flex h-screen overflow-hidden">
+      {/* Lets keyboard users jump past the sidebar tree straight to the canvas. */}
+      <a href="#main-content" className="klipcode-skip-link">
+        {copy.common.skipToContent}
+      </a>
+
       <Aside
         user={auth.user}
         authReady={auth.authReady}
@@ -431,10 +436,10 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
             />
           </div>
         ) : snippetNotFound ? (
-          <main className="flex flex-1 flex-col overflow-y-auto">
+          <main id="main-content" tabIndex={-1} className="flex flex-1 flex-col overflow-y-auto focus:outline-none">
             {menuBar}
             <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-              <p className="text-sm font-medium text-ink/70">{copy.workspace.snippetNotFoundTitle}</p>
+              <h1 className="text-sm font-medium text-ink/70">{copy.workspace.snippetNotFoundTitle}</h1>
               <p className="max-w-sm text-sm text-ink/50">{copy.workspace.snippetNotFoundDescription}</p>
               <button
                 type="button"
@@ -489,9 +494,13 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
             menuButton={menuButton}
           />
         ) : (
-          <main className="flex-1 overflow-y-auto">
+          <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto focus:outline-none">
             {menuBar}
             <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-8">
+              {/* The home canvas has no visible title, but the section headings
+                  below it are h2s — this anchors the outline at h1. */}
+              <h1 className="sr-only">{copy.aside.home}</h1>
+
               <NewSnippet
                 copy={copy}
                 folders={folders}

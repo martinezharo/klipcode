@@ -137,7 +137,7 @@ export function LanguageSelect({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={copy.searchPlaceholder}
-                  className="w-full bg-transparent text-xs text-ink/70 placeholder:text-ink/25 outline-none"
+                  className="w-full bg-transparent text-xs text-ink/70 placeholder:text-faint outline-none"
                 />
               </div>
             </div>
@@ -145,7 +145,7 @@ export function LanguageSelect({
             {/* Language list */}
             <div className="max-h-[240px] overflow-y-auto p-1">
               {filtered.length === 0 ? (
-                <p className="px-2.5 py-2 text-xs text-ink/25">{copy.noResults}</p>
+                <p className="px-2.5 py-2 text-xs text-faint">{copy.noResults}</p>
               ) : (
                 filtered.map((lang) => {
                   const isSelected = lang.id === value;
@@ -168,7 +168,7 @@ export function LanguageSelect({
                     >
                       <LanguageIcon language={lang.id} size={14} className="shrink-0" />
                       <span className="flex-1">{lang.label}</span>
-                      <span className="shrink-0 font-mono text-[11px] text-ink/25">
+                      <span className="shrink-0 font-mono text-[11px] text-faint">
                         {lang.extension}
                       </span>
                       {isSelected && (

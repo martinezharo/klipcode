@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useId } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
+import { useDialogA11y } from "@/hooks/useDialogA11y";
 import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
 import type { LanguageId } from "@/lib/constants/languages";
 import type { FolderRecord } from "@/lib/types";
@@ -42,21 +43,16 @@ export function CreateSnippetModal({
   onCreateSnippet,
   onClose,
 }: CreateSnippetModalProps) {
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handler, true);
-    return () => window.removeEventListener("keydown", handler, true);
-  }, [onClose]);
+  // NewSnippet focuses its own title field off `focusNonce`, so the trap only
+  // needs to keep Tab inside the panel and hand focus back on close.
+  const panelRef = useDialogA11y({ onClose });
+  const titleId = useId();
 
   return createPortal(
     <>
       {/* Backdrop */}
       <div
+        aria-hidden="true"
         className="fixed inset-0 z-[var(--z-dialog)] bg-[var(--scrim)] backdrop-blur-[2px]"
         onMouseDown={onClose}
       />
@@ -64,10 +60,12 @@ export function CreateSnippetModal({
       {/* Dialog panel */}
       <div className="fixed inset-0 z-[var(--z-dialog-sticky)] flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="klipcode-dialog-animate pointer-events-auto w-full max-w-2xl rounded-xl overflow-hidden"
+          ref={panelRef}
+          tabIndex={-1}
+          className="klipcode-dialog-animate pointer-events-auto w-full max-w-2xl rounded-xl overflow-hidden focus:outline-none"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="create-snippet-modal-title"
+          aria-labelledby={titleId}
           style={{
             background: "var(--panel-bg)",
             border: "1px solid rgba(var(--ink-rgb),0.09)",
@@ -77,19 +75,16 @@ export function CreateSnippetModal({
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-ink/[0.06] px-4 py-3">
-            <h2
-              id="create-snippet-modal-title"
-              className="text-[13px] font-medium text-ink/90"
-            >
+            <h2 id={titleId} className="text-[13px] font-medium text-ink/90">
               {copy.forms.snippetTitle}
             </h2>
             <button
               type="button"
               aria-label={copy.common.close}
               onClick={onClose}
-              className="rounded-md p-1 text-ink/40 transition-colors hover:bg-ink/6 hover:text-ink/80"
+              className="rounded-md p-1 text-ink/55 transition-colors hover:bg-ink/6 hover:text-ink/80"
             >
-              <X size={15} />
+              <X size={15} aria-hidden="true" />
             </button>
           </div>
 

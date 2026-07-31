@@ -103,7 +103,12 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
     />
   ) : (
     <div
-      role="button"
+      // See FolderNode: treeitem rather than button, so the row's own actions
+      // menu stays exposed to assistive tech.
+      role="treeitem"
+      aria-level={depth + 1}
+      aria-selected={isActive}
+      aria-label={displayName}
       tabIndex={0}
       data-selectable-id={snippet.id}
       data-selectable-type="snippet"

@@ -260,7 +260,7 @@ export function FolderSelect({
               })}
 
               {folders.length === 0 && (
-                <p className="px-2.5 py-2 text-xs text-ink/25">{copy.noFolders}</p>
+                <p className="px-2.5 py-2 text-xs text-faint">{copy.noFolders}</p>
               )}
             </div>
           </div>,

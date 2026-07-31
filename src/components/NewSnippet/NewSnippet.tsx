@@ -137,7 +137,7 @@ export function NewSnippet({
             onKeyDown={handleTitleKeyDown}
             aria-label={copy.forms.snippetTitlePlaceholder}
             placeholder={copy.forms.snippetNamePlaceholder}
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-ink/30 outline-none"
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-faint outline-none"
           />
           <LanguageSelect
             value={language}

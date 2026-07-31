@@ -269,7 +269,9 @@ export function FolderView({
 
   return (
     <main
-      className="flex-1 overflow-y-auto"
+      id="main-content"
+      tabIndex={-1}
+      className="flex-1 overflow-y-auto focus:outline-none"
       onKeyDown={handleCanvasKeyDown}
       onClick={(e) => {
         // Clicking empty canvas (anywhere outside a card) clears the selection.
@@ -348,7 +350,7 @@ export function FolderView({
               "flex items-center justify-center gap-1.5 rounded-lg border border-dashed py-2 text-[11px] select-none transition-colors duration-100",
               isCurrentFolderDropTarget
                 ? "border-ink/35 bg-ink/[0.05] text-ink/60"
-                : "border-ink/[0.1] bg-transparent text-ink/25",
+                : "border-ink/[0.1] bg-transparent text-faint",
             ].join(" ")}>
               {isRootSpace ? <Layers size={11} /> : <FolderOpen size={11} />}
               {folderTitle}
@@ -488,7 +490,7 @@ function InlineCreate({
           if (e.key === "Escape") onCancel();
         }}
         placeholder={copy.forms.folderName}
-        className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-ink/25 outline-none"
+        className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-faint outline-none"
       />
     </div>
   );

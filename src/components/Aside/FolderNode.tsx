@@ -115,7 +115,14 @@ export function FolderNode({
         <div
           className={`${sharedRowClass} cursor-pointer select-none active:cursor-grabbing`}
           style={{ paddingLeft }}
-          role="button"
+          // A tree row, not a button: `button` makes its children presentational,
+          // which hides the expand toggle and the actions menu from assistive
+          // tech. treeitem also carries the expanded / level / selected state.
+          role="treeitem"
+          aria-expanded={hasChildren ? isOpen : undefined}
+          aria-level={depth + 1}
+          aria-selected={isActive}
+          aria-label={folder.name}
           tabIndex={0}
           data-selectable-id={folder.id}
           data-selectable-type="folder"
@@ -170,17 +177,16 @@ export function FolderNode({
             </button>
           </Tooltip>
 
-          <button
-            type="button"
-            className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
-          >
+          {/* Presentational: the row itself is the activation target, so this
+              was a tab stop with no handler attached. */}
+          <span className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
             {isOpen && hasChildren ? (
-              <FolderOpen size={13} className="shrink-0 text-ink/25" />
+              <FolderOpen size={13} className="shrink-0 text-ink/25" aria-hidden="true" />
             ) : (
-              <Folder size={13} className="shrink-0 text-ink/25" />
+              <Folder size={13} className="shrink-0 text-ink/25" aria-hidden="true" />
             )}
             <TruncateTooltip text={folder.name} className="flex-1 truncate leading-none" />
-          </button>
+          </span>
 
           <ItemActions
             onMore={openMoreMenu}
@@ -190,7 +196,7 @@ export function FolderNode({
       )}
 
       {(isOpen || isAnyCreatingHere) && (
-        <div className="relative">
+        <div role="group" className="relative">
           {(hasChildren || isAnyCreatingHere) && (
             <div
               className="absolute bottom-1 top-0 w-px bg-ink/[0.05]"

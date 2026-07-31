@@ -45,7 +45,7 @@ export function EmptyState({ icon, message }: { icon: ReactNode; message: string
       <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-ink/[0.08] bg-ink/[0.03]">
         {icon}
       </div>
-      <p className="text-sm text-ink/30">{message}</p>
+      <p className="text-sm text-faint">{message}</p>
     </div>
   );
 }
@@ -66,7 +66,7 @@ export function CardSection({
 }) {
   return (
     <section className="space-y-4">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-ink/30">{title}</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-faint">{title}</h2>
       <div className={GRID_CLASSES[variant]}>{children}</div>
     </section>
   );
