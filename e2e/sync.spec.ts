@@ -6,6 +6,7 @@ import {
   decryptString,
   importAesKey,
 } from "../src/lib/crypto";
+import { aside, asideRow, gotoApp } from "./helpers";
 
 /**
  * Cloud-sync tests against the local Supabase stack (pnpm e2e:sync:setup, then
@@ -66,13 +67,8 @@ async function signIn(context: BrowserContext, session: Session) {
   );
 }
 
-async function gotoApp(page: Page) {
-  await page.goto("/app");
-  await expect(page.getByRole("button", { name: "My Space" })).toBeVisible();
-}
-
 async function createSnippet(page: Page, title: string, code: string) {
-  await page.getByRole("complementary").getByRole("button", { name: "New snippet" }).click();
+  await aside(page).getByRole("button", { name: "New snippet" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("textbox", { name: "Snippet title" }).fill(title);
   // The code field is a CodeMirror editor, only reachable by role + name.
@@ -99,7 +95,7 @@ test("signing in claims anonymous work and uploads it as ciphertext", async ({ p
   // aside as the direct, reliable signal that the seed happened.
   await gotoApp(page);
   await expect(
-    page.getByRole("complementary").getByRole("button", { name: "welcome", exact: true })
+    asideRow(page, "welcome")
   ).toBeVisible();
 
   // Sign in and reload: the account claims the anonymous records and pushes
@@ -164,12 +160,11 @@ test("a snippet created on device A appears decrypted on device B", async ({ bro
     await gotoApp(pageB);
 
     // Device B pulls on sign-in and must show the decrypted snippet.
-    const asideB = pageB.getByRole("complementary");
-    await expect(asideB.getByRole("button", { name: "greeting.js" })).toBeVisible({
+    await expect(asideRow(pageB, "greeting.js")).toBeVisible({
       timeout: 15_000,
     });
 
-    await asideB.getByRole("button", { name: "greeting.js" }).click();
+    await asideRow(pageB, "greeting.js").click();
     await pageB.getByRole("button", { name: "Copy code" }).first().click();
     const clipboard = await pageB.evaluate(() => navigator.clipboard.readText());
     expect(clipboard).toBe("console.log('hello from device A');");
@@ -201,15 +196,13 @@ test("trash and permanent deletion propagate from device A to device B", async (
     await signIn(contextB, session);
     const pageB = await contextB.newPage();
     await gotoApp(pageB);
-    const asideB = pageB.getByRole("complementary");
-    await expect(asideB.getByRole("button", { name: "doomed.js" })).toBeVisible({
+    await expect(asideRow(pageB, "doomed.js")).toBeVisible({
       timeout: 15_000,
     });
 
     // Device A: soft delete (move to trash) → the cloud row survives with
     // deleted_at set.
-    const asideA = pageA.getByRole("complementary");
-    await asideA.getByRole("button", { name: "doomed.js" }).click({ button: "right" });
+    await asideRow(pageA, "doomed.js").click({ button: "right" });
     await pageA.getByRole("menuitem", { name: "Delete", exact: true }).click();
 
     await expect
@@ -219,7 +212,7 @@ test("trash and permanent deletion propagate from device A to device B", async (
       .not.toBeNull();
 
     // Device A: empty the trash → the queued tombstone deletes the cloud row.
-    await asideA.getByRole("button", { name: "Trash" }).click();
+    await aside(pageA).getByRole("button", { name: "Trash" }).click();
     await pageA.getByRole("main").getByRole("button", { name: "Empty trash" }).click();
     await pageA.getByRole("alertdialog").getByRole("button", { name: "Empty trash" }).click();
 
@@ -232,7 +225,7 @@ test("trash and permanent deletion propagate from device A to device B", async (
     // sign-in reconcile.
     await pageB.reload();
     await expect(pageB.getByRole("button", { name: "My Space" })).toBeVisible();
-    await expect(asideB.getByRole("button", { name: "doomed.js" })).toBeHidden({
+    await expect(asideRow(pageB, "doomed.js")).toBeHidden({
       timeout: 15_000,
     });
   } finally {
