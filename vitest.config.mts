@@ -1,8 +1,9 @@
 import { defineConfig } from "vitest/config";
-import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  // Resolves the `@/*` and `@convex/*` aliases from tsconfig.json. Native since
+  // Vite 8, which replaced the vite-tsconfig-paths plugin.
+  resolve: { tsconfigPaths: true },
   test: {
     environment: "node",
     setupFiles: ["fake-indexeddb/auto"],
