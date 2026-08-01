@@ -606,7 +606,72 @@ async function claimAnonymousRecords(userId: string): Promise<void> {
   }
 }
 
+/**
+ * One-time takeover of records left behind by the previous backend.
+ *
+ * Records carry the `ownerId` of the account that created them, and every read
+ * filters on it (`matchesOwner` in `src/lib/db.ts`). The accounts from the old
+ * Supabase backend have different ids from the Convex ones, so after the
+ * migration those records match neither the signed-in user nor the anonymous
+ * case: they stay in IndexedDB, intact, but invisible — and `getDirtyWorkspace`
+ * skips them too, so they never upload either. Re-owning them to the current
+ * account restores both.
+ *
+ * `lastSyncedAt` is cleared because it referred to a cloud that no longer holds
+ * them, and `dirty` is set so the push that follows uploads them.
+ *
+ * Guarded by a flag so it runs at most once per device. Without that guard a
+ * second account signing in on the same machine would seize the first one's
+ * records; after this has run once, every record already carries a Convex id
+ * and normal per-account isolation applies.
+ */
+const LEGACY_ADOPTION_KEY = "klipcode.adoptedLegacyRecords";
+
+async function adoptLegacyRecords(userId: string): Promise<void> {
+  if (typeof localStorage === "undefined" || localStorage.getItem(LEGACY_ADOPTION_KEY)) {
+    return;
+  }
+
+  // Set before doing the work: a crash midway must not leave the door open for
+  // a later, different account to run the takeover instead.
+  localStorage.setItem(LEGACY_ADOPTION_KEY, "1");
+
+  const [folders, snippets] = await Promise.all([
+    db.folders.toArray(),
+    db.snippets.toArray(),
+  ]);
+
+  const isLegacy = (record: { ownerId: string | null }) =>
+    record.ownerId !== null && record.ownerId !== userId;
+
+  const legacyFolders = folders.filter(isLegacy);
+  const legacySnippets = snippets.filter(isLegacy);
+
+  if (legacyFolders.length > 0) {
+    await db.folders.bulkPut(
+      legacyFolders.map((folder) => ({
+        ...folder,
+        ownerId: userId,
+        dirty: true,
+        lastSyncedAt: null,
+      }))
+    );
+  }
+
+  if (legacySnippets.length > 0) {
+    await db.snippets.bulkPut(
+      legacySnippets.map((snippet) => ({
+        ...snippet,
+        ownerId: userId,
+        dirty: true,
+        lastSyncedAt: null,
+      }))
+    );
+  }
+}
+
 export async function reconcileWorkspace(userId: string) {
+  await adoptLegacyRecords(userId);
   await claimAnonymousRecords(userId);
   const result = await syncDirtyWorkspace(userId);
   await syncTombstones(userId);

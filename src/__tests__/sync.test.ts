@@ -599,3 +599,74 @@ describe("cloud encryption", () => {
     expect(stored?.title).toBe("Intact");
   });
 });
+
+// ── Adoption of records from the previous backend ───────────────────────────────
+
+describe("reconcileWorkspace() legacy adoption", () => {
+  // The old Supabase account id: neither null nor the current Convex user, so
+  // every read and the dirty scan filter these records out until they're adopted.
+  const LEGACY_OWNER = "supabase-uuid-abc";
+
+  function installLocalStorage() {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+      clear: () => store.clear(),
+    });
+  }
+
+  beforeEach(() => {
+    installLocalStorage();
+  });
+
+  it("re-owns records left by the previous backend and uploads them", async () => {
+    const folder = makeFolder({ ownerId: LEGACY_OWNER, lastSyncedAt: "2024-01-01T00:00:00.000Z" });
+    const snippet = makeSnippet({
+      ownerId: LEGACY_OWNER,
+      folderId: folder.id,
+      code: "const kept = true;",
+      lastSyncedAt: "2024-01-01T00:00:00.000Z",
+    });
+    await db.folders.add(folder);
+    await db.snippets.add(snippet);
+
+    await reconcileWorkspace(USER);
+
+    // Re-owned locally...
+    expect((await db.folders.get(folder.id))?.ownerId).toBe(USER);
+    expect((await db.snippets.get(snippet.id))?.ownerId).toBe(USER);
+    // ...and pushed to the new backend, which had never seen them.
+    expect(cloud.folders.find((row) => row.clientId === folder.id)).toBeDefined();
+    expect(cloud.snippets.find((row) => row.clientId === snippet.id)?.code).toBe("const kept = true;");
+  });
+
+  it("does not delete adopted records when the cloud comes back empty", async () => {
+    // The dangerous ordering: adoption, then a pull whose deletion pass could
+    // mistake a never-uploaded record for one deleted on another device.
+    const snippet = makeSnippet({ ownerId: LEGACY_OWNER, lastSyncedAt: "2024-01-01T00:00:00.000Z" });
+    await db.snippets.add(snippet);
+
+    await reconcileWorkspace(USER);
+    await fetchCloudWorkspace(USER);
+
+    expect(await db.snippets.get(snippet.id)).toBeDefined();
+  });
+
+  it("runs only once, so a second account cannot seize the first one's records", async () => {
+    // Never uploaded, so the deletion pass in the pull leaves it alone and the
+    // test isolates the adoption guard.
+    const mine = makeSnippet({ ownerId: USER, dirty: true, lastSyncedAt: null });
+    await db.snippets.add(mine);
+
+    // First sign-in consumes the one-shot adoption.
+    await reconcileWorkspace(USER);
+
+    // A different account signs in later on the same device.
+    currentUserId = "user-2";
+    await reconcileWorkspace("user-2");
+
+    expect((await db.snippets.get(mine.id))?.ownerId).toBe(USER);
+  });
+});
