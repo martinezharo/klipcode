@@ -1,15 +1,16 @@
+import { api } from "@convex/_generated/api";
 import {
   CRYPTO_VERSION_PLAINTEXT,
   CURRENT_CRYPTO_VERSION,
   decryptString,
   encryptString,
 } from "@/lib/crypto";
+import { getConvexBrowserClient } from "@/lib/convex";
 import { db, getDirtyWorkspace, getPendingTombstones } from "@/lib/db";
 import { getWorkspaceEncryptionKey } from "@/lib/encryptionKey";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
 import type {
-  CloudFolderRow,
-  CloudSnippetRow,
+  CloudFolder,
+  CloudSnippet,
   FolderRecord,
   SnippetRecord,
   SyncResult,
@@ -17,19 +18,54 @@ import type {
 
 // ── Cloud encryption boundary ───────────────────────────────────────────────────
 // IndexedDB stays plaintext (it's the local source of truth and must work
-// offline); only what crosses to Supabase is encrypted. With a key, uploads
-// write ciphertext + `crypto_version: 1`; without one (`null` = encryption not
+// offline); only what crosses to Convex is encrypted. With a key, uploads
+// write ciphertext + `cryptoVersion: 1`; without one (`null` = encryption not
 // configured) they write plaintext + version 0, exactly the pre-encryption
-// shape. Downloads decode per-row based on `crypto_version`, so plaintext
-// legacy rows and encrypted rows coexist during the progressive migration.
+// shape. Downloads decode per-record based on `cryptoVersion`, so plaintext
+// legacy records and encrypted ones coexist during the progressive migration.
+
+// ── Batching ────────────────────────────────────────────────────────────────────
+// A push is normally one round trip: folders and snippets go up in the same
+// transaction, so a child folder no longer has to wait for its parent's request
+// to land (which is what forced one request per depth level under the old
+// Postgres foreign key). Batches exist only to stay under Convex's argument size
+// limit — and when a workspace is big enough to need several, folders are
+// ordered shallowest-first so a parent is never left for a later batch.
+const MAX_BATCH_RECORDS = 500;
+const MAX_BATCH_BYTES = 4_000_000;
+
+function chunkBySize<T>(records: T[], sizeOf: (record: T) => number): T[][] {
+  const batches: T[][] = [];
+  let batch: T[] = [];
+  let batchBytes = 0;
+
+  for (const record of records) {
+    const bytes = sizeOf(record);
+
+    if (batch.length > 0 && (batch.length >= MAX_BATCH_RECORDS || batchBytes + bytes > MAX_BATCH_BYTES)) {
+      batches.push(batch);
+      batch = [];
+      batchBytes = 0;
+    }
+
+    batch.push(record);
+    batchBytes += bytes;
+  }
+
+  if (batch.length > 0) {
+    batches.push(batch);
+  }
+
+  return batches;
+}
 
 /**
- * Whether a fetched row can be decoded here: plaintext always can; ciphertext
- * needs the key and a version this build understands. Undecodable rows are
+ * Whether a fetched record can be decoded here: plaintext always can; ciphertext
+ * needs the key and a version this build understands. Undecodable records are
  * skipped — never written locally as garbage, and never treated as deleted
  * (they stay in the cloud id sets used by `reconcileDeletions`).
  */
-function canDecodeRow(cryptoVersion: number, key: CryptoKey | null): boolean {
+function canDecodeRecord(cryptoVersion: number, key: CryptoKey | null): boolean {
   if (cryptoVersion === CRYPTO_VERSION_PLAINTEXT) return true;
   return cryptoVersion <= CURRENT_CRYPTO_VERSION && key !== null;
 }
@@ -52,79 +88,80 @@ function folderDepth(folder: FolderRecord, folderMap: Map<string, FolderRecord>)
   return depth;
 }
 
-async function mapFolderToCloud(
-  folder: FolderRecord,
-  userId: string,
-  key: CryptoKey | null
-): Promise<CloudFolderRow> {
+async function mapFolderToCloud(folder: FolderRecord, key: CryptoKey | null): Promise<CloudFolder> {
   return {
-    id: folder.id,
-    owner_id: userId,
+    clientId: folder.id,
     name: key ? await encryptString(key, folder.name) : folder.name,
-    parent_id: folder.parentId,
-    is_pinned_aside: folder.isPinnedAside,
-    is_pinned_home: folder.isPinnedHome,
-    created_at: folder.createdAt,
-    updated_at: folder.updatedAt,
-    deleted_at: folder.deletedAt,
-    crypto_version: key ? CURRENT_CRYPTO_VERSION : CRYPTO_VERSION_PLAINTEXT,
+    parentId: folder.parentId,
+    isPinnedAside: folder.isPinnedAside,
+    isPinnedHome: folder.isPinnedHome,
+    createdAt: folder.createdAt,
+    updatedAt: folder.updatedAt,
+    deletedAt: folder.deletedAt,
+    cryptoVersion: key ? CURRENT_CRYPTO_VERSION : CRYPTO_VERSION_PLAINTEXT,
   };
 }
 
 async function mapSnippetToCloud(
   snippet: SnippetRecord,
-  userId: string,
   key: CryptoKey | null
-): Promise<CloudSnippetRow> {
+): Promise<CloudSnippet> {
   return {
-    id: snippet.id,
-    owner_id: userId,
-    folder_id: snippet.folderId,
+    clientId: snippet.id,
+    folderId: snippet.folderId,
     title: key ? await encryptString(key, snippet.title) : snippet.title,
     code: key ? await encryptString(key, snippet.code) : snippet.code,
     language: snippet.language,
-    is_pinned_aside: snippet.isPinnedAside,
-    is_pinned_home: snippet.isPinnedHome,
-    created_at: snippet.createdAt,
-    updated_at: snippet.updatedAt,
-    deleted_at: snippet.deletedAt,
-    crypto_version: key ? CURRENT_CRYPTO_VERSION : CRYPTO_VERSION_PLAINTEXT,
+    isPinnedAside: snippet.isPinnedAside,
+    isPinnedHome: snippet.isPinnedHome,
+    createdAt: snippet.createdAt,
+    updatedAt: snippet.updatedAt,
+    deletedAt: snippet.deletedAt,
+    cryptoVersion: key ? CURRENT_CRYPTO_VERSION : CRYPTO_VERSION_PLAINTEXT,
   };
 }
 
-async function mapFolderToLocal(folder: CloudFolderRow, key: CryptoKey | null): Promise<FolderRecord> {
-  const encrypted = folder.crypto_version !== CRYPTO_VERSION_PLAINTEXT;
+async function mapFolderToLocal(
+  folder: CloudFolder,
+  userId: string,
+  key: CryptoKey | null
+): Promise<FolderRecord> {
+  const encrypted = folder.cryptoVersion !== CRYPTO_VERSION_PLAINTEXT;
   return {
-    id: folder.id,
-    ownerId: folder.owner_id,
+    id: folder.clientId,
+    ownerId: userId,
     name: encrypted ? await decryptString(key!, folder.name) : folder.name,
-    parentId: folder.parent_id,
-    isPinnedAside: folder.is_pinned_aside,
-    isPinnedHome: folder.is_pinned_home,
-    createdAt: folder.created_at,
-    updatedAt: folder.updated_at,
+    parentId: folder.parentId,
+    isPinnedAside: folder.isPinnedAside,
+    isPinnedHome: folder.isPinnedHome,
+    createdAt: folder.createdAt,
+    updatedAt: folder.updatedAt,
     dirty: false,
-    lastSyncedAt: folder.updated_at,
-    deletedAt: folder.deleted_at,
+    lastSyncedAt: folder.updatedAt,
+    deletedAt: folder.deletedAt,
   };
 }
 
-async function mapSnippetToLocal(snippet: CloudSnippetRow, key: CryptoKey | null): Promise<SnippetRecord> {
-  const encrypted = snippet.crypto_version !== CRYPTO_VERSION_PLAINTEXT;
+async function mapSnippetToLocal(
+  snippet: CloudSnippet,
+  userId: string,
+  key: CryptoKey | null
+): Promise<SnippetRecord> {
+  const encrypted = snippet.cryptoVersion !== CRYPTO_VERSION_PLAINTEXT;
   return {
-    id: snippet.id,
-    ownerId: snippet.owner_id,
-    folderId: snippet.folder_id,
+    id: snippet.clientId,
+    ownerId: userId,
+    folderId: snippet.folderId,
     title: encrypted ? await decryptString(key!, snippet.title) : snippet.title,
     code: encrypted ? await decryptString(key!, snippet.code) : snippet.code,
     language: snippet.language,
-    isPinnedAside: snippet.is_pinned_aside,
-    isPinnedHome: snippet.is_pinned_home,
-    createdAt: snippet.created_at,
-    updatedAt: snippet.updated_at,
+    isPinnedAside: snippet.isPinnedAside,
+    isPinnedHome: snippet.isPinnedHome,
+    createdAt: snippet.createdAt,
+    updatedAt: snippet.updatedAt,
     dirty: false,
-    lastSyncedAt: snippet.updated_at,
-    deletedAt: snippet.deleted_at,
+    lastSyncedAt: snippet.updatedAt,
+    deletedAt: snippet.deletedAt,
   };
 }
 
@@ -168,7 +205,7 @@ async function markSnippetAsSynced(
  * Settle a snippet that has no cloud counterpart (a brand-new, still-empty
  * placeholder) without claiming a cloud sync. Clearing `dirty` stops the retry
  * loop, while keeping `lastSyncedAt` null marks it as never-uploaded so the
- * deletion reconciliation in `fetchCloudWorkspace` won't mistake it for a row
+ * deletion reconciliation in `fetchCloudWorkspace` won't mistake it for a record
  * that was deleted remotely.
  */
 async function markSnippetSettledLocally(snippet: SnippetRecord): Promise<boolean> {
@@ -186,9 +223,9 @@ async function markSnippetSettledLocally(snippet: SnippetRecord): Promise<boolea
 }
 
 export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
-  const supabase = getSupabaseBrowserClient();
+  const convex = getConvexBrowserClient();
 
-  if (!supabase) {
+  if (!convex) {
     return { syncedFolderIds: [], syncedSnippetIds: [], localSnippetIds: [] };
   }
 
@@ -206,47 +243,10 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
       ? await getWorkspaceEncryptionKey(userId)
       : null;
 
-  // Folders are upserted one depth level at a time (shallowest first). The cloud
-  // FK `(owner_id, parent_id) → folders(owner_id, id)` means a child can't land
-  // before its parent, but folders at the same depth are independent and go up in
-  // a single batched upsert — so N folders become at most (max depth) round trips.
-  const foldersByDepth = new Map<number, FolderRecord[]>();
-  for (const folder of dirtyWorkspace.folders) {
-    const depth = folderDepth(folder, folderMap);
-    const bucket = foldersByDepth.get(depth);
-    if (bucket) {
-      bucket.push(folder);
-    } else {
-      foldersByDepth.set(depth, [folder]);
-    }
-  }
-
-  for (const depth of [...foldersByDepth.keys()].sort((left, right) => left - right)) {
-    const levelFolders = foldersByDepth.get(depth)!;
-
-    const { error } = await supabase
-      .from("folders")
-      .upsert(
-        await Promise.all(levelFolders.map((folder) => mapFolderToCloud(folder, userId, encryptionKey))),
-        { onConflict: "id" }
-      );
-
-    if (error) {
-      throw error;
-    }
-
-    const syncedAt = new Date().toISOString();
-    for (const folder of levelFolders) {
-      const marked = await markFolderAsSynced(folder, userId, syncedAt);
-      if (marked) syncedFolderIds.push(folder.id);
-    }
-  }
-
-  // Snippets have no inter-snippet dependency, so the whole dirty set goes up in
-  // one upsert. Still-empty, never-uploaded placeholders are settled locally
-  // instead (no cloud row); once a snippet HAS been synced, an empty body is an
-  // intentional clear and must be uploaded — otherwise the next fetch resurrects
-  // the old content.
+  // Still-empty, never-uploaded placeholders are settled locally instead of
+  // uploaded (no cloud record); once a snippet HAS been synced, an empty body is
+  // an intentional clear and must be uploaded — otherwise the next fetch
+  // resurrects the old content.
   const snippetsToUpload: SnippetRecord[] = [];
   for (const snippet of dirtyWorkspace.snippets) {
     if (!snippet.code.trim() && snippet.lastSyncedAt === null) {
@@ -257,24 +257,47 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
     }
   }
 
-  if (snippetsToUpload.length > 0) {
-    const { error } = await supabase
-      .from("snippets")
-      .upsert(
-        await Promise.all(
-          snippetsToUpload.map((snippet) => mapSnippetToCloud(snippet, userId, encryptionKey))
-        ),
-        { onConflict: "id" }
-      );
+  if (dirtyWorkspace.folders.length === 0 && snippetsToUpload.length === 0) {
+    return { syncedFolderIds, syncedSnippetIds, localSnippetIds };
+  }
 
-    if (error) {
-      throw error;
+  const foldersByDepth = [...dirtyWorkspace.folders].sort(
+    (left, right) => folderDepth(left, folderMap) - folderDepth(right, folderMap)
+  );
+
+  const folderBatches = chunkBySize(
+    await Promise.all(foldersByDepth.map((folder) => mapFolderToCloud(folder, encryptionKey))),
+    (folder) => folder.name.length + 200
+  );
+  const snippetBatches = chunkBySize(
+    await Promise.all(snippetsToUpload.map((snippet) => mapSnippetToCloud(snippet, encryptionKey))),
+    (snippet) => snippet.code.length + snippet.title.length + 200
+  );
+
+  // Folders lead so that the batch carrying a snippet's folder has already
+  // landed; the pairing is incidental (each call takes whatever is left of both
+  // lists) and exists only to keep the common single-batch case at one request.
+  const batchCount = Math.max(folderBatches.length, snippetBatches.length);
+  const syncedAt = new Date().toISOString();
+
+  for (let index = 0; index < batchCount; index += 1) {
+    const folders = folderBatches[index] ?? [];
+    const snippets = snippetBatches[index] ?? [];
+
+    await convex.mutation(api.workspace.push, { folders, snippets });
+
+    for (const folder of folders) {
+      const local = folderMap.get(folder.clientId);
+      if (local && (await markFolderAsSynced(local, userId, syncedAt))) {
+        syncedFolderIds.push(folder.clientId);
+      }
     }
 
-    const syncedAt = new Date().toISOString();
-    for (const snippet of snippetsToUpload) {
-      const marked = await markSnippetAsSynced(snippet, userId, syncedAt);
-      if (marked) syncedSnippetIds.push(snippet.id);
+    for (const snippet of snippets) {
+      const local = snippetsToUpload.find((candidate) => candidate.id === snippet.clientId);
+      if (local && (await markSnippetAsSynced(local, userId, syncedAt))) {
+        syncedSnippetIds.push(snippet.clientId);
+      }
     }
   }
 
@@ -282,42 +305,20 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
 }
 
 export async function fetchCloudWorkspace(userId: string) {
-  const supabase = getSupabaseBrowserClient();
+  const convex = getConvexBrowserClient();
 
-  if (!supabase) {
+  if (!convex) {
     return;
   }
 
-  const [{ data: folders, error: foldersError }, { data: snippets, error: snippetsError }] =
-    await Promise.all([
-      supabase
-        .from("folders")
-        .select(
-          "id, owner_id, name, parent_id, is_pinned_aside, is_pinned_home, created_at, updated_at, deleted_at, crypto_version"
-        )
-        .eq("owner_id", userId),
-      supabase
-        .from("snippets")
-        .select(
-          "id, owner_id, folder_id, title, code, language, is_pinned_aside, is_pinned_home, created_at, updated_at, deleted_at, crypto_version"
-        )
-        .eq("owner_id", userId),
-    ]);
-
-  if (foldersError) {
-    throw foldersError;
-  }
-
-  if (snippetsError) {
-    throw snippetsError;
-  }
+  const { folders, snippets } = await convex.query(api.workspace.list, {});
 
   // A record we deleted locally but whose cloud delete is still pending must not
   // be re-downloaded, or it would resurrect until the queued delete lands.
   const tombstonedIds = new Set((await getPendingTombstones(userId)).map((t) => t.id));
 
   // Read the local tables once, diff in memory, then write everything in a single
-  // bulkPut per table — instead of a get + put round trip for every cloud row.
+  // bulkPut per table — instead of a get + put round trip for every cloud record.
   const [localFolders, localSnippets] = await Promise.all([
     db.folders.toArray(),
     db.snippets.toArray(),
@@ -325,30 +326,29 @@ export async function fetchCloudWorkspace(userId: string) {
   const localFolderMap = new Map(localFolders.map((folder) => [folder.id, folder]));
   const localSnippetMap = new Map(localSnippets.map((snippet) => [snippet.id, snippet]));
 
-  const folderRows = folders as CloudFolderRow[];
-  const snippetRows = snippets as CloudSnippetRow[];
-
-  // The key is only fetched when some row actually needs decrypting, so
+  // The key is only fetched when some record actually needs decrypting, so
   // plaintext-only workspaces never hit the key endpoint on pull. A transient
   // key failure throws and fails the whole pull (retried later) rather than
   // partially applying it.
-  const hasEncryptedRows =
-    folderRows.some((row) => row.crypto_version !== CRYPTO_VERSION_PLAINTEXT) ||
-    snippetRows.some((row) => row.crypto_version !== CRYPTO_VERSION_PLAINTEXT);
-  const encryptionKey = hasEncryptedRows ? await getWorkspaceEncryptionKey(userId) : null;
+  const hasEncryptedRecords =
+    folders.some((folder) => folder.cryptoVersion !== CRYPTO_VERSION_PLAINTEXT) ||
+    snippets.some((snippet) => snippet.cryptoVersion !== CRYPTO_VERSION_PLAINTEXT);
+  const encryptionKey = hasEncryptedRecords ? await getWorkspaceEncryptionKey(userId) : null;
 
   const foldersToPut: FolderRecord[] = [];
-  for (const folderRow of folderRows) {
-    if (!canDecodeRow(folderRow.crypto_version, encryptionKey)) {
-      console.warn(`Skipping folder ${folderRow.id}: undecodable crypto_version ${folderRow.crypto_version}`);
+  for (const cloudFolder of folders) {
+    if (!canDecodeRecord(cloudFolder.cryptoVersion, encryptionKey)) {
+      console.warn(
+        `Skipping folder ${cloudFolder.clientId}: undecodable cryptoVersion ${cloudFolder.cryptoVersion}`
+      );
       continue;
     }
 
     let incomingFolder: FolderRecord;
     try {
-      incomingFolder = await mapFolderToLocal(folderRow, encryptionKey);
+      incomingFolder = await mapFolderToLocal(cloudFolder, userId, encryptionKey);
     } catch {
-      console.warn(`Skipping folder ${folderRow.id}: decryption failed`);
+      console.warn(`Skipping folder ${cloudFolder.clientId}: decryption failed`);
       continue;
     }
 
@@ -366,17 +366,19 @@ export async function fetchCloudWorkspace(userId: string) {
   }
 
   const snippetsToPut: SnippetRecord[] = [];
-  for (const snippetRow of snippetRows) {
-    if (!canDecodeRow(snippetRow.crypto_version, encryptionKey)) {
-      console.warn(`Skipping snippet ${snippetRow.id}: undecodable crypto_version ${snippetRow.crypto_version}`);
+  for (const cloudSnippet of snippets) {
+    if (!canDecodeRecord(cloudSnippet.cryptoVersion, encryptionKey)) {
+      console.warn(
+        `Skipping snippet ${cloudSnippet.clientId}: undecodable cryptoVersion ${cloudSnippet.cryptoVersion}`
+      );
       continue;
     }
 
     let incomingSnippet: SnippetRecord;
     try {
-      incomingSnippet = await mapSnippetToLocal(snippetRow, encryptionKey);
+      incomingSnippet = await mapSnippetToLocal(cloudSnippet, userId, encryptionKey);
     } catch {
-      console.warn(`Skipping snippet ${snippetRow.id}: decryption failed`);
+      console.warn(`Skipping snippet ${cloudSnippet.clientId}: decryption failed`);
       continue;
     }
 
@@ -403,11 +405,11 @@ export async function fetchCloudWorkspace(userId: string) {
 
   // Reuse the snapshot read above for deletion reconciliation. A record absent
   // from the cloud is unaffected by the puts (which only touch cloud-present
-  // rows), so the pre-put snapshot yields the correct deletion set.
+  // records), so the pre-put snapshot yields the correct deletion set.
   await reconcileDeletions(
     userId,
-    new Set((folders as CloudFolderRow[]).map((folder) => folder.id)),
-    new Set((snippets as CloudSnippetRow[]).map((snippet) => snippet.id)),
+    new Set(folders.map((folder) => folder.clientId)),
+    new Set(snippets.map((snippet) => snippet.clientId)),
     localFolders,
     localSnippets
   );
@@ -419,9 +421,9 @@ export async function fetchCloudWorkspace(userId: string) {
  * is set) but is now absent from the cloud was deleted on another device, so we
  * remove it locally. Dirty records (unsynced local edits), never-uploaded
  * placeholders, and shared/seeded records (`ownerId === null`) are left intact.
- * Trashed records are NOT special-cased: a soft delete keeps the cloud row (with
- * `deleted_at` set), so it stays present here; only a permanent delete removes the
- * cloud row, and that deletion must propagate even if the record is in the trash.
+ * Trashed records are NOT special-cased: a soft delete keeps the cloud record (with
+ * `deletedAt` set), so it stays present here; only a permanent delete removes the
+ * cloud record, and that deletion must propagate even if the record is in the trash.
  */
 async function reconcileDeletions(
   userId: string,
@@ -474,14 +476,15 @@ export async function recordDeletions(
 }
 
 /**
- * Flush queued deletions to the cloud. Snippets are removed before folders so a
- * folder removal never strands a child row. Each tombstone is cleared only once
- * its cloud delete succeeds; a failure leaves it queued for the next attempt.
+ * Flush queued deletions to the cloud. Folders and snippets are removed in one
+ * transaction, so a folder removal can no longer strand a child record even if
+ * the process dies mid-flush; the tombstones are cleared only once that
+ * transaction commits, and a failure leaves them all queued for the next attempt.
  */
 export async function syncTombstones(userId: string): Promise<void> {
-  const supabase = getSupabaseBrowserClient();
+  const convex = getConvexBrowserClient();
 
-  if (!supabase) {
+  if (!convex) {
     return;
   }
 
@@ -494,44 +497,26 @@ export async function syncTombstones(userId: string): Promise<void> {
   const snippetIds = tombstones.filter((t) => t.kind === "snippet").map((t) => t.id);
   const folderIds = tombstones.filter((t) => t.kind === "folder").map((t) => t.id);
 
-  if (snippetIds.length > 0) {
-    const { error } = await supabase.from("snippets").delete().in("id", snippetIds);
-    if (error) {
-      throw error;
-    }
-    await db.tombstones.bulkDelete(snippetIds);
-  }
-
-  if (folderIds.length > 0) {
-    const { error } = await supabase.from("folders").delete().in("id", folderIds);
-    if (error) {
-      throw error;
-    }
-    await db.tombstones.bulkDelete(folderIds);
-  }
+  await convex.mutation(api.workspace.remove, { folderIds, snippetIds });
+  await db.tombstones.bulkDelete([...snippetIds, ...folderIds]);
 }
 
 /**
- * Whether the signed-in account already has any cloud rows. Distinguishes a
+ * Whether the signed-in account already has any cloud records. Distinguishes a
  * brand-new account (the seeded welcome content should be claimed and uploaded)
  * from a returning one (an untouched seed must be discarded, not re-uploaded).
  * A query failure resolves to false so sign-in falls back to claiming — the
  * direction that never destroys data.
  */
-async function accountHasCloudContent(userId: string): Promise<boolean> {
-  const supabase = getSupabaseBrowserClient();
+async function accountHasCloudContent(): Promise<boolean> {
+  const convex = getConvexBrowserClient();
 
-  if (!supabase) {
+  if (!convex) {
     return false;
   }
 
   try {
-    const [{ data: folderRows }, { data: snippetRows }] = await Promise.all([
-      supabase.from("folders").select("id").eq("owner_id", userId).limit(1),
-      supabase.from("snippets").select("id").eq("owner_id", userId).limit(1),
-    ]);
-
-    return (folderRows?.length ?? 0) > 0 || (snippetRows?.length ?? 0) > 0;
+    return await convex.query(api.workspace.hasContent, {});
   } catch {
     return false;
   }
@@ -546,7 +531,7 @@ async function accountHasCloudContent(userId: string): Promise<boolean> {
  * The seeded welcome content is the exception: it is created `dirty: false`
  * with no `lastSyncedAt`, and since every user action marks a record dirty, a
  * still-pristine anonymous record can only be the untouched seed. For a
- * brand-new account (no cloud rows) the seed is claimed like everything else;
+ * brand-new account (no cloud records) the seed is claimed like everything else;
  * for a returning account it is deleted locally instead, so signing in from a
  * fresh device doesn't push yet another welcome folder into an existing
  * workspace.
@@ -570,7 +555,7 @@ async function claimAnonymousRecords(userId: string): Promise<void> {
   const hasPristineSeed =
     anonymousFolders.some(isPristineSeed) || anonymousSnippets.some(isPristineSeed);
 
-  if (hasPristineSeed && (await accountHasCloudContent(userId))) {
+  if (hasPristineSeed && (await accountHasCloudContent())) {
     const seedSnippetIds = new Set(
       anonymousSnippets.filter(isPristineSeed).map((snippet) => snippet.id)
     );

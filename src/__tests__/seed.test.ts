@@ -1,38 +1,27 @@
 // fake-indexeddb/auto is loaded via vitest setupFiles (vitest.config.ts).
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-// ── Configurable Supabase stand-in ─────────────────────────────────────────────
-// `seedWelcomeContent` consults the cloud only when a client exists and a session
-// is present. Tests flip these to exercise the local-only and signed-in paths.
-let mockSession: { user: { id: string } } | null = null;
+// ── Configurable Convex stand-in ───────────────────────────────────────────────
+// `seedWelcomeContent` consults the cloud only when a deployment is configured.
+// `workspace.hasContent` rejects an anonymous caller, so signed out the query
+// throws — which is exactly the "no known cloud content" path. Tests flip these
+// to exercise the local-only, signed-out and signed-in paths.
+let mockSignedIn = false;
 let mockCloud: { folders: number; snippets: number } = { folders: 0, snippets: 0 };
 let mockClient: unknown = null;
 
 function makeClient() {
   return {
-    auth: {
-      getSession: () => Promise.resolve({ data: { session: mockSession } }),
-    },
-    from(table: "folders" | "snippets") {
-      return {
-        select() {
-          return {
-            eq() {
-              return {
-                limit() {
-                  return Promise.resolve({ count: mockCloud[table], error: null });
-                },
-              };
-            },
-          };
-        },
-      };
+    query: async () => {
+      if (!mockSignedIn) throw new Error("Not authenticated");
+      return mockCloud.folders > 0 || mockCloud.snippets > 0;
     },
   };
 }
 
-vi.mock("@/lib/supabase", () => ({
-  getSupabaseBrowserClient: () => mockClient,
+vi.mock("@/lib/convex", () => ({
+  isConvexConfigured: () => mockClient !== null,
+  getConvexBrowserClient: () => mockClient,
 }));
 
 import { db } from "@/lib/db";
@@ -62,7 +51,7 @@ function installLocalStorage() {
 beforeEach(async () => {
   await db.folders.clear();
   await db.snippets.clear();
-  mockSession = null;
+  mockSignedIn = false;
   mockCloud = { folders: 0, snippets: 0 };
   mockClient = null;
   installLocalStorage();
@@ -122,7 +111,7 @@ describe("seedWelcomeContent", () => {
 
   it("does not seed when the signed-in user already has cloud content", async () => {
     mockClient = makeClient();
-    mockSession = { user: { id: "user-1" } };
+    mockSignedIn = true;
     mockCloud = { folders: 0, snippets: 3 };
 
     const seeded = await seedWelcomeContent(copy);
@@ -133,7 +122,7 @@ describe("seedWelcomeContent", () => {
 
   it("still seeds when signed in but the cloud workspace is empty", async () => {
     mockClient = makeClient();
-    mockSession = { user: { id: "user-1" } };
+    mockSignedIn = true;
     mockCloud = { folders: 0, snippets: 0 };
 
     const seeded = await seedWelcomeContent(copy);

@@ -55,9 +55,9 @@ export const en = {
     signOut: "Sign Out",
     localMode: "Local mode active. Changes are saved to IndexedDB.",
     notConfigured:
-      "Supabase is not configured. The app works in local mode only until you set the NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY variables.",
+      "Cloud sync is not configured. The app works in local mode only until you set the NEXT_PUBLIC_CONVEX_URL variable.",
     syncingSession:
-      "Syncing IndexedDB data with Supabase and downloading account content.",
+      "Syncing IndexedDB data with the cloud and downloading account content.",
     syncedSession: "Session synced with the cloud.",
     cloudSyncRunning: "Syncing changes to the cloud.",
     syncFailed: "Could not sync with the cloud.",

@@ -1,0 +1,10 @@
+# Wrangler does not read .env, so `pnpm preview` needs the same values here.
+# Copy to .dev.vars and fill in.
+#
+# The Convex deployment the previewed build talks to. `pnpm dev:backend` puts
+# this in .env.local; copy the same value here.
+NEXT_PUBLIC_CONVEX_URL=
+
+# See .env.example — same key, same warning: back it up, and never set it as a
+# Convex environment variable.
+ENCRYPTION_MASTER_KEY=

@@ -1,6 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { createClient } from "@supabase/supabase-js";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { api } from "@convex/_generated/api";
+import { getConvexClientForToken, readBearerToken } from "@/lib/convexServer";
 import { truncateCodeForTitlePrompt } from "@/lib/utils";
 
 // Small, fast, multilingual instruct model — a title is a handful of words,
@@ -37,18 +37,19 @@ function sanitizeTitle(raw: string): string {
 }
 
 async function isAuthenticated(request: Request): Promise<boolean> {
-  if (!isSupabaseConfigured()) return false;
-
-  const authHeader = request.headers.get("authorization") ?? "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  const token = readBearerToken(request);
   if (!token) return false;
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!
-  );
-  const { data, error } = await supabase.auth.getUser(token);
-  return !error && !!data.user;
+  const convex = getConvexClientForToken(token);
+  if (!convex) return false;
+
+  // `viewer` resolves to null for an anonymous caller rather than throwing, so a
+  // rejected token and a valid-but-unknown one are both simply "not authorised".
+  try {
+    return (await convex.query(api.users.viewer, {})) !== null;
+  } catch {
+    return false;
+  }
 }
 
 export async function POST(request: Request) {

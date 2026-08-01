@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { User } from "@supabase/supabase-js";
+import type { AccountUser } from "@/lib/types";
 import { getDirtyWorkspace, getPendingTombstones } from "@/lib/db";
 import { fetchCloudWorkspace, syncDirtyWorkspace, syncTombstones } from "@/lib/sync";
 import type { Dictionary } from "@/i18n";
@@ -20,8 +20,8 @@ function getRetryDelay(errorCount: number): number {
 }
 
 interface UseCloudSyncOptions {
-  user: User | null;
-  supabaseConfigured: boolean;
+  user: AccountUser | null;
+  cloudConfigured: boolean;
   copy: Dictionary;
   refreshWorkspace: () => void;
   setAccountMessage: (msg: string) => void;
@@ -29,7 +29,7 @@ interface UseCloudSyncOptions {
 
 export function useCloudSync({
   user,
-  supabaseConfigured,
+  cloudConfigured,
   copy,
   refreshWorkspace,
   setAccountMessage,
@@ -69,7 +69,7 @@ export function useCloudSync({
 
   async function runCloudSync() {
     const currentUser = userRef.current;
-    if (!currentUser || !supabaseConfigured || cloudSyncInFlightRef.current) return;
+    if (!currentUser || !cloudConfigured || cloudSyncInFlightRef.current) return;
 
     cloudSyncInFlightRef.current = true;
     let syncSucceeded = false;
@@ -135,7 +135,7 @@ export function useCloudSync({
       cloudSyncInFlightRef.current = false;
 
       // Stop automatic retries after too many consecutive errors to prevent
-      // an infinite save loop when Supabase is unreachable or auth has expired.
+      // an infinite save loop when the cloud is unreachable or auth has expired.
       if (!syncSucceeded && syncErrorCountRef.current >= MAX_SYNC_ERRORS) return;
 
       const finalUser = userRef.current;
@@ -164,7 +164,7 @@ export function useCloudSync({
    */
   async function runCloudPull() {
     const currentUser = userRef.current;
-    if (!currentUser || !supabaseConfigured || cloudSyncInFlightRef.current) return;
+    if (!currentUser || !cloudConfigured || cloudSyncInFlightRef.current) return;
 
     cloudSyncInFlightRef.current = true;
     try {
@@ -181,7 +181,7 @@ export function useCloudSync({
   runCloudPullRef.current = runCloudPull;
 
   function scheduleCloudSync() {
-    if (!userRef.current || !supabaseConfigured) return;
+    if (!userRef.current || !cloudConfigured) return;
 
     // Reset error count so a new user edit always triggers a fresh sync attempt.
     syncErrorCountRef.current = 0;
@@ -211,7 +211,7 @@ export function useCloudSync({
   // backoff so the retry is immediate. `scheduleCloudSync` no-ops when there's
   // nothing to sync or no signed-in user.
   useEffect(() => {
-    if (!supabaseConfigured) return;
+    if (!cloudConfigured) return;
 
     function resume() {
       if (typeof navigator !== "undefined" && navigator.onLine === false) return;
@@ -234,7 +234,7 @@ export function useCloudSync({
       window.removeEventListener("focus", resume);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [supabaseConfigured]);
+  }, [cloudConfigured]);
 
   return { snippetStatuses, setSnippetStatus, settleLocally, scheduleCloudSync };
 }

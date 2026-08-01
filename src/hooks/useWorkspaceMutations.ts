@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
-import type { User } from "@supabase/supabase-js";
+import type { AccountUser } from "@/lib/types";
 import { db, readTrash } from "@/lib/db";
 import { recordDeletions } from "@/lib/sync";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { getAuthToken } from "@/lib/authToken";
 import type { ClipboardEntry, FolderRecord, SelectedItem, SnippetRecord, SyncStatus } from "@/lib/types";
 import { isDescendantOrSelf } from "@/components/Aside/utils";
 import {
@@ -28,8 +28,8 @@ const MAX_UNDO_ENTRIES = 20;
 
 interface UseWorkspaceMutationsOptions {
   copy: Dictionary;
-  user: User | null;
-  supabaseConfigured: boolean;
+  user: AccountUser | null;
+  cloudConfigured: boolean;
   folders: FolderRecord[];
   snippets: SnippetRecord[];
   clipboard: ClipboardEntry | null;
@@ -49,7 +49,7 @@ interface UseWorkspaceMutationsOptions {
 export function useWorkspaceMutations({
   copy,
   user,
-  supabaseConfigured,
+  cloudConfigured,
   folders,
   snippets,
   clipboard,
@@ -88,7 +88,7 @@ export function useWorkspaceMutations({
   }
 
   function syncAfterMutation(snippetId?: string) {
-    if (user && supabaseConfigured) {
+    if (user && cloudConfigured) {
       scheduleCloudSync();
     } else if (snippetId) {
       settleLocally(snippetId);
@@ -111,13 +111,7 @@ export function useWorkspaceMutations({
     // "Untitled"), the `finally` covers every give-up path.
     let title: string | undefined;
     try {
-      const supabase = getSupabaseBrowserClient();
-      if (!supabase) return;
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
+      const accessToken = getAuthToken();
       if (!accessToken) return;
 
       const response = await fetch("/api/generate-title", {
@@ -263,7 +257,7 @@ export function useWorkspaceMutations({
       // re-reading the entire workspace) on every debounced keystroke.
       patchSnippetInCache(snippetId, { ...changes, updatedAt, dirty: true });
 
-      if (user && supabaseConfigured) {
+      if (user && cloudConfigured) {
         scheduleCloudSync();
       } else {
         settleLocally(snippetId);
@@ -294,7 +288,7 @@ export function useWorkspaceMutations({
 
     if (selectedSnippetId === id) setSelectedSnippetId(null);
     refreshWorkspace();
-    if (user && supabaseConfigured) scheduleCloudSync();
+    if (user && cloudConfigured) scheduleCloudSync();
   }
 
   /** Restore a trashed snippet. With `targetFolderId` (a drag-and-drop drop), it
@@ -319,7 +313,7 @@ export function useWorkspaceMutations({
     await db.snippets.update(id, { deletedAt: null, folderId, dirty: true, updatedAt: now });
 
     refreshWorkspace();
-    if (user && supabaseConfigured) scheduleCloudSync();
+    if (user && cloudConfigured) scheduleCloudSync();
   }
 
   /** Permanently remove a trashed snippet: purge it locally and queue the cloud
@@ -328,7 +322,7 @@ export function useWorkspaceMutations({
     const existing = await db.snippets.get(id);
     await db.snippets.delete(id);
 
-    if (user && supabaseConfigured && existing?.lastSyncedAt != null) {
+    if (user && cloudConfigured && existing?.lastSyncedAt != null) {
       await recordDeletions(user.id, [{ id, kind: "snippet" }]);
       scheduleCloudSync();
     }
@@ -346,14 +340,14 @@ export function useWorkspaceMutations({
     const { title, language } = resolveSnippetRename(value, snippet.language);
     await db.snippets.update(id, { title, language, updatedAt: new Date().toISOString(), dirty: true });
     refreshWorkspace();
-    if (user && supabaseConfigured) scheduleCloudSync();
+    if (user && cloudConfigured) scheduleCloudSync();
   }
 
   async function handlePinSnippet(id: string, target: "aside" | "home", pinned: boolean) {
     const field = target === "aside" ? "isPinnedAside" : "isPinnedHome";
     await db.snippets.update(id, { [field]: pinned, updatedAt: new Date().toISOString(), dirty: true });
     refreshWorkspace();
-    if (user && supabaseConfigured) scheduleCloudSync();
+    if (user && cloudConfigured) scheduleCloudSync();
   }
 
   async function handleMoveSnippet(id: string, newFolderId: string | null) {
@@ -365,7 +359,7 @@ export function useWorkspaceMutations({
       dirty: true,
     });
     refreshWorkspace();
-    if (user && supabaseConfigured) scheduleCloudSync();
+    if (user && cloudConfigured) scheduleCloudSync();
   }
 
   /* ── Folder CRUD ──────────────────────────────────────────────────────── */
@@ -378,7 +372,7 @@ export function useWorkspaceMutations({
     const timestamp = new Date().toISOString();
     await ensureFolderPath(segments, parentId ?? null, timestamp);
     refreshWorkspace();
-    if (user && supabaseConfigured) scheduleCloudSync();
+    if (user && cloudConfigured) scheduleCloudSync();
   }
 
   /** Collect a folder id and all of its descendant folder ids. */
@@ -429,7 +423,7 @@ export function useWorkspaceMutations({
     }
 
     refreshWorkspace();
-    if (user && supabaseConfigured) scheduleCloudSync();
+    if (user && cloudConfigured) scheduleCloudSync();
   }
 
   /** Restore a trashed folder and every trashed record beneath it. With
@@ -477,7 +471,7 @@ export function useWorkspaceMutations({
     });
 
     refreshWorkspace();
-    if (user && supabaseConfigured) scheduleCloudSync();
+    if (user && cloudConfigured) scheduleCloudSync();
   }
 
   /** Permanently remove a trashed folder and its subtree: purge locally and queue
@@ -497,7 +491,7 @@ export function useWorkspaceMutations({
       await db.snippets.bulkDelete(snippetIds);
     });
 
-    if (user && supabaseConfigured) {
+    if (user && cloudConfigured) {
       const tombstones = [
         ...foldersInSubtree
           .filter((f) => f.lastSyncedAt != null)
@@ -534,7 +528,7 @@ export function useWorkspaceMutations({
       if (snippetIds.length > 0) await db.snippets.bulkDelete(snippetIds);
     });
 
-    if (user && supabaseConfigured) {
+    if (user && cloudConfigured) {
       const tombstones = [
         ...trash.folders
           .filter((f) => f.lastSyncedAt != null)
@@ -587,7 +581,7 @@ export function useWorkspaceMutations({
     });
 
     refreshWorkspace();
-    if (user && supabaseConfigured) scheduleCloudSync();
+    if (user && cloudConfigured) scheduleCloudSync();
   }
 
   /** Undo the most recent trash operation (Ctrl/⌘+Z): restore exactly the rows
@@ -646,7 +640,7 @@ export function useWorkspaceMutations({
       });
 
       refreshWorkspace();
-      if (user && supabaseConfigured) scheduleCloudSync();
+      if (user && cloudConfigured) scheduleCloudSync();
       return true;
     }
     return false;
@@ -655,14 +649,14 @@ export function useWorkspaceMutations({
   async function handleRenameFolder(id: string, name: string) {
     await db.folders.update(id, { name, updatedAt: new Date().toISOString(), dirty: true });
     refreshWorkspace();
-    if (user && supabaseConfigured) scheduleCloudSync();
+    if (user && cloudConfigured) scheduleCloudSync();
   }
 
   async function handlePinFolder(id: string, target: "aside" | "home", pinned: boolean) {
     const field = target === "aside" ? "isPinnedAside" : "isPinnedHome";
     await db.folders.update(id, { [field]: pinned, updatedAt: new Date().toISOString(), dirty: true });
     refreshWorkspace();
-    if (user && supabaseConfigured) scheduleCloudSync();
+    if (user && cloudConfigured) scheduleCloudSync();
   }
 
   async function handleMoveFolder(id: string, newParentId: string | null) {
@@ -674,7 +668,7 @@ export function useWorkspaceMutations({
       dirty: true,
     });
     refreshWorkspace();
-    if (user && supabaseConfigured) scheduleCloudSync();
+    if (user && cloudConfigured) scheduleCloudSync();
   }
 
   /* ── Clipboard ────────────────────────────────────────────────────────── */
@@ -787,7 +781,7 @@ export function useWorkspaceMutations({
 
     if (isCut) setClipboard(null);
     refreshWorkspace();
-    if (user && supabaseConfigured) scheduleCloudSync();
+    if (user && cloudConfigured) scheduleCloudSync();
   }
 
   /* ── Batch operations (multi-selection in the sidebar) ────────────────── */
@@ -850,7 +844,7 @@ export function useWorkspaceMutations({
     if (selectedSnippetId && snippetIdsToTrash.has(selectedSnippetId)) setSelectedSnippetId(null);
 
     refreshWorkspace();
-    if (user && supabaseConfigured) scheduleCloudSync();
+    if (user && cloudConfigured) scheduleCloudSync();
   }
 
   /** Move every selected item into `targetFolderId`. Items already inside a
@@ -894,7 +888,7 @@ export function useWorkspaceMutations({
 
     if (!changed) return;
     refreshWorkspace();
-    if (user && supabaseConfigured) scheduleCloudSync();
+    if (user && cloudConfigured) scheduleCloudSync();
   }
 
   /** The selection tops: items not covered by another selected folder's subtree.

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { User } from "@supabase/supabase-js";
-import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
+import { useCloudSession } from "@/hooks/useCloudSession";
 import { clearOwnedData } from "@/lib/db";
 import { clearWorkspaceEncryptionKey } from "@/lib/encryptionKey";
 import { reconcileWorkspace } from "@/lib/sync";
@@ -13,17 +12,15 @@ interface UseAuthOptions {
 }
 
 export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions) {
-  const supabase = getSupabaseBrowserClient();
-  const supabaseConfigured = isSupabaseConfigured();
+  const session = useCloudSession();
+  const { user, ready: authReady, configured: cloudConfigured } = session;
 
-  const [user, setUser] = useState<User | null>(null);
-  const [authReady, setAuthReady] = useState(false);
-  // Pending flags for the auth actions, which round-trip to GitHub/Supabase and
-  // can leave the UI looking frozen otherwise (sign-in redirects off-page).
+  // Pending flags for the auth actions, which round-trip to GitHub and can leave
+  // the UI looking frozen otherwise (sign-in redirects off-page).
   const [signingIn, setSigningIn] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [accountMessage, setAccountMessage] = useState<string>(
-    supabaseConfigured ? copy.auth.localMode : copy.auth.notConfigured
+    cloudConfigured ? copy.auth.localMode : copy.auth.notConfigured
   );
 
   const accountSyncInFlightRef = useRef(false);
@@ -32,111 +29,91 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
   refreshRef.current = refreshWorkspace;
   const onReconciledRef = useRef(onReconciled);
   onReconciledRef.current = onReconciled;
+  const copyRef = useRef(copy);
+  copyRef.current = copy;
+  // Distinguishes "signed out all along" (initial render) from "just signed
+  // out", which is the only case that needs the workspace re-read.
+  const previousUserIdRef = useRef<string | null>(null);
+
+  const userId = user?.id ?? null;
 
   useEffect(() => {
-    if (!supabase) {
-      setAuthReady(true);
+    if (!authReady) {
       return;
     }
 
-    let mounted = true;
+    if (userId === null) {
+      const hadUser = previousUserIdRef.current !== null;
+      previousUserIdRef.current = null;
+      setAccountMessage(cloudConfigured ? copyRef.current.auth.localMode : copyRef.current.auth.notConfigured);
+      if (hadUser) {
+        refreshRef.current();
+      }
+      return;
+    }
 
-    async function syncAccount(nextUser: User) {
-      if (!supabaseConfigured || accountSyncInFlightRef.current) return;
-      accountSyncInFlightRef.current = true;
-      setAccountMessage(copy.auth.syncingSession);
+    const alreadySyncedThisUser = previousUserIdRef.current === userId;
+    previousUserIdRef.current = userId;
 
+    if (alreadySyncedThisUser || accountSyncInFlightRef.current) {
+      return;
+    }
+
+    setAccountMessage(copyRef.current.auth.signedIn);
+
+    let cancelled = false;
+    accountSyncInFlightRef.current = true;
+    setAccountMessage(copyRef.current.auth.syncingSession);
+
+    void (async () => {
       try {
-        const result = await reconcileWorkspace(nextUser.id);
+        const result = await reconcileWorkspace(userId);
+        if (cancelled) return;
         refreshRef.current();
         onReconciledRef.current(result.syncedSnippetIds);
-        setAccountMessage(copy.auth.syncedSession);
+        setAccountMessage(copyRef.current.auth.syncedSession);
       } catch {
-        setAccountMessage(copy.auth.syncFailed);
+        if (cancelled) return;
+        setAccountMessage(copyRef.current.auth.syncFailed);
       } finally {
         accountSyncInFlightRef.current = false;
       }
-    }
-
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      const nextUser = data.session?.user ?? null;
-      setUser(nextUser);
-      setAuthReady(true);
-
-      if (nextUser) {
-        setAccountMessage(copy.auth.signedIn);
-        void syncAccount(nextUser);
-      } else if (supabaseConfigured) {
-        setAccountMessage(copy.auth.localMode);
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      const nextUser = session?.user ?? null;
-      setUser(nextUser);
-      setAuthReady(true);
-
-      if (nextUser) {
-        setAccountMessage(copy.auth.signedIn);
-        void syncAccount(nextUser);
-        return;
-      }
-
-      setAccountMessage(supabaseConfigured ? copy.auth.localMode : copy.auth.notConfigured);
-      refreshRef.current();
-    });
+    })();
 
     return () => {
-      mounted = false;
-      subscription.unsubscribe();
+      cancelled = true;
     };
-  }, [
-    copy.auth.localMode,
-    copy.auth.notConfigured,
-    copy.auth.signedIn,
-    copy.auth.syncFailed,
-    copy.auth.syncedSession,
-    copy.auth.syncingSession,
-    supabase,
-    supabaseConfigured,
-  ]);
+  }, [authReady, cloudConfigured, userId]);
 
   async function handleGitHubSignIn() {
-    if (!supabase || signingIn) return;
+    if (!cloudConfigured || signingIn) return;
 
     // Stays true through the off-page redirect to GitHub; only an error (which
     // keeps us on the page) clears it so the button can be retried.
     setSigningIn(true);
     setAccountMessage(copy.auth.signingIn);
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "github",
-      options: { redirectTo: window.location.href },
-    });
-
-    if (error) {
+    try {
+      await session.signIn();
+    } catch {
       setSigningIn(false);
       setAccountMessage(copy.auth.syncFailed);
     }
   }
 
   async function handleSignOut() {
-    if (!supabase || signingOut) return;
+    if (!cloudConfigured || signingOut) return;
     setSigningOut(true);
     setAccountMessage(copy.auth.signingOut);
     try {
-      const signedOutUserId = user?.id ?? null;
-      await supabase.auth.signOut();
+      const signedOutUserId = userId;
+      await session.signOut();
       // Wipe this account's local data so it isn't readable on a shared machine.
       // Synced data comes back from the cloud on the next sign-in.
       if (signedOutUserId) await clearOwnedData(signedOutUserId);
       // The in-memory encryption key goes with it.
       clearWorkspaceEncryptionKey();
-      setUser(null);
-      setAccountMessage(supabaseConfigured ? copy.auth.localMode : copy.auth.notConfigured);
+      setAccountMessage(cloudConfigured ? copy.auth.localMode : copy.auth.notConfigured);
       refreshRef.current();
     } finally {
       setSigningOut(false);
@@ -148,8 +125,7 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
     authReady,
     accountMessage,
     setAccountMessage,
-    supabase,
-    supabaseConfigured,
+    cloudConfigured,
     signingIn,
     signingOut,
     handleGitHubSignIn,

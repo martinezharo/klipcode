@@ -56,9 +56,9 @@ export const es = {
     signOut: "Cerrar sesión",
     localMode: "Modo local activo. Los cambios se guardan en IndexedDB.",
     notConfigured:
-      "Supabase no esta configurado. La aplicacion funciona solo en local hasta definir las variables NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY.",
+      "La sincronizacion en la nube no esta configurada. La aplicacion funciona solo en local hasta definir la variable NEXT_PUBLIC_CONVEX_URL.",
     syncingSession:
-      "Sincronizando los datos de IndexedDB con Supabase y descargando el contenido de la cuenta.",
+      "Sincronizando los datos de IndexedDB con la nube y descargando el contenido de la cuenta.",
     syncedSession: "Sesión sincronizada con la nube.",
     cloudSyncRunning: "Sincronizando cambios con la nube.",
     syncFailed: "No se pudo sincronizar con la nube.",

@@ -1,5 +1,6 @@
+import { getAuthToken } from "@/lib/authToken";
 import { base64ToBytes, importAesKey } from "@/lib/crypto";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { isConvexConfigured } from "@/lib/convexEnv";
 
 /**
  * Client-side retrieval of the signed-in user's data-encryption key (DEK).
@@ -9,11 +10,11 @@ import { getSupabaseBrowserClient } from "@/lib/supabase";
  * only in memory, keyed by user. The sync engine calls this lazily, so the
  * three outcomes map onto sync behavior:
  *
- * - a `CryptoKey`  → uploads are encrypted (`crypto_version` 1) and encrypted
- *   cloud rows can be decrypted;
- * - `null`         → encryption is unavailable (no Supabase, or the server has
- *   no master key configured); sync degrades to plaintext (`crypto_version` 0)
- *   exactly like before encryption existed;
+ * - a `CryptoKey`  → uploads are encrypted (`cryptoVersion` 1) and encrypted
+ *   cloud records can be decrypted;
+ * - `null`         → encryption is unavailable (no Convex deployment, or the
+ *   server has no master key configured); sync degrades to plaintext
+ *   (`cryptoVersion` 0) exactly like before encryption existed;
  * - a thrown error → a transient failure (network, expired token, 5xx); the
  *   caller must NOT downgrade to plaintext — sync fails and the existing
  *   retry/backoff loop tries again.
@@ -45,24 +46,22 @@ export function clearWorkspaceEncryptionKey(): void {
 }
 
 async function fetchWorkspaceEncryptionKey(userId: string): Promise<CryptoKey | null> {
-  const supabase = getSupabaseBrowserClient();
-
-  // No client (Supabase unset) or no auth API (test doubles): plaintext mode.
-  // Not cached, so a later call re-evaluates.
-  if (!supabase?.auth?.getSession) {
+  // No deployment configured: plaintext mode. Not cached, so a later call
+  // re-evaluates.
+  if (!isConvexConfigured()) {
     return null;
   }
 
-  const { data } = await supabase.auth.getSession();
-  const session = data.session;
-  if (!session?.access_token || session.user.id !== userId) {
+  const token = getAuthToken();
+
+  if (!token) {
     // Sync is running for a user we hold no session for (sign-out race, token
     // refresh in flight). Treat as transient so nothing is uploaded plaintext.
     throw new Error("No active session for encryption key fetch");
   }
 
   const response = await fetch("/api/crypto/dek", {
-    headers: { authorization: `Bearer ${session.access_token}` },
+    headers: { authorization: `Bearer ${token}` },
     cache: "no-store",
   });
 
@@ -78,9 +77,16 @@ async function fetchWorkspaceEncryptionKey(userId: string): Promise<CryptoKey | 
     throw new Error(`Encryption key fetch failed with status ${response.status}`);
   }
 
-  const body = (await response.json()) as { dek?: unknown };
+  const body = (await response.json()) as { dek?: unknown; userId?: unknown };
   if (typeof body.dek !== "string" || !body.dek) {
     throw new Error("Malformed encryption key response");
+  }
+
+  // The token we sent may have belonged to a different account than the sync
+  // pass we are serving (a sign-out/sign-in race). Uploading under the wrong
+  // key would produce records nobody can read, so treat it as transient.
+  if (body.userId !== userId) {
+    throw new Error("Encryption key belongs to a different account");
   }
 
   const key = await importAesKey(base64ToBytes(body.dek));

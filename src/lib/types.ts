@@ -18,11 +18,11 @@ export interface FolderRecord {
   dirty: boolean;
   lastSyncedAt: string | null;
   /**
-   * When set, the record lives in the local trash (soft-deleted) and is hidden
-   * from the normal workspace. The cloud has no `deleted_at` column, so trash is
-   * device-local: a trashed record's cloud row is removed like a hard delete, and
-   * `deletedAt` keeps a local copy that can be restored or purged. `null` means
-   * the record is live.
+   * When set, the record lives in the trash (soft-deleted) and is hidden from
+   * the normal workspace. The trash is synced, not device-local: the field is
+   * pushed like any other, so a record trashed on one device shows up in the
+   * trash on the rest. Only a permanent delete removes the cloud record. `null`
+   * means the record is live.
    */
   deletedAt: string | null;
 }
@@ -68,43 +68,61 @@ export interface SyncResult {
   localSnippetIds: string[];
 }
 
-export interface CloudFolderRow {
+/**
+ * The signed-in account, as the UI needs it. Kept as our own shape rather than
+ * a provider type so the aside and the sync hooks don't depend on the auth
+ * library.
+ */
+export interface AccountUser {
   id: string;
-  owner_id: string;
-  /** Ciphertext when `crypto_version` > 0; plaintext when 0. */
-  name: string;
-  parent_id: string | null;
-  is_pinned_aside: boolean;
-  is_pinned_home: boolean;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-  /**
-   * Encryption scheme applied to this row's sensitive fields: 0 = plaintext
-   * (legacy rows, or encryption unavailable), 1 = AES-256-GCM via the per-user
-   * DEK (`src/lib/crypto.ts`). Rows migrate progressively: every upload writes
-   * the current version, so a record is re-encoded when created or edited.
-   */
-  crypto_version: number;
+  name: string | null;
+  email: string | null;
+  imageUrl: string | null;
 }
 
-export interface CloudSnippetRow {
-  id: string;
-  owner_id: string;
-  folder_id: string | null;
-  /** Ciphertext when `crypto_version` > 0; plaintext when 0. */
+/**
+ * A folder as it crosses to the cloud. Identical in shape to the local record
+ * minus the device-local bookkeeping (`ownerId`, `dirty`, `lastSyncedAt`) —
+ * ownership is taken from the authenticated identity server-side, never sent.
+ * The local `id` travels as `clientId`, which is the real key in Convex too.
+ */
+export interface CloudFolder {
+  clientId: string;
+  /** Ciphertext when `cryptoVersion` > 0; plaintext when 0. */
+  name: string;
+  parentId: string | null;
+  isPinnedAside: boolean;
+  isPinnedHome: boolean;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+  /**
+   * Encryption scheme applied to this record's sensitive fields: 0 = plaintext
+   * (legacy records, or encryption unavailable), 1 = AES-256-GCM via the
+   * per-user DEK (`src/lib/crypto.ts`). Records migrate progressively: every
+   * upload writes the current version, so a record is re-encoded when created
+   * or edited.
+   */
+  cryptoVersion: number;
+}
+
+/** See {@link CloudFolder}. */
+export interface CloudSnippet {
+  clientId: string;
+  folderId: string | null;
+  /** Ciphertext when `cryptoVersion` > 0; plaintext when 0. */
   title: string;
-  /** Ciphertext when `crypto_version` > 0; plaintext when 0. */
+  /** Ciphertext when `cryptoVersion` > 0; plaintext when 0. */
   code: string;
-  /** Always plaintext: indexed cloud-side and not sensitive. */
+  /** Always plaintext: not sensitive, and used for filtering. */
   language: string;
-  is_pinned_aside: boolean;
-  is_pinned_home: boolean;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-  /** See {@link CloudFolderRow.crypto_version}. */
-  crypto_version: number;
+  isPinnedAside: boolean;
+  isPinnedHome: boolean;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+  /** See {@link CloudFolder.cryptoVersion}. */
+  cryptoVersion: number;
 }
 
 /** A workspace item identified by its kind. Shared by multi-selection, batch

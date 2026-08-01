@@ -1,5 +1,6 @@
 import { db, readWorkspace } from "@/lib/db";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { api } from "@convex/_generated/api";
+import { getConvexBrowserClient } from "@/lib/convex";
 import type { WorkspaceSnapshot } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 
@@ -7,7 +8,7 @@ const SEEDED_KEY = "klipcode.seeded";
 
 /**
  * Whether the user already has a workspace — locally (IndexedDB) or in the cloud
- * (Supabase, when signed in). Used to avoid seeding welcome content on top of
+ * (Convex, when signed in). Used to avoid seeding welcome content on top of
  * real data: e.g. a fresh device that's about to claim an account which already
  * has snippets, or a returning user whose `klipcode.seeded` flag was cleared.
  */
@@ -21,39 +22,18 @@ async function hasExistingContent(): Promise<boolean> {
     return true;
   }
 
-  const supabase = getSupabaseBrowserClient();
+  const convex = getConvexBrowserClient();
 
-  if (!supabase) {
+  if (!convex) {
     return false;
   }
 
-  // Only the signed-in user's own rows count; an anonymous visitor has no cloud
-  // workspace to protect. A network/Supabase failure shouldn't block first-visit
-  // seeding, so a thrown error is treated as "no known cloud content".
+  // Only the signed-in user's own records count; an anonymous visitor has no
+  // cloud workspace to protect, and `hasContent` rejects an unauthenticated
+  // caller. A network failure shouldn't block first-visit seeding either, so any
+  // thrown error is treated as "no known cloud content".
   try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    const userId = session?.user?.id;
-    if (!userId) {
-      return false;
-    }
-
-    const [{ count: cloudFolders }, { count: cloudSnippets }] = await Promise.all([
-      supabase
-        .from("folders")
-        .select("id", { count: "exact", head: true })
-        .eq("owner_id", userId)
-        .limit(1),
-      supabase
-        .from("snippets")
-        .select("id", { count: "exact", head: true })
-        .eq("owner_id", userId)
-        .limit(1),
-    ]);
-
-    return (cloudFolders ?? 0) > 0 || (cloudSnippets ?? 0) > 0;
+    return await convex.query(api.workspace.hasContent, {});
   } catch {
     return false;
   }

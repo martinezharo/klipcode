@@ -90,7 +90,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
 
   const sync = useCloudSync({
     user: auth.user,
-    supabaseConfigured: auth.supabaseConfigured,
+    cloudConfigured: auth.cloudConfigured,
     copy,
     refreshWorkspace,
     setAccountMessage: auth.setAccountMessage,
@@ -198,7 +198,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const mutations = useWorkspaceMutations({
     copy,
     user: auth.user,
-    supabaseConfigured: auth.supabaseConfigured,
+    cloudConfigured: auth.cloudConfigured,
     folders,
     snippets,
     clipboard,

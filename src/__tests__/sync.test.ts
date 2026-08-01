@@ -1,65 +1,124 @@
 // fake-indexeddb/auto is loaded via vitest setupFiles (vitest.config.ts).
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import type { CloudFolderRow, CloudSnippetRow, FolderRecord, SnippetRecord } from "@/lib/types";
+import { getFunctionName, type FunctionReference } from "convex/server";
+import { assertNoFolderCycles, collectDescendantFolderIds } from "@convex/lib/hierarchy";
+import type { CloudFolder, CloudSnippet, FolderRecord, SnippetRecord } from "@/lib/types";
 
-// ── Mocked Supabase client ─────────────────────────────────────────────────────
-// A tiny in-memory stand-in for the cloud tables. `select().eq()` resolves with
-// `{ data, error }` and `upsert()` records the written row, mirroring the real
-// PostgREST client closely enough to exercise the sync logic.
+// ── Mocked Convex deployment ───────────────────────────────────────────────────
+// A tiny in-memory stand-in for the deployment: it dispatches on the function
+// name, so the sync engine talks to it exactly as it talks to the real client.
+// The integrity rules (last-write-wins, reparenting, delete cascade) are the
+// real ones — `convex/lib/hierarchy.ts` is imported rather than reimplemented —
+// so a batch the production backend would reject is rejected here too.
 
-type Cloud = { folders: CloudFolderRow[]; snippets: CloudSnippetRow[] };
-const cloud: Cloud = { folders: [], snippets: [] };
+const USER = "user-1";
 
-const fakeClient = {
-  from(table: "folders" | "snippets") {
-    return {
-      select() {
-        return {
-          eq(_column: string, value: string) {
-            const data = (cloud[table] as Array<{ owner_id: string }>).filter(
-              (row) => row.owner_id === value
-            );
-            // Thenable like the real PostgREST builder, with `.limit()` support.
-            return Object.assign(Promise.resolve({ data, error: null }), {
-              limit(count: number) {
-                return Promise.resolve({ data: data.slice(0, count), error: null });
-              },
-            });
-          },
-        };
-      },
-      upsert(rowOrRows: CloudFolderRow | CloudSnippetRow | Array<CloudFolderRow | CloudSnippetRow>) {
-        const rows = cloud[table] as Array<{ id: string }>;
-        const incoming = Array.isArray(rowOrRows) ? rowOrRows : [rowOrRows];
-        for (const row of incoming) {
-          const index = rows.findIndex((existing) => existing.id === row.id);
-          if (index >= 0) rows[index] = row as never;
-          else rows.push(row as never);
-        }
-        return Promise.resolve({ error: null });
-      },
-      delete() {
-        const remove = (predicate: (row: { id: string }) => boolean) => {
-          cloud[table] = (cloud[table] as Array<{ id: string }>).filter(
-            (row) => !predicate(row)
-          ) as never;
-          return Promise.resolve({ error: null });
-        };
-        return {
-          eq(_column: string, value: string) {
-            return remove((row) => row.id === value);
-          },
-          in(_column: string, values: string[]) {
-            return remove((row) => values.includes(row.id));
-          },
-        };
-      },
-    };
+type StoredFolder = CloudFolder & { ownerId: string };
+type StoredSnippet = CloudSnippet & { ownerId: string };
+
+const cloud: { folders: StoredFolder[]; snippets: StoredSnippet[] } = { folders: [], snippets: [] };
+
+/** Whom the fake deployment treats the caller as. Convex derives this from the
+ *  session; here it is explicit so tests can assert what a record was stored under. */
+let currentUserId = USER;
+
+function stripOwner<T extends { ownerId: string }>(record: T) {
+  const { ownerId, ...rest } = record;
+  void ownerId;
+  return rest;
+}
+
+function ownedFolders() {
+  return cloud.folders.filter((folder) => folder.ownerId === currentUserId);
+}
+
+function ownedSnippets() {
+  return cloud.snippets.filter((snippet) => snippet.ownerId === currentUserId);
+}
+
+function push({ folders, snippets }: { folders: CloudFolder[]; snippets: CloudSnippet[] }) {
+  const links = new Map<string, string | null>(
+    ownedFolders().map((folder) => [folder.clientId, folder.parentId])
+  );
+  for (const folder of folders) links.set(folder.clientId, folder.parentId);
+
+  const touched: string[] = [];
+
+  for (const incoming of folders) {
+    const index = cloud.folders.findIndex(
+      (stored) => stored.ownerId === currentUserId && stored.clientId === incoming.clientId
+    );
+    if (index >= 0 && cloud.folders[index].updatedAt > incoming.updatedAt) continue;
+
+    const parentId = incoming.parentId !== null && links.has(incoming.parentId) ? incoming.parentId : null;
+    links.set(incoming.clientId, parentId);
+    touched.push(incoming.clientId);
+
+    const stored: StoredFolder = { ...incoming, parentId, ownerId: currentUserId };
+    if (index >= 0) cloud.folders[index] = stored;
+    else cloud.folders.push(stored);
+  }
+
+  assertNoFolderCycles(
+    [...links].map(([clientId, parentId]) => ({ clientId, parentId })),
+    touched
+  );
+
+  for (const incoming of snippets) {
+    const index = cloud.snippets.findIndex(
+      (stored) => stored.ownerId === currentUserId && stored.clientId === incoming.clientId
+    );
+    if (index >= 0 && cloud.snippets[index].updatedAt > incoming.updatedAt) continue;
+
+    const folderId = incoming.folderId !== null && links.has(incoming.folderId) ? incoming.folderId : null;
+    const stored: StoredSnippet = { ...incoming, folderId, ownerId: currentUserId };
+    if (index >= 0) cloud.snippets[index] = stored;
+    else cloud.snippets.push(stored);
+  }
+}
+
+function remove({ folderIds, snippetIds }: { folderIds: string[]; snippetIds: string[] }) {
+  const doomedFolders = collectDescendantFolderIds(ownedFolders(), folderIds);
+  const doomedSnippets = new Set(snippetIds);
+
+  cloud.snippets = cloud.snippets.filter(
+    (snippet) => !(snippet.ownerId === currentUserId && doomedSnippets.has(snippet.clientId))
+  );
+  for (const snippet of cloud.snippets) {
+    if (snippet.folderId !== null && doomedFolders.has(snippet.folderId)) snippet.folderId = null;
+  }
+  cloud.folders = cloud.folders.filter(
+    (folder) => !(folder.ownerId === currentUserId && doomedFolders.has(folder.clientId))
+  );
+}
+
+const convexClient = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async query(reference: FunctionReference<"query">): Promise<any> {
+    switch (getFunctionName(reference)) {
+      case "workspace:list":
+        return { folders: ownedFolders().map(stripOwner), snippets: ownedSnippets().map(stripOwner) };
+      case "workspace:hasContent":
+        return ownedFolders().length > 0 || ownedSnippets().length > 0;
+      default:
+        throw new Error(`Unexpected query ${getFunctionName(reference)}`);
+    }
+  },
+  async mutation(reference: FunctionReference<"mutation">, args: never) {
+    switch (getFunctionName(reference)) {
+      case "workspace:push":
+        return push(args);
+      case "workspace:remove":
+        return remove(args);
+      default:
+        throw new Error(`Unexpected mutation ${getFunctionName(reference)}`);
+    }
   },
 };
 
-vi.mock("@/lib/supabase", () => ({
-  getSupabaseBrowserClient: () => fakeClient,
+vi.mock("@/lib/convex", () => ({
+  isConvexConfigured: () => true,
+  getConvexBrowserClient: () => convexClient,
 }));
 
 // ── Mocked encryption key ──────────────────────────────────────────────────────
@@ -90,8 +149,6 @@ import {
   syncDirtyWorkspace,
   syncTombstones,
 } from "@/lib/sync";
-
-const USER = "user-1";
 
 let counter = 0;
 function uid() {
@@ -134,35 +191,35 @@ function makeFolder(overrides: Partial<FolderRecord> = {}): FolderRecord {
   };
 }
 
-function cloudFolder(folder: FolderRecord): CloudFolderRow {
+function cloudFolder(folder: FolderRecord): StoredFolder {
   return {
-    id: folder.id,
-    owner_id: USER,
+    clientId: folder.id,
+    ownerId: USER,
     name: folder.name,
-    parent_id: folder.parentId,
-    is_pinned_aside: folder.isPinnedAside,
-    is_pinned_home: folder.isPinnedHome,
-    created_at: folder.createdAt,
-    updated_at: folder.updatedAt,
-    deleted_at: folder.deletedAt,
-    crypto_version: 0,
+    parentId: folder.parentId,
+    isPinnedAside: folder.isPinnedAside,
+    isPinnedHome: folder.isPinnedHome,
+    createdAt: folder.createdAt,
+    updatedAt: folder.updatedAt,
+    deletedAt: folder.deletedAt,
+    cryptoVersion: 0,
   };
 }
 
-function cloudSnippet(snippet: SnippetRecord): CloudSnippetRow {
+function cloudSnippet(snippet: SnippetRecord): StoredSnippet {
   return {
-    id: snippet.id,
-    owner_id: USER,
-    folder_id: snippet.folderId,
+    clientId: snippet.id,
+    ownerId: USER,
+    folderId: snippet.folderId,
     title: snippet.title,
     code: snippet.code,
     language: snippet.language,
-    is_pinned_aside: snippet.isPinnedAside,
-    is_pinned_home: snippet.isPinnedHome,
-    created_at: snippet.createdAt,
-    updated_at: snippet.updatedAt,
-    deleted_at: snippet.deletedAt,
-    crypto_version: 0,
+    isPinnedAside: snippet.isPinnedAside,
+    isPinnedHome: snippet.isPinnedHome,
+    createdAt: snippet.createdAt,
+    updatedAt: snippet.updatedAt,
+    deletedAt: snippet.deletedAt,
+    cryptoVersion: 0,
   };
 }
 
@@ -172,6 +229,7 @@ beforeEach(async () => {
   await db.tombstones.clear();
   cloud.folders = [];
   cloud.snippets = [];
+  currentUserId = USER;
   cryptoTestState.key = null;
 });
 
@@ -230,10 +288,10 @@ describe("fetchCloudWorkspace() deletion reconciliation", () => {
     expect(await db.snippets.get(trashedSnippet.id)).toBeUndefined();
   });
 
-  it("syncs the trash state down: a cloud deleted_at marks the local record trashed", async () => {
+  it("syncs the trash state down: a cloud deletedAt marks the local record trashed", async () => {
     const live = makeSnippet({ deletedAt: null });
     await db.snippets.add(live);
-    // Same row, now soft-deleted on another device (deleted_at set, newer).
+    // Same row, now soft-deleted on another device (deletedAt set, newer).
     cloud.snippets = [cloudSnippet({ ...live, deletedAt: "2024-03-01T00:00:00.000Z", updatedAt: "2024-03-01T00:00:00.000Z" })];
 
     await fetchCloudWorkspace(USER);
@@ -251,7 +309,7 @@ describe("syncDirtyWorkspace() empty-code handling", () => {
 
     const result = await syncDirtyWorkspace(USER);
 
-    const uploaded = cloud.snippets.find((row) => row.id === cleared.id);
+    const uploaded = cloud.snippets.find((row) => row.clientId === cleared.id);
     expect(uploaded).toBeDefined();
     expect(uploaded?.code).toBe("");
     expect(result.syncedSnippetIds).toContain(cleared.id);
@@ -264,7 +322,7 @@ describe("syncDirtyWorkspace() empty-code handling", () => {
 
     const result = await syncDirtyWorkspace(USER);
 
-    expect(cloud.snippets.find((row) => row.id === placeholder.id)).toBeUndefined();
+    expect(cloud.snippets.find((row) => row.clientId === placeholder.id)).toBeUndefined();
     expect(result.localSnippetIds).toContain(placeholder.id);
 
     const stored = await db.snippets.get(placeholder.id);
@@ -286,7 +344,7 @@ describe("syncDirtyWorkspace() batching", () => {
 
     expect(result.syncedSnippetIds).toEqual(expect.arrayContaining([a.id, b.id, c.id]));
     for (const id of [a.id, b.id, c.id]) {
-      expect(cloud.snippets.find((row) => row.id === id)).toBeDefined();
+      expect(cloud.snippets.find((row) => row.clientId === id)).toBeDefined();
       expect((await db.snippets.get(id))?.dirty).toBe(false);
     }
   });
@@ -301,7 +359,7 @@ describe("syncDirtyWorkspace() batching", () => {
     const result = await syncDirtyWorkspace(USER);
 
     expect(result.syncedFolderIds).toEqual(expect.arrayContaining([root.id, child.id, grandchild.id]));
-    const order = cloud.folders.map((row) => row.id);
+    const order = cloud.folders.map((row) => row.clientId);
     expect(order.indexOf(root.id)).toBeLessThan(order.indexOf(child.id));
     expect(order.indexOf(child.id)).toBeLessThan(order.indexOf(grandchild.id));
   });
@@ -317,7 +375,7 @@ describe("syncTombstones() + fetchCloudWorkspace()", () => {
 
     await syncTombstones(USER);
 
-    expect(cloud.snippets.find((row) => row.id === snippet.id)).toBeUndefined();
+    expect(cloud.snippets.find((row) => row.clientId === snippet.id)).toBeUndefined();
     expect(await db.tombstones.get(snippet.id)).toBeUndefined();
   });
 
@@ -351,8 +409,8 @@ describe("reconcileWorkspace() anonymous claim", () => {
 
     await reconcileWorkspace(USER);
 
-    expect(cloud.folders.find((row) => row.id === seedFolder.id)?.owner_id).toBe(USER);
-    expect(cloud.snippets.find((row) => row.id === seedSnippet.id)?.owner_id).toBe(USER);
+    expect(cloud.folders.find((row) => row.clientId === seedFolder.id)?.ownerId).toBe(USER);
+    expect(cloud.snippets.find((row) => row.clientId === seedSnippet.id)?.ownerId).toBe(USER);
 
     const localSnippet = await db.snippets.get(seedSnippet.id);
     expect(localSnippet?.ownerId).toBe(USER);
@@ -378,8 +436,8 @@ describe("reconcileWorkspace() anonymous claim", () => {
     await reconcileWorkspace(USER);
 
     // The seed never reaches the cloud and is gone locally too.
-    expect(cloud.folders.find((row) => row.id === seedFolder.id)).toBeUndefined();
-    expect(cloud.snippets.find((row) => row.id === seedSnippet.id)).toBeUndefined();
+    expect(cloud.folders.find((row) => row.clientId === seedFolder.id)).toBeUndefined();
+    expect(cloud.snippets.find((row) => row.clientId === seedSnippet.id)).toBeUndefined();
     expect(await db.folders.get(seedFolder.id)).toBeUndefined();
     expect(await db.snippets.get(seedSnippet.id)).toBeUndefined();
 
@@ -413,10 +471,10 @@ describe("reconcileWorkspace() anonymous claim", () => {
     // The pristine seed snippet is dropped, but the folder survives (it still
     // holds real work) and is claimed together with the edited snippet.
     expect(await db.snippets.get(seedSnippet.id)).toBeUndefined();
-    expect(cloud.snippets.find((row) => row.id === seedSnippet.id)).toBeUndefined();
+    expect(cloud.snippets.find((row) => row.clientId === seedSnippet.id)).toBeUndefined();
 
-    expect(cloud.folders.find((row) => row.id === seedFolder.id)?.owner_id).toBe(USER);
-    expect(cloud.snippets.find((row) => row.id === editedSnippet.id)?.owner_id).toBe(USER);
+    expect(cloud.folders.find((row) => row.clientId === seedFolder.id)?.ownerId).toBe(USER);
+    expect(cloud.snippets.find((row) => row.clientId === editedSnippet.id)?.ownerId).toBe(USER);
     expect((await db.snippets.get(editedSnippet.id))?.ownerId).toBe(USER);
   });
 });
@@ -430,7 +488,7 @@ describe("cloud encryption", () => {
     return key;
   }
 
-  it("uploads ciphertext with the current crypto_version while local data stays plaintext", async () => {
+  it("uploads ciphertext with the current cryptoVersion while local data stays plaintext", async () => {
     const key = await withKey();
     const folder = makeFolder({ dirty: true, name: "Secret folder" });
     const snippet = makeSnippet({ dirty: true, title: "API keys", code: "const token = 'hush';" });
@@ -439,11 +497,11 @@ describe("cloud encryption", () => {
 
     await syncDirtyWorkspace(USER);
 
-    const folderRow = cloud.folders.find((row) => row.id === folder.id)!;
-    const snippetRow = cloud.snippets.find((row) => row.id === snippet.id)!;
+    const folderRow = cloud.folders.find((row) => row.clientId === folder.id)!;
+    const snippetRow = cloud.snippets.find((row) => row.clientId === snippet.id)!;
 
-    expect(folderRow.crypto_version).toBe(CURRENT_CRYPTO_VERSION);
-    expect(snippetRow.crypto_version).toBe(CURRENT_CRYPTO_VERSION);
+    expect(folderRow.cryptoVersion).toBe(CURRENT_CRYPTO_VERSION);
+    expect(snippetRow.cryptoVersion).toBe(CURRENT_CRYPTO_VERSION);
     // Nothing sensitive crosses in plaintext…
     expect(folderRow.name).not.toBe(folder.name);
     expect(snippetRow.title).not.toBe(snippet.title);
@@ -459,14 +517,14 @@ describe("cloud encryption", () => {
     expect((await db.folders.get(folder.id))?.name).toBe(folder.name);
   });
 
-  it("uploads plaintext with crypto_version 0 when no key is available", async () => {
+  it("uploads plaintext with cryptoVersion 0 when no key is available", async () => {
     const snippet = makeSnippet({ dirty: true });
     await db.snippets.add(snippet);
 
     await syncDirtyWorkspace(USER);
 
-    const row = cloud.snippets.find((r) => r.id === snippet.id)!;
-    expect(row.crypto_version).toBe(0);
+    const row = cloud.snippets.find((r) => r.clientId === snippet.id)!;
+    expect(row.cryptoVersion).toBe(0);
     expect(row.code).toBe(snippet.code);
   });
 
@@ -483,14 +541,14 @@ describe("cloud encryption", () => {
         ...cloudSnippet(secret),
         title: await encryptString(key, secret.title),
         code: await encryptString(key, secret.code),
-        crypto_version: CURRENT_CRYPTO_VERSION,
+        cryptoVersion: CURRENT_CRYPTO_VERSION,
       },
     ];
     cloud.folders = [
       {
         ...cloudFolder(secretFolder),
         name: await encryptString(key, secretFolder.name),
-        crypto_version: CURRENT_CRYPTO_VERSION,
+        cryptoVersion: CURRENT_CRYPTO_VERSION,
       },
     ];
 
@@ -502,7 +560,7 @@ describe("cloud encryption", () => {
     expect((await db.folders.get(secretFolder.id))?.name).toBe("Vault");
   });
 
-  it("skips rows with an unknown future crypto_version without touching the local copy", async () => {
+  it("skips rows with an unknown future cryptoVersion without touching the local copy", async () => {
     await withKey();
 
     const local = makeSnippet({ title: "Kept", dirty: false });
@@ -510,7 +568,7 @@ describe("cloud encryption", () => {
 
     // The same record was uploaded by a newer client with a scheme this build
     // doesn't understand: it must be neither garbled locally nor deleted.
-    cloud.snippets = [{ ...cloudSnippet(local), title: "??", code: "??", crypto_version: 99 }];
+    cloud.snippets = [{ ...cloudSnippet(local), title: "??", code: "??", cryptoVersion: 99 }];
 
     await fetchCloudWorkspace(USER);
 
@@ -530,7 +588,7 @@ describe("cloud encryption", () => {
         ...cloudSnippet(local),
         title: await encryptString(otherKey, "tampered"),
         code: await encryptString(otherKey, "tampered"),
-        crypto_version: CURRENT_CRYPTO_VERSION,
+        cryptoVersion: CURRENT_CRYPTO_VERSION,
       },
     ];
 

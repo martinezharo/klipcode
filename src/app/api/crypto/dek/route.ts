@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { createClient } from "@supabase/supabase-js";
+import { api } from "@convex/_generated/api";
 import {
   base64ToBytes,
   bytesToBase64,
@@ -9,17 +9,21 @@ import {
   generateDekBytes,
   importAesKey,
 } from "@/lib/crypto";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { getConvexClientForToken, readBearerToken } from "@/lib/convexServer";
 
 /**
  * Hands the signed-in user their data-encryption key (DEK).
  *
- * The DEK is stored in `public.user_keys` ONLY wrapped (encrypted) by the
- * master key (KEK), which lives exclusively as the `ENCRYPTION_MASTER_KEY`
- * Worker secret — so the database alone can never decrypt anything, and this
- * route is the only place the two ever meet. On a user's first call the DEK is
- * generated here; losing a race against another device is resolved by reading
- * back the row that won.
+ * The DEK is stored in Convex ONLY wrapped (encrypted) by the master key (KEK),
+ * which lives exclusively as the `ENCRYPTION_MASTER_KEY` Worker secret — so the
+ * database alone can never decrypt anything, and this route is the only place
+ * the two ever meet. Keeping it here on Cloudflare rather than moving it into a
+ * Convex action is deliberate: it is what stops the encrypted records and the
+ * key that opens them from living with the same provider.
+ *
+ * On a user's first call the DEK is generated here; losing a race against
+ * another device is resolved by `userKeys.create`, which returns the key that
+ * won rather than overwriting it.
  *
  * A 503 means "encryption not configured" and tells the client to sync in
  * plaintext; any other failure is transient and the client must retry rather
@@ -44,14 +48,17 @@ function json(body: unknown, status = 200) {
 }
 
 export async function GET(request: Request) {
-  if (!isSupabaseConfigured()) {
-    return json({ error: "encryption not configured" }, 503);
-  }
-
-  const authHeader = request.headers.get("authorization") ?? "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  const token = readBearerToken(request);
   if (!token) {
     return json({ error: "unauthorized" }, 401);
+  }
+
+  // The caller's own token drives every call, so the identity checks in
+  // `convex/userKeys.ts` scope access to their record — this route holds no
+  // admin key and can reach nothing the caller could not reach themselves.
+  const convex = getConvexClientForToken(token);
+  if (!convex) {
+    return json({ error: "encryption not configured" }, 503);
   }
 
   const masterKeyBase64 = getMasterKeyBase64();
@@ -73,58 +80,24 @@ export async function GET(request: Request) {
     return json({ error: "encryption not configured" }, 503);
   }
 
-  // The user's own JWT drives every query, so RLS scopes access to their row —
-  // this route needs no service-role key.
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
-    {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    }
-  );
-
-  const { data: userData, error: userError } = await supabase.auth.getUser(token);
-  if (userError || !userData.user) {
+  let userId: string;
+  let wrappedDek: string | null;
+  try {
+    ({ userId, wrappedDek } = await convex.query(api.userKeys.mine, {}));
+  } catch {
     return json({ error: "unauthorized" }, 401);
   }
-  const userId = userData.user.id;
-
-  const readWrappedDek = async () => {
-    const { data, error } = await supabase
-      .from("user_keys")
-      .select("wrapped_dek")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (error) {
-      throw error;
-    }
-    return data?.wrapped_dek ?? null;
-  };
 
   try {
-    const existing = await readWrappedDek();
-    if (existing !== null) {
-      return json({ dek: await decryptString(kek, existing) });
+    if (wrappedDek === null) {
+      const candidate = bytesToBase64(generateDekBytes());
+      const stored = await convex.mutation(api.userKeys.create, {
+        wrappedDek: await encryptString(kek, candidate),
+      });
+      wrappedDek = stored.wrappedDek;
     }
 
-    const dek = bytesToBase64(generateDekBytes());
-    const wrapped = await encryptString(kek, dek);
-    const { error: insertError } = await supabase
-      .from("user_keys")
-      .insert({ user_id: userId, wrapped_dek: wrapped });
-
-    if (!insertError) {
-      return json({ dek });
-    }
-
-    // Another device inserted its DEK between our read and insert; the row is
-    // immutable once created, so the winner's key is the account's key.
-    const raced = await readWrappedDek();
-    if (raced !== null) {
-      return json({ dek: await decryptString(kek, raced) });
-    }
-    throw insertError;
+    return json({ dek: await decryptString(kek, wrappedDek), userId });
   } catch {
     return json({ error: "key retrieval failed" }, 500);
   }

@@ -5,7 +5,7 @@ KlipCode is a code snippet manager with local storage and optional cloud synchro
 ## Features
 
 - Immediate local saving using IndexedDB.
-- Cloud synchronization when Supabase is configured.
+- Cloud synchronization when a Convex deployment is configured.
 - Folder-based organization with multiple nesting levels.
 - Drag-and-drop to move folders and snippets.
 - Quick copy-to-clipboard.
@@ -20,14 +20,14 @@ KlipCode is a code snippet manager with local storage and optional cloud synchro
 - Tailwind CSS v4.
 - CodeMirror 6.
 - Dexie.js for local persistence.
-- Supabase for authentication and synchronization.
+- Convex for the backend: data, functions, and authentication.
 - TanStack Query for remote state management.
 
 ## Requirements
 
 - Node.js 20 or newer.
 - pnpm.
-- Optional: a Supabase account to enable cloud sync.
+- Optional: a Convex account to enable cloud sync.
 
 ## Installation
 
@@ -37,30 +37,43 @@ KlipCode is a code snippet manager with local storage and optional cloud synchro
 pnpm install
 ```
 
-2. Start the development server:
+2. Start the Convex backend (writes `.env.local` and watches `convex/`):
+
+```bash
+pnpm dev:backend
+```
+
+3. In a second terminal, start the development server:
 
 ```bash
 pnpm dev
 ```
 
-3. Open http://localhost:3000 in your browser.
+4. Open http://localhost:3000 in your browser.
 
 ## Environment variables
 
-To use Supabase and enable cross-device synchronization, set the following variables:
+`pnpm dev:backend` writes `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL` into
+`.env.local`, so cross-device sync needs no manual configuration.
+
+Two secrets are set by hand — see [.env.example](.env.example):
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=
-```
-
-Optionally, set the public site URL:
-
-```bash
+# Cloudflare (.env / .dev.vars / wrangler secret): wraps every per-user key.
+ENCRYPTION_MASTER_KEY=
+# Optional: the public site URL.
 NEXT_PUBLIC_SITE_URL=
 ```
 
-If Supabase is not configured, the app continues to work locally using IndexedDB.
+GitHub sign-in needs an OAuth app, whose credentials live on the Convex
+deployment (never in the client bundle):
+
+```bash
+npx convex env set AUTH_GITHUB_ID <client-id>
+npx convex env set AUTH_GITHUB_SECRET <client-secret>
+```
+
+If no deployment is configured, the app continues to work locally using IndexedDB.
 
 ## Scripts
 
@@ -71,11 +84,27 @@ pnpm start
 pnpm lint
 pnpm test
 pnpm test:watch
+pnpm test:e2e
+pnpm dev:backend
 ```
 
-## Database
+## Backend
 
-The Supabase schema is in [db-structure.sql](db-structure.sql). It includes tables for profiles, folders, and snippets, as well as the RLS policies required for per-user data.
+The backend lives in [convex/](convex) and is the schema, the API, and the
+authorization rules in one place:
+
+- [convex/schema.ts](convex/schema.ts) — tables for folders, snippets, and the
+  per-user wrapped encryption keys.
+- [convex/workspace.ts](convex/workspace.ts) — the sync endpoints. Ownership is
+  taken from the authenticated identity and never from the payload, which is
+  what replaced per-table row-level security.
+- [convex/lib/hierarchy.ts](convex/lib/hierarchy.ts) — folder-cycle rejection
+  and the delete cascade, covered by
+  [convex/workspace.test.ts](convex/workspace.test.ts).
+
+The encryption master key is deliberately NOT a Convex environment variable: it
+stays on Cloudflare in [/api/crypto/dek](src/app/api/crypto/dek/route.ts), so a
+dump of the deployment holds only ciphertext and wrapped keys.
 
 ## Project structure
 
@@ -94,4 +123,5 @@ The Supabase schema is in [db-structure.sql](db-structure.sql). It includes tabl
 
 ## Deployment
 
-The app can be deployed like any Next.js project. When publishing, be sure to configure `NEXT_PUBLIC_SITE_URL` and the Supabase environment variables for production.
+The app can be deployed like any Next.js project. When publishing, be sure to configure `NEXT_PUBLIC_SITE_URL` and `ENCRYPTION_MASTER_KEY` for production, and
+push the backend with `npx convex deploy`.

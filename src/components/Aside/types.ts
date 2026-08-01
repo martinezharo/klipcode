@@ -1,13 +1,18 @@
 import type { MouseEvent as ReactMouseEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
-import type { FolderRecord, SnippetRecord, ClipboardEntry, SelectedItem } from "@/lib/types";
+import type {
+  AccountUser,
+  ClipboardEntry,
+  FolderRecord,
+  SelectedItem,
+  SnippetRecord,
+} from "@/lib/types";
 import type { Dictionary } from "@/i18n";
-import type { User } from "@supabase/supabase-js";
 
 /* ─────────────────────────── Props ─────────────────────────────────────── */
 
 export interface AsideProps {
-  user: User | null;
-  /** False until the initial Supabase session check resolves — while false the
+  user: AccountUser | null;
+  /** False until the initial session check resolves — while false the
    *  header shows a placeholder instead of flashing the signed-out button. */
   authReady: boolean;
   folders: FolderRecord[];
