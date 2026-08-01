@@ -51,12 +51,10 @@ next-env.d.ts
 .dev.vars*
 !.dev.vars.example
 !.env.example
+# Production build values, deliberately versioned — see the file's own comment.
+!.env.production
 cloudflare-env.d.ts
 
-# local supabase migrations (schema lives in db-structure.sql)
+# Leftover Postgres migrations from the pre-Convex backend. Never tracked;
+# safe to delete once the Supabase project is retired.
 .sb-migrations/
-
-# local supabase stack for e2e sync tests (migrations are mirrored from
-# db-structure.sql by scripts/e2e-sync-setup.sh; only config.toml is tracked)
-/supabase/*
-!/supabase/config.toml

@@ -123,5 +123,17 @@ dump of the deployment holds only ciphertext and wrapped keys.
 
 ## Deployment
 
-The app can be deployed like any Next.js project. When publishing, be sure to configure `NEXT_PUBLIC_SITE_URL` and `ENCRYPTION_MASTER_KEY` for production, and
-push the backend with `npx convex deploy`.
+Cloudflare Workers Builds compiles the app on push. Two things make that work,
+and they live in different places for a reason:
+
+- `NEXT_PUBLIC_CONVEX_URL` is inlined into the client bundle **at build time**,
+  so it is committed in [.env.production](.env.production). Setting it as a
+  Worker runtime variable has no effect — by then the bundle is already
+  compiled, and the app would silently fall back to local-only mode.
+- `ENCRYPTION_MASTER_KEY` is read per request by the DEK route, so it is a
+  Worker **secret** (`wrangler secret put ENCRYPTION_MASTER_KEY`) and is never
+  committed.
+
+Also set `NEXT_PUBLIC_SITE_URL`, and push the backend with `npx convex deploy`
+when the functions in `convex/` change (`pnpm deploy` does both if you are
+deploying from a local checkout instead).
