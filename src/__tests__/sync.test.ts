@@ -629,8 +629,16 @@ describe("reconcileWorkspace() legacy adoption", () => {
       code: "const kept = true;",
       lastSyncedAt: "2024-01-01T00:00:00.000Z",
     });
+    // An empty snippet the user still has. Adoption must not let it look like a
+    // brand-new placeholder, or `syncDirtyWorkspace` settles it locally and it
+    // never reaches the new backend.
+    const emptied = makeSnippet({
+      ownerId: LEGACY_OWNER,
+      code: "",
+      lastSyncedAt: "2024-01-01T00:00:00.000Z",
+    });
     await db.folders.add(folder);
-    await db.snippets.add(snippet);
+    await db.snippets.bulkAdd([snippet, emptied]);
 
     await reconcileWorkspace(USER);
 
@@ -640,6 +648,7 @@ describe("reconcileWorkspace() legacy adoption", () => {
     // ...and pushed to the new backend, which had never seen them.
     expect(cloud.folders.find((row) => row.clientId === folder.id)).toBeDefined();
     expect(cloud.snippets.find((row) => row.clientId === snippet.id)?.code).toBe("const kept = true;");
+    expect(cloud.snippets.find((row) => row.clientId === emptied.id)).toBeDefined();
   });
 
   it("does not delete adopted records when the cloud comes back empty", async () => {

@@ -197,6 +197,39 @@ export function useCloudSync({
   const scheduleCloudSyncRef = useRef(scheduleCloudSync);
   scheduleCloudSyncRef.current = scheduleCloudSync;
 
+  // Flush whatever this device still owes the cloud as soon as an account is
+  // known. Without this the loop is driven only by user edits and by
+  // focus/online events, so a page that is loaded and simply left alone keeps
+  // its pending work forever — which is exactly what stranded the records
+  // adopted from the pre-Convex backend, since adoption marks them dirty
+  // without the user touching anything.
+  useEffect(() => {
+    if (!user || !cloudConfigured) return;
+
+    let cancelled = false;
+
+    void (async () => {
+      const [dirtyWorkspace, pendingTombstones] = await Promise.all([
+        getDirtyWorkspace(user.id),
+        getPendingTombstones(user.id),
+      ]);
+
+      if (cancelled) return;
+
+      if (
+        dirtyWorkspace.folders.length > 0 ||
+        dirtyWorkspace.snippets.length > 0 ||
+        pendingTombstones.length > 0
+      ) {
+        scheduleCloudSyncRef.current();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cloudConfigured, user]);
+
   // Cleanup sync timers on unmount
   useEffect(() => {
     const localTimers = localStatusTimersRef.current;

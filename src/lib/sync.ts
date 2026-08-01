@@ -617,8 +617,10 @@ async function claimAnonymousRecords(userId: string): Promise<void> {
  * skips them too, so they never upload either. Re-owning them to the current
  * account restores both.
  *
- * `lastSyncedAt` is cleared because it referred to a cloud that no longer holds
- * them, and `dirty` is set so the push that follows uploads them.
+ * `dirty` is set so the push that follows uploads them. `lastSyncedAt` is left
+ * alone: clearing it would make an adopted-but-empty snippet look like a
+ * brand-new placeholder to `syncDirtyWorkspace`, which settles those locally
+ * instead of uploading — silently dropping a record the user still has.
  *
  * Guarded by a flag so it runs at most once per device. Without that guard a
  * second account signing in on the same machine would seize the first one's
@@ -649,23 +651,13 @@ async function adoptLegacyRecords(userId: string): Promise<void> {
 
   if (legacyFolders.length > 0) {
     await db.folders.bulkPut(
-      legacyFolders.map((folder) => ({
-        ...folder,
-        ownerId: userId,
-        dirty: true,
-        lastSyncedAt: null,
-      }))
+      legacyFolders.map((folder) => ({ ...folder, ownerId: userId, dirty: true }))
     );
   }
 
   if (legacySnippets.length > 0) {
     await db.snippets.bulkPut(
-      legacySnippets.map((snippet) => ({
-        ...snippet,
-        ownerId: userId,
-        dirty: true,
-        lastSyncedAt: null,
-      }))
+      legacySnippets.map((snippet) => ({ ...snippet, ownerId: userId, dirty: true }))
     );
   }
 }
