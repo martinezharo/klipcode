@@ -10,7 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "KlipCode — Code Snippet Manager",
     short_name: "KlipCode",
     description:
-      "Local-first code snippet manager. Save, organize, and copy your snippets instantly — offline and across devices.",
+      "Cloud-synced code snippet manager. Save, organize, and access your library across every device.",
     start_url: "/app",
     scope: "/",
     display: "standalone",

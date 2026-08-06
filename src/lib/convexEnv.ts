@@ -11,8 +11,8 @@ export function getConvexUrl(): string | undefined {
 }
 
 /**
- * Cloud sync is opt-in: with no deployment URL the app runs fully local and
- * anonymous, and every cloud path no-ops.
+ * Without a deployment URL, authentication and cloud storage are unavailable;
+ * the guest workspace remains on the current device and cloud paths no-op.
  */
 export function isConvexConfigured(): boolean {
   return Boolean(getConvexUrl());

@@ -17,8 +17,9 @@ import type {
 } from "@/lib/types";
 
 // ── Cloud encryption boundary ───────────────────────────────────────────────────
-// IndexedDB stays plaintext (it's the local source of truth and must work
-// offline); only what crosses to Convex is encrypted. With a key, uploads
+// IndexedDB holds the plaintext working copy used by the guest workspace and
+// interrupted connections; only what crosses to Convex is encrypted. With a
+// key, uploads
 // write ciphertext + `cryptoVersion: 1`; without one (`null` = encryption not
 // configured) they write plaintext + version 0, exactly the pre-encryption
 // shape. Downloads decode per-record based on `cryptoVersion`, so plaintext

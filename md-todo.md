@@ -14,7 +14,7 @@ Mejoras pendientes para dejar el editor de Markdown (WYSIWYG TipTap, `src/compon
 ## Pendiente
 
 ### Alto impacto
-- [ ] **Imágenes.** No hay `@tiptap/extension-image`. Decisión de arquitectura por el local-first/sync: base64 inline (simple pero infla IndexedDB y el payload de sync), URL externa, o subir a Supabase Storage. Soportar pegar/arrastrar + insertar por URL.
+- [ ] **Imágenes.** No hay `@tiptap/extension-image`. Decisión de arquitectura por el almacenamiento cliente/sync: base64 inline (simple pero infla IndexedDB y el payload de sync), URL externa, o subir a un almacenamiento de objetos. Soportar pegar/arrastrar + insertar por URL.
 
 ### Medio impacto
 - [ ] **Drag handles** para reordenar bloques (`@tiptap/extension-drag-handle`), muy Notion.

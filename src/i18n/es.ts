@@ -11,7 +11,7 @@ de forma rápida y sencilla, en todos tus dispositivos.
 - **Copiado ágil:** Copia el contenido de tus fragmentos al portapapeles instantáneamente.
 - **Organización jerárquica:** Crea carpetas con distintos niveles de profundidad para organizar tu código.
 - **Gestión intuitiva:** Mueve tus *snippets* y carpetas arrastrándolos para que se adapten a tu flujo de trabajo.
-- **Sincronización con GitHub:** Inicia sesión para que tus datos se sincronicen automáticamente en la nube.
+- **Biblioteca en la nube:** Inicia sesión con GitHub para mantener tus datos sincronizados automáticamente entre dispositivos.
 - **Editor avanzado:** Edita tus fragmentos cómodamente con un sistema de guardado automático.
 - **Acceso prioritario:** Fija tus *snippets* más importantes tanto en carpetas como en la página de inicio.
 
@@ -54,11 +54,11 @@ export const es = {
     signedOut: "Sin sesión",
     signIn: "Iniciar Sesión",
     signOut: "Cerrar sesión",
-    localMode: "Modo local activo. Los cambios se guardan en IndexedDB.",
+    guestMode: "Espacio de invitado. Los cambios se guardan solo en este dispositivo.",
     notConfigured:
-      "La sincronizacion en la nube no esta configurada. La aplicacion funciona solo en local hasta definir la variable NEXT_PUBLIC_CONVEX_URL.",
+      "El almacenamiento en la nube no está disponible hasta configurar NEXT_PUBLIC_CONVEX_URL. Los cambios permanecen en este dispositivo.",
     syncingSession:
-      "Sincronizando los datos de IndexedDB con la nube y descargando el contenido de la cuenta.",
+      "Subiendo los snippets de este dispositivo y descargando tu biblioteca de la nube.",
     syncedSession: "Sesión sincronizada con la nube.",
     cloudSyncRunning: "Sincronizando cambios con la nube.",
     syncFailed: "No se pudo sincronizar con la nube.",
@@ -87,8 +87,8 @@ export const es = {
     open: "Abrir",
   },
   workspace: {
-    loading: "Cargando contenido local...",
-    loadError: "No se pudo cargar el contenido local.",
+    loading: "Cargando tus snippets...",
+    loadError: "No se pudieron cargar tus snippets.",
     rootSnippets: "Snippets en la raiz",
     folders: "Carpetas",
     noFolders: "No hay carpetas creadas.",
@@ -111,7 +111,7 @@ export const es = {
   sync: {
     editing: "Cambiando...",
     saving: "Guardando...",
-    savedLocal: "Guardado en local",
+    savedLocal: "Guardado en este dispositivo",
     savedCloud: "Guardado en la nube",
     error: "Error de sincronizacion",
     idle: "Sin cambios pendientes",
@@ -344,24 +344,24 @@ export const es = {
   landing: {
     nav: {
       openApp: "Abrir App",
-      noSignUp: "Sin necesidad de registro",
+      noSignUp: "Empieza sin crear una cuenta",
       features: "Características",
       faq: "FAQ",
     },
     hero: {
-      badge: "Gratis · Open source · Sin registro",
+      badge: "Gratis · Open source · Empieza al instante",
       title: "El gestor de snippets\nque no te frena.",
       titleBefore: "El ",
       titleHighlight: "gestor de snippets",
       titleAfter: "que no te frena.",
       subtitle:
-        "Guarda, organiza y copia tus snippets de código desde cualquier dispositivo. Local-first y gratis: funciona sin conexión, no necesita cuenta y se sincroniza con GitHub cuando tú quieras.",
+        "Guarda, organiza y copia tus snippets de código estés donde estés. Empieza sin crear una cuenta e inicia sesión con GitHub para mantener tu biblioteca sincronizada en todos tus dispositivos.",
       cta: "Empieza ahora — gratis",
       ctaHint: "No necesitas cuenta para empezar",
     },
     trust: {
-      offline: "Funciona 100% sin conexión",
-      local: "Tus snippets viven en tu dispositivo",
+      anywhere: "Disponible en todos tus dispositivos",
+      guest: "Empieza sin crear una cuenta",
       openSource: "Código abierto en GitHub",
     },
     appPreview:
@@ -391,9 +391,9 @@ export const es = {
           "Reorganiza snippets y carpetas arrastrándolos donde quieras.",
       },
       cloudSync: {
-        title: "Sincronización con GitHub",
+        title: "Sincronización segura en la nube",
         description:
-          "Inicia sesión con GitHub y tus snippets se sincronizan automáticamente en todos tus dispositivos.",
+          "Inicia sesión con GitHub para guardar tu biblioteca en KlipCode y mantenerla sincronizada en todos tus dispositivos.",
       },
       editor: {
         title: "Editor de código avanzado",
@@ -429,15 +429,15 @@ export const es = {
       items: [
         {
           q: "¿KlipCode es gratis?",
-          a: "Sí — KlipCode es totalmente gratuito y de código abierto. No hay planes de pago, ni límites de snippets, ni necesitas cuenta para usarlo.",
+          a: "Sí — KlipCode es totalmente gratuito y de código abierto. No hay planes de pago ni límites de snippets, y puedes empezar sin crear una cuenta.",
         },
         {
           q: "¿Necesito una cuenta para usar KlipCode?",
-          a: "No. KlipCode es local-first: tus snippets se guardan en tu navegador y todo funciona sin registrarte. Iniciar sesión con GitHub es opcional y activa la sincronización en la nube.",
+          a: "No para empezar. Sin cuenta, tu espacio de invitado permanece en el dispositivo actual. Inicia sesión con GitHub para guardar tu biblioteca en KlipCode y acceder a ella desde cualquier lugar.",
         },
         {
-          q: "¿KlipCode funciona sin conexión?",
-          a: "Sí. Los snippets se guardan en tu dispositivo, así que puedes crearlos, editarlos y copiarlos sin conexión a internet. Los cambios se sincronizan automáticamente la próxima vez que estés en línea.",
+          q: "¿Dónde se guardan mis snippets?",
+          a: "El espacio de invitado se guarda en el dispositivo donde lo creas. Cuando inicias sesión, KlipCode guarda y sincroniza de forma segura tu biblioteca en la nube.",
         },
         {
           q: "¿Cómo sincronizo snippets entre dispositivos?",
@@ -445,7 +445,7 @@ export const es = {
         },
         {
           q: "¿Mi código es privado?",
-          a: "Tus snippets permanecen en tu dispositivo salvo que actives la sincronización. Con la sincronización activa, se guardan en una base de datos privada a la que solo accede tu cuenta — y todo el código es abierto, así que puedes comprobarlo.",
+          a: "Tu biblioteca en la nube pertenece a tu cuenta autenticada y ningún otro usuario puede acceder a ella. Los snippets de invitado permanecen en el dispositivo donde los creaste, y todo el código es abierto para que puedas comprobar cómo funciona.",
         },
         {
           q: "¿Qué lenguajes de programación soporta?",
@@ -456,13 +456,13 @@ export const es = {
     cta: {
       title: "¿Listo para organizar tu código?",
       subtitle:
-        "Gratis, open source y listo en segundos. Sin cuenta, sin configuración, sin límites.",
+        "Gratis, open source y listo en segundos. Empieza sin cuenta y lleva después tu biblioteca a cualquier lugar.",
       button: "Abrir KlipCode",
     },
     footer: {
-      tagline: "El gestor de snippets local-first para desarrolladores.",
+      tagline: "Tus snippets de código, disponibles en cualquier lugar.",
       description:
-        "KlipCode es un gestor de snippets de código gratuito y de código abierto. Guarda, organiza y sincroniza fragmentos de código en todos tus dispositivos — funciona sin conexión y no requiere cuenta.",
+        "KlipCode es un gestor de snippets gratuito y de código abierto. Empieza al instante e inicia sesión con GitHub para guardar y sincronizar tu biblioteca en todos tus dispositivos.",
       source: "Código fuente",
       product: "Producto",
       language: "Idioma",
@@ -481,14 +481,14 @@ export const es = {
   },
   meta: {
     home: {
-      title: "KlipCode — Gestor de Snippets de Código Gratis y Open Source",
+      title: "KlipCode — Gestor de Snippets de Código en la Nube",
       description:
-        "Gestor de snippets de código gratuito y open source. Guarda, organiza y copia fragmentos de código en todos tus dispositivos — funciona sin conexión, sin registro y con sincronización opcional vía GitHub.",
+        "Guarda, organiza y copia snippets con KlipCode, el gestor gratuito y open source. Empieza sin crear una cuenta y sincroniza tu biblioteca entre dispositivos.",
     },
     app: {
-      title: "App de Snippets de Código",
+      title: "App de Snippets en la Nube",
       description:
-        "Tu espacio de trabajo KlipCode: crea, organiza y copia fragmentos de código al instante. Funciona sin conexión, con sincronización opcional en la nube vía GitHub.",
+        "Crea, organiza y copia snippets al instante. Inicia sesión con GitHub para guardar tu biblioteca de KlipCode y mantenerla sincronizada entre dispositivos.",
     },
   },
   seed: {

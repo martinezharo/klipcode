@@ -1,11 +1,14 @@
 # KlipCode
 
-KlipCode is a code snippet manager with local storage and optional cloud synchronization. It lets you quickly save, organize, and copy snippets, work with nested folders, and pin important items.
+KlipCode is a cloud-synced code snippet manager that keeps your code available
+wherever you work. Start immediately without an account, then sign in with
+GitHub to securely save your library and access it across all your devices.
 
 ## Features
 
-- Immediate local saving using IndexedDB.
-- Cloud synchronization when a Convex deployment is configured.
+- Automatic cloud synchronization across devices.
+- Account-free guest workspace for getting started immediately.
+- Fast saving and access to snippets.
 - Folder-based organization with multiple nesting levels.
 - Drag-and-drop to move folders and snippets.
 - Quick copy-to-clipboard.
@@ -19,7 +22,7 @@ KlipCode is a code snippet manager with local storage and optional cloud synchro
 - React 19.
 - Tailwind CSS v4.
 - CodeMirror 6.
-- Dexie.js for local persistence.
+- Dexie.js for the guest workspace and local working copy.
 - Convex for the backend: data, functions, and authentication.
 - TanStack Query for remote state management.
 
@@ -27,7 +30,7 @@ KlipCode is a code snippet manager with local storage and optional cloud synchro
 
 - Node.js 20 or newer.
 - pnpm.
-- Optional: a Convex account to enable cloud sync.
+- A Convex project for cloud sync and authentication.
 
 ## Installation
 
@@ -73,7 +76,8 @@ npx convex env set AUTH_GITHUB_ID <client-id>
 npx convex env set AUTH_GITHUB_SECRET <client-secret>
 ```
 
-If no deployment is configured, the app continues to work locally using IndexedDB.
+If no deployment is configured, the guest workspace remains available on the
+current device, but sign-in and cross-device access are disabled.
 
 ## Scripts
 
@@ -118,8 +122,9 @@ dump of the deployment holds only ciphertext and wrapped keys.
 
 1. Create a snippet from the main screen or from the sidebar.
 2. Organize it into a folder or move it using drag-and-drop.
-3. Edit the code and let the auto-save synchronize changes.
-4. Sign in with GitHub to sync your snippets to the cloud.
+3. Sign in with GitHub to save your library to KlipCode and access it across
+   devices.
+4. Edit the code and let auto-save keep your library synchronized.
 
 ## Deployment
 
@@ -129,7 +134,8 @@ and they live in different places for a reason:
 - `NEXT_PUBLIC_CONVEX_URL` is inlined into the client bundle **at build time**,
   so it is committed in [.env.production](.env.production). Setting it as a
   Worker runtime variable has no effect — by then the bundle is already
-  compiled, and the app would silently fall back to local-only mode.
+  compiled, and the app would silently fall back to a device-only guest
+  workspace.
 - `ENCRYPTION_MASTER_KEY` is read per request by the DEK route, so it is a
   Worker **secret** (`wrangler secret put ENCRYPTION_MASTER_KEY`) and is never
   committed.

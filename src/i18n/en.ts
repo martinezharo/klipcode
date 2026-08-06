@@ -9,7 +9,7 @@ quickly and easily, across all your devices.
 - **Instant copy:** Copy the content of your snippets to the clipboard instantly.
 - **Hierarchical organization:** Create folders with multiple depth levels to organize your code.
 - **Intuitive management:** Move your *snippets* and folders by dragging them to fit your workflow.
-- **GitHub sync:** Sign in to have your data automatically synced to the cloud.
+- **Cloud library:** Sign in with GitHub to keep your data automatically synced across devices.
 - **Advanced editor:** Edit your snippets comfortably with an auto-save system.
 - **Priority access:** Pin your most important *snippets* both in folders and on the home page.
 
@@ -53,11 +53,11 @@ export const en = {
     signedOut: "Signed out",
     signIn: "Sign In",
     signOut: "Sign Out",
-    localMode: "Local mode active. Changes are saved to IndexedDB.",
+    guestMode: "Guest workspace. Changes are saved only on this device.",
     notConfigured:
-      "Cloud sync is not configured. The app works in local mode only until you set the NEXT_PUBLIC_CONVEX_URL variable.",
+      "Cloud storage is unavailable until NEXT_PUBLIC_CONVEX_URL is configured. Changes remain on this device.",
     syncingSession:
-      "Syncing IndexedDB data with the cloud and downloading account content.",
+      "Uploading this device's snippets and downloading your cloud library.",
     syncedSession: "Session synced with the cloud.",
     cloudSyncRunning: "Syncing changes to the cloud.",
     syncFailed: "Could not sync with the cloud.",
@@ -86,8 +86,8 @@ export const en = {
     open: "Open",
   },
   workspace: {
-    loading: "Loading local content...",
-    loadError: "Could not load local content.",
+    loading: "Loading your snippets...",
+    loadError: "Could not load your snippets.",
     rootSnippets: "Snippets at root",
     folders: "Folders",
     noFolders: "No folders created.",
@@ -110,7 +110,7 @@ export const en = {
   sync: {
     editing: "Editing...",
     saving: "Saving...",
-    savedLocal: "Saved locally",
+    savedLocal: "Saved on this device",
     savedCloud: "Saved to the cloud",
     error: "Sync error",
     idle: "No pending changes",
@@ -343,24 +343,24 @@ export const en = {
   landing: {
     nav: {
       openApp: "Open App",
-      noSignUp: "No sign-up required",
+      noSignUp: "No account needed to start",
       features: "Features",
       faq: "FAQ",
     },
     hero: {
-      badge: "Free · Open source · No sign-up",
+      badge: "Free · Open source · Start instantly",
       title: "The code snippet manager\nthat stays out of your way.",
       titleBefore: "The ",
       titleHighlight: "code snippet manager",
       titleAfter: "that stays out of your way.",
       subtitle:
-        "Save, organize, and copy your code snippets from any device. Local-first and free: it works offline, needs no account, and syncs through GitHub when you want it to.",
+        "Save, organize, and copy your code snippets wherever you work. Start without an account, then sign in with GitHub to keep your library synced across every device.",
       cta: "Start now — free",
       ctaHint: "No account needed to begin",
     },
     trust: {
-      offline: "Works 100% offline",
-      local: "Your snippets live on your device",
+      anywhere: "Available on every device",
+      guest: "Start without an account",
       openSource: "Open source on GitHub",
     },
     appPreview:
@@ -390,9 +390,9 @@ export const en = {
           "Rearrange snippets and folders by dragging them where you want.",
       },
       cloudSync: {
-        title: "GitHub Cloud Sync",
+        title: "Secure Cloud Sync",
         description:
-          "Sign in with GitHub and your snippets sync across all your devices automatically.",
+          "Sign in with GitHub to save your library to KlipCode and keep it synchronized across all your devices.",
       },
       editor: {
         title: "Advanced Code Editor",
@@ -428,15 +428,15 @@ export const en = {
       items: [
         {
           q: "Is KlipCode free?",
-          a: "Yes — KlipCode is completely free and open source. There are no paid plans, no snippet limits, and no account required to use it.",
+          a: "Yes — KlipCode is completely free and open source. There are no paid plans or snippet limits, and you can get started without an account.",
         },
         {
           q: "Do I need an account to use KlipCode?",
-          a: "No. KlipCode is local-first: your snippets are stored in your browser and everything works without signing up. An optional GitHub sign-in enables cloud sync.",
+          a: "Not to get started. Without an account, your guest workspace stays on the current device. Sign in with GitHub to save your library to KlipCode and access it everywhere.",
         },
         {
-          q: "Does KlipCode work offline?",
-          a: "Yes. Snippets are saved on your device, so you can create, edit, and copy them with no internet connection. Changes sync automatically the next time you're online.",
+          q: "Where are my snippets stored?",
+          a: "A guest workspace is stored on the device where you create it. After you sign in, KlipCode securely stores and synchronizes your library in the cloud.",
         },
         {
           q: "How do I sync snippets across devices?",
@@ -444,7 +444,7 @@ export const en = {
         },
         {
           q: "Is my code private?",
-          a: "Your snippets stay on your device unless you enable cloud sync. With sync on, they're stored in a private database only your account can access — and the entire codebase is open source, so you can verify it.",
+          a: "Your cloud library belongs to your authenticated account and cannot be accessed by other users. Guest snippets remain on the device where you created them, and the entire codebase is open source so you can verify how it works.",
         },
         {
           q: "Which programming languages are supported?",
@@ -455,13 +455,13 @@ export const en = {
     cta: {
       title: "Ready to organize your code?",
       subtitle:
-        "Free, open source, and ready in seconds. No account, no setup, no limits.",
+        "Free, open source, and ready in seconds. Start without an account, then take your library everywhere.",
       button: "Launch KlipCode",
     },
     footer: {
-      tagline: "The local-first snippet manager for developers.",
+      tagline: "Your code snippets, available everywhere.",
       description:
-        "KlipCode is a free, open-source code snippet manager. Save, organize, and sync code snippets across all your devices — it works offline and requires no account.",
+        "KlipCode is a free, open-source code snippet manager. Start instantly, then sign in with GitHub to securely save and sync your library across all your devices.",
       source: "Source",
       product: "Product",
       language: "Language",
@@ -480,14 +480,14 @@ export const en = {
   },
   meta: {
     home: {
-      title: "KlipCode — Free Open-Source Code Snippet Manager",
+      title: "KlipCode — Cloud Code Snippet Manager",
       description:
-        "Free, open-source code snippet manager. Save, organize, and copy snippets across all your devices — local-first, works offline, no sign-up, optional GitHub cloud sync.",
+        "Save, organize, and copy code snippets with KlipCode, the free open-source snippet manager. Start without an account and sync your library across devices.",
     },
     app: {
-      title: "Snippet Manager App",
+      title: "Cloud Snippet Manager App",
       description:
-        "Your KlipCode workspace: create, organize, and copy code snippets instantly. Works fully offline, with optional GitHub cloud sync across devices.",
+        "Create, organize, and copy code snippets instantly. Sign in with GitHub to save your KlipCode library and keep it synchronized across devices.",
     },
   },
   seed: {

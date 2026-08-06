@@ -21,9 +21,9 @@ const syncedFields = {
   /**
    * ISO-8601, minted by the client and never overwritten server-side.
    *
-   * The local-first client is the single source of truth for this value: it is
-   * the comparison key for last-write-wins during sync. Stamping it with server
-   * time here would mix client and server clocks and silently drop newer edits
+   * The client authors this comparison key for last-write-wins during sync.
+   * Stamping it with server time here would mix client and server clocks and
+   * silently drop newer edits
    * under clock skew. (This is the same reason the Postgres schema deliberately
    * had no `set_updated_at` trigger on these tables.)
    */

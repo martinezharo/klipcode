@@ -20,7 +20,7 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
   const [signingIn, setSigningIn] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [accountMessage, setAccountMessage] = useState<string>(
-    cloudConfigured ? copy.auth.localMode : copy.auth.notConfigured
+    cloudConfigured ? copy.auth.guestMode : copy.auth.notConfigured
   );
 
   const accountSyncInFlightRef = useRef(false);
@@ -45,7 +45,7 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
     if (userId === null) {
       const hadUser = previousUserIdRef.current !== null;
       previousUserIdRef.current = null;
-      setAccountMessage(cloudConfigured ? copyRef.current.auth.localMode : copyRef.current.auth.notConfigured);
+      setAccountMessage(cloudConfigured ? copyRef.current.auth.guestMode : copyRef.current.auth.notConfigured);
       if (hadUser) {
         refreshRef.current();
       }
@@ -113,7 +113,7 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
       if (signedOutUserId) await clearOwnedData(signedOutUserId);
       // The in-memory encryption key goes with it.
       clearWorkspaceEncryptionKey();
-      setAccountMessage(cloudConfigured ? copy.auth.localMode : copy.auth.notConfigured);
+      setAccountMessage(cloudConfigured ? copy.auth.guestMode : copy.auth.notConfigured);
       refreshRef.current();
     } finally {
       setSigningOut(false);

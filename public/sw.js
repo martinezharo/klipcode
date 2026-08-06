@@ -1,12 +1,12 @@
 /*
  * KlipCode service worker.
  *
- * KlipCode is local-first (data lives in IndexedDB), so this worker only needs
- * to make the app shell available offline — it never caches API/Supabase calls.
+ * Snippet data is persisted separately in IndexedDB, so this worker only makes
+ * the app shell available offline — it never caches API or Convex requests.
  *
  * Strategy:
  *  - Only same-origin GET requests are handled; everything else (POST, the
- *    Supabase cross-origin REST/Realtime traffic) falls through to the network.
+ *    Convex cross-origin traffic) falls through to the network.
  *  - Immutable build assets (/_next/static/*) and icons: cache-first.
  *  - Page navigations: network-first, falling back to the cached page and then
  *    to the cached /app shell when offline.

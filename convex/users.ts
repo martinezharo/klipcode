@@ -4,9 +4,8 @@ import { query } from "./_generated/server";
 /**
  * The signed-in account, or `null` when there is no session.
  *
- * Deliberately does not throw on an anonymous caller: the app renders fine
- * signed out (fully local mode), so "no viewer" is a normal state the aside
- * shows, not an error.
+ * Deliberately does not throw on an anonymous caller: the app supports a guest
+ * workspace, so "no viewer" is a normal state the aside shows, not an error.
  */
 export const viewer = query({
   args: {},

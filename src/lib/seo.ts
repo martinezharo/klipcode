@@ -53,8 +53,8 @@ export function buildPageMetadata({
 }
 
 /**
- * JSON-LD `WebApplication` schema for the landing page. Free (price 0) local-first
- * web app — eligible for rich results in Search.
+ * JSON-LD `WebApplication` schema for the landing page. The free offer and
+ * product features are reflected in structured data for search engines.
  */
 export function buildWebApplicationJsonLd({
   locale,

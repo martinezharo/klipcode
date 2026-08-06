@@ -21,8 +21,8 @@ export function readBearerToken(request: Request): string | null {
 
 /**
  * A client authenticated as the caller, or `null` when no deployment is
- * configured (cloud sync is opt-in, so these routes must degrade rather than
- * throw).
+ * configured. These routes degrade gracefully so the guest workspace remains
+ * usable in development without a backend.
  */
 export function getConvexClientForToken(token: string): ConvexHttpClient | null {
   if (!isConvexConfigured()) {

@@ -178,7 +178,7 @@ export default async function LandingPage({
     { icon: <IconCode />, ...l.features.editor },
   ];
 
-  const trustItems = [l.trust.offline, l.trust.local, l.trust.openSource];
+  const trustItems = [l.trust.anywhere, l.trust.guest, l.trust.openSource];
 
   const demos = [
     {

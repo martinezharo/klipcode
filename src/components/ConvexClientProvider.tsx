@@ -55,9 +55,9 @@ function CloudSessionBridge({ children }: { children: React.ReactNode }) {
 export function ConvexClientProvider({ children }: { children: React.ReactNode }) {
   const client = getConvexBrowserClient();
 
-  // Cloud sync is opt-in. With no deployment configured the app renders exactly
-  // as it does signed out — fully local — instead of failing to mount, and
-  // `useCloudSession` falls back to its local-only default.
+  // With no deployment configured the app renders the signed-out guest
+  // workspace instead of failing to mount, and `useCloudSession` falls back to
+  // its unauthenticated default.
   if (!client) {
     return children;
   }
