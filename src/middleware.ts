@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, type Locale } from "@/lib/locale";
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
+const INTERNAL_LOCALE_HEADER = "x-klipcode-internal-locale";
 
 function setLocaleCookie(response: NextResponse, locale: Locale): NextResponse {
   response.cookies.set(LOCALE_COOKIE, locale, {
@@ -42,6 +43,13 @@ export function middleware(request: NextRequest) {
   // Legacy English-prefixed URLs are gone: permanently (308) redirect to the
   // clean path and remember the explicit English choice.
   if (pathname === "/en" || pathname.startsWith("/en/")) {
+    // A rewrite to the internal /en route tree passes through middleware a
+    // second time in Next.js. Keep that internal request in the route tree;
+    // otherwise /app would redirect forever between /app and /en/app.
+    if (request.headers.get(INTERNAL_LOCALE_HEADER) === "en") {
+      return NextResponse.next();
+    }
+
     const url = request.nextUrl.clone();
     url.pathname = pathname.slice("/en".length) || "/";
     return setLocaleCookie(NextResponse.redirect(url, 308), "en");
@@ -63,7 +71,11 @@ export function middleware(request: NextRequest) {
   // rewrite (the [locale] segment can't match a prefix-less path directly).
   const url = request.nextUrl.clone();
   url.pathname = `/en${pathname === "/" ? "" : pathname}`;
-  const response = NextResponse.rewrite(url);
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(INTERNAL_LOCALE_HEADER, "en");
+  const response = NextResponse.rewrite(url, {
+    request: { headers: requestHeaders },
+  });
   response.headers.set("Vary", "Accept-Language, Cookie");
   return response;
 }

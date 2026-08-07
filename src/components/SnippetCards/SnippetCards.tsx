@@ -20,8 +20,9 @@ function sortByUpdatedAtDesc(snippets: SnippetRecord[]) {
 
 /**
  * Roving focus across the card grid: arrow keys move DOM focus to the previous/
- * next card (Enter/Space are handled per-card to open). Cards are already
- * `role="button" tabIndex={0}`, so this only needs to relocate focus.
+ * next card (Enter/Space are handled by the title button). The card itself is
+ * a non-interactive article, so target the focusable button rather than its
+ * containing card.
  */
 function handleGridArrowNav(e: React.KeyboardEvent<HTMLDivElement>) {
   if (
@@ -33,7 +34,7 @@ function handleGridArrowNav(e: React.KeyboardEvent<HTMLDivElement>) {
     return;
   }
   const cards = Array.from(
-    e.currentTarget.querySelectorAll<HTMLElement>("[data-snippet-card]"),
+    e.currentTarget.querySelectorAll<HTMLElement>("[data-card-open]"),
   );
   const current = cards.indexOf(document.activeElement as HTMLElement);
   if (current === -1) return;

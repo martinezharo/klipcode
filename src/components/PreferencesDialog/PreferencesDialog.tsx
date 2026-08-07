@@ -173,11 +173,11 @@ export function PreferencesDialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[var(--z-dialog)] flex items-start justify-center px-4 pt-[12vh]"
+      className="fixed inset-0 klipcode-z-dialog flex items-start justify-center px-4 pt-[12vh]"
       onMouseDown={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-[var(--scrim)] backdrop-blur-sm" aria-hidden="true" />
+      <div className="absolute inset-0 klipcode-scrim backdrop-blur-sm" aria-hidden="true" />
 
       {/* Dialog */}
       <div

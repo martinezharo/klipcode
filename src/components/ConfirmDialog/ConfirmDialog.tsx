@@ -47,12 +47,12 @@ export function ConfirmDialog({
       {/* Backdrop */}
       <div
         aria-hidden="true"
-        className="fixed inset-0 z-[var(--z-dialog)] bg-[var(--scrim)] backdrop-blur-[2px]"
+        className="fixed inset-0 klipcode-z-dialog klipcode-scrim backdrop-blur-[2px]"
         onMouseDown={onCancel}
       />
 
       {/* Dialog panel */}
-      <div className="fixed inset-0 z-[var(--z-dialog-sticky)] flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 klipcode-z-dialog-sticky flex items-center justify-center p-4 pointer-events-none">
         <div
           ref={panelRef}
           tabIndex={-1}

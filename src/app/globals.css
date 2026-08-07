@@ -3,8 +3,7 @@
 /* ─── Z-index scale ──────────────────────────────────────────────────────────
    Single source of truth for stacking order. Tippy.js poppers default to
    z-index 9999 — keep every framework-managed floating layer *below* the
-   dialog layer so Tippy never renders above a modal. Consumers use
-   `z-[var(--z-*)]` instead of hardcoding literal values. */
+   dialog layer so Tippy never renders above a modal. */
 :root {
   --z-base: 0;
   --z-tooltip: 100;
@@ -97,6 +96,53 @@
   --landing-header-bg: rgba(255, 255, 255, 0.8);
   --scrollbar-thumb: #c7c7cc;
   --scrollbar-thumb-hover: #a1a1a6;
+}
+
+/* Semantic utilities for values that Tailwind cannot safely infer from
+   arbitrary-value syntax. Keeping these in CSS also prevents the production
+   scanner from treating CSS variable names as class candidates. */
+.klipcode-z-tooltip {
+  z-index: var(--z-tooltip);
+}
+
+.klipcode-z-menu {
+  z-index: var(--z-menu);
+}
+
+.klipcode-z-popover {
+  z-index: var(--z-popover);
+}
+
+.klipcode-z-toast {
+  z-index: var(--z-toast);
+}
+
+.klipcode-z-dialog {
+  z-index: var(--z-dialog);
+}
+
+.klipcode-z-dialog-sticky {
+  z-index: var(--z-dialog-sticky);
+}
+
+.klipcode-z-dialog-menu {
+  z-index: var(--z-dialog-menu);
+}
+
+.klipcode-scrim {
+  background-color: var(--scrim);
+}
+
+.klipcode-code-surface {
+  background-color: var(--code-surface);
+}
+
+.klipcode-popover-shadow {
+  box-shadow: var(--popover-shadow);
+}
+
+.klipcode-safe-area-bottom {
+  padding-bottom: calc(0.625rem + env(safe-area-inset-bottom));
 }
 
 @theme inline {

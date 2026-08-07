@@ -372,7 +372,7 @@ export function SnippetCard({
       </div>
 
       <div className="pointer-events-none relative overflow-hidden px-1 pb-1">
-        <div className="max-h-[140px] overflow-hidden rounded-lg border border-ink/[0.04] bg-[var(--code-surface)] px-3 py-2 font-mono text-[12px] leading-5 text-ink/90">
+        <div className="max-h-[140px] overflow-hidden rounded-lg border border-ink/[0.04] klipcode-code-surface px-3 py-2 font-mono text-[12px] leading-5 text-ink/90">
           <div
             className={cn(
               "pointer-events-none select-none text-ink/75",
