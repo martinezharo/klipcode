@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type MouseEvent } from "react";
 
 import type { Dictionary } from "@/i18n";
 import type { SelectedItem, SnippetRecord } from "@/lib/types";
-import { cn, getSnippetDisplayName, getSnippetFileName } from "@/lib/utils";
+import { cn, copyTextToClipboard, getSnippetDisplayName, getSnippetFileName } from "@/lib/utils";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
 import { suppressModifierDragStart } from "@/hooks/useMultiSelection";
@@ -101,7 +101,7 @@ export function SnippetCard({
             id: "copy-content",
             label: cm.copyContent,
             Icon: Copy,
-            onClick: () => void navigator.clipboard.writeText(snippet.code ?? ""),
+            onClick: () => void copyTextToClipboard(snippet.code ?? ""),
           }],
         },
         { items: [{ id: "restore", label: cm.restore, Icon: RotateCcw, onClick: () => trashActions!.onRestore() }] },
@@ -118,7 +118,7 @@ export function SnippetCard({
               id: "copy-content",
               label: cm.copyContent,
               Icon: Copy,
-              onClick: () => void navigator.clipboard.writeText(snippet.code ?? ""),
+              onClick: () => void copyTextToClipboard(snippet.code ?? ""),
             },
           ],
         },
@@ -180,8 +180,7 @@ export function SnippetCard({
     event.preventDefault();
     event.stopPropagation();
 
-    try {
-      await navigator.clipboard.writeText(snippet.code);
+    if (await copyTextToClipboard(snippet.code)) {
       setCopied(true);
 
       if (resetTimerRef.current) {
@@ -191,7 +190,7 @@ export function SnippetCard({
       resetTimerRef.current = setTimeout(() => {
         setCopied(false);
       }, 2000);
-    } catch {
+    } else {
       setCopied(false);
     }
   };

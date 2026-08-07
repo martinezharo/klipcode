@@ -12,6 +12,20 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Copy without leaking rejected clipboard promises into event handlers. */
+export async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+    return false;
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Split a VS Code-style "/"-separated path into trimmed, non-empty segments. */
 export function splitWorkspacePath(input: string): string[] {
   return input

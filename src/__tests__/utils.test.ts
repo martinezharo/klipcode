@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   cn,
+  copyTextToClipboard,
   getSnippetDisplayName,
   getSnippetFileName,
   resolveSnippetPath,
@@ -32,6 +33,31 @@ describe("cn()", () => {
 
   it("handles undefined and null gracefully", () => {
     expect(cn("a", undefined, null, "b")).toBe("a b");
+  });
+});
+
+describe("copyTextToClipboard()", () => {
+  it("reports success and absorbs clipboard failures", async () => {
+    const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(globalThis, "navigator", {
+      configurable: true,
+      value: { clipboard: { writeText } },
+    });
+
+    try {
+      await expect(copyTextToClipboard("hello")).resolves.toBe(true);
+      expect(writeText).toHaveBeenCalledWith("hello");
+
+      writeText.mockRejectedValueOnce(new Error("permission denied"));
+      await expect(copyTextToClipboard("secret")).resolves.toBe(false);
+    } finally {
+      if (originalNavigator) {
+        Object.defineProperty(globalThis, "navigator", originalNavigator);
+      } else {
+        delete (globalThis as { navigator?: Navigator }).navigator;
+      }
+    }
   });
 });
 

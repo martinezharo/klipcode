@@ -15,6 +15,7 @@ import type { ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import type { FolderRecord, SnippetRecord, ClipboardEntry, SelectedItem } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 import { openItemInNewTab } from "@/lib/navigation";
+import { copyTextToClipboard } from "@/lib/utils";
 import type { MenuTarget } from "./types";
 
 interface UseContextMenuGroupsArgs {
@@ -193,7 +194,7 @@ export function useContextMenuGroups({
               id: "copy-content",
               label: cm.copyContent,
               Icon: Copy,
-              onClick: () => void navigator.clipboard.writeText(snippet.code ?? ""),
+              onClick: () => void copyTextToClipboard(snippet.code ?? ""),
             }],
           },
           {

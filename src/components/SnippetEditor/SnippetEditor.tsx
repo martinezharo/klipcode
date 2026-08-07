@@ -34,7 +34,7 @@ import { DEBOUNCE_MS } from "@/lib/constants/timing";
 import { formatCode, isFormattable } from "@/lib/formatCode";
 import { FormatErrorToast } from "@/components/FormatErrorToast/FormatErrorToast";
 import { getFolderPath } from "@/components/FolderView/utils";
-import { resolveSnippetRename } from "@/lib/utils";
+import { copyTextToClipboard, resolveSnippetRename } from "@/lib/utils";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Sync status indicator (top-right of header)
@@ -250,8 +250,12 @@ export function SnippetEditor({
     }, DEBOUNCE_MS);
   }
 
-  function handleCopy() {
-    navigator.clipboard.writeText(code);
+  async function handleCopy() {
+    if (!(await copyTextToClipboard(code))) {
+      setCopied(false);
+      return;
+    }
+
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
