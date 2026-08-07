@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { AccountUser } from "@/lib/types";
-import { db, readTrash } from "@/lib/db";
+import { db, matchesOwner, readAllWorkspaceRecords, readTrash } from "@/lib/db";
 import { recordDeletions } from "@/lib/sync";
 import { getAuthToken } from "@/lib/authToken";
 import type { ClipboardEntry, FolderRecord, SelectedItem, SnippetRecord, SyncStatus } from "@/lib/types";
@@ -81,6 +81,12 @@ export function useWorkspaceMutations({
     undoStackRef.current = [];
   }, [user?.id]);
 
+  const currentOwnerId = user?.id ?? null;
+
+  function isLiveFolderId(folderId: string | null, allFolders: FolderRecord[]): boolean {
+    return folderId === null || allFolders.some((folder) => folder.id === folderId && !folder.deletedAt);
+  }
+
   function pushUndoEntry(entry: UndoDeleteEntry) {
     if (entry.folderIds.length === 0 && entry.snippetIds.length === 0) return;
     undoStackRef.current.push(entry);
@@ -133,7 +139,12 @@ export function useWorkspaceMutations({
     if (!title) return;
 
     const current = await db.snippets.get(snippetId);
-    if (current && !current.deletedAt && current.title === copy.snippetCard.untitled) {
+    if (
+      current &&
+      matchesOwner(current.ownerId, currentOwnerId) &&
+      !current.deletedAt &&
+      current.title === copy.snippetCard.untitled
+    ) {
       const updatedAt = new Date().toISOString();
       await db.snippets.update(snippetId, { title, updatedAt, dirty: true });
       patchSnippetInCache(snippetId, { title, updatedAt, dirty: true });
@@ -246,6 +257,9 @@ export function useWorkspaceMutations({
     const timer = setTimeout(async () => {
       updateTimersRef.current.delete(snippetId);
 
+      const current = await db.snippets.get(snippetId);
+      if (!current || !matchesOwner(current.ownerId, currentOwnerId) || current.deletedAt) return;
+
       const updatedAt = new Date().toISOString();
       await db.snippets.update(snippetId, {
         ...changes,
@@ -276,7 +290,8 @@ export function useWorkspaceMutations({
       updateTimersRef.current.delete(id);
     }
 
-    const existing = await db.snippets.get(id);
+    const { snippets: currentSnippets } = await readAllWorkspaceRecords(currentOwnerId);
+    const existing = currentSnippets.find((snippet) => snippet.id === id);
     if (!existing) return;
 
     // Soft delete: mark it deleted and dirty so the trash state uploads as a
@@ -295,16 +310,18 @@ export function useWorkspaceMutations({
    *  lands in that folder; otherwise it returns to its original folder, or to the
    *  root if that folder is gone or still trashed. */
   async function handleRestoreSnippet(id: string, targetFolderId?: string | null) {
-    const snippet = await db.snippets.get(id);
+    const { folders: allFolders, snippets: currentSnippets } =
+      await readAllWorkspaceRecords(currentOwnerId);
+    const snippet = currentSnippets.find((item) => item.id === id);
     if (!snippet) return;
 
     let folderId: string | null;
     if (targetFolderId !== undefined) {
-      folderId = targetFolderId;
+      folderId = isLiveFolderId(targetFolderId, allFolders) ? targetFolderId : null;
     } else {
       folderId = snippet.folderId;
       if (folderId) {
-        const parent = await db.folders.get(folderId);
+        const parent = allFolders.find((folder) => folder.id === folderId);
         if (!parent || parent.deletedAt) folderId = null;
       }
     }
@@ -319,7 +336,9 @@ export function useWorkspaceMutations({
   /** Permanently remove a trashed snippet: purge it locally and queue the cloud
    *  delete (with retry via the tombstone) for records that reached the cloud. */
   async function handlePermanentlyDeleteSnippet(id: string) {
-    const existing = await db.snippets.get(id);
+    const { snippets: currentSnippets } = await readAllWorkspaceRecords(currentOwnerId);
+    const existing = currentSnippets.find((snippet) => snippet.id === id);
+    if (!existing) return;
     await db.snippets.delete(id);
 
     if (user && cloudConfigured && existing?.lastSyncedAt != null) {
@@ -352,7 +371,7 @@ export function useWorkspaceMutations({
 
   async function handleMoveSnippet(id: string, newFolderId: string | null) {
     const snippet = snippets.find((s) => s.id === id);
-    if (!snippet || snippet.folderId === newFolderId) return;
+    if (!snippet || snippet.folderId === newFolderId || !isLiveFolderId(newFolderId, folders)) return;
     await db.snippets.update(id, {
       folderId: newFolderId,
       updatedAt: new Date().toISOString(),
@@ -392,10 +411,9 @@ export function useWorkspaceMutations({
   }
 
   async function handleDeleteFolder(id: string) {
-    const [allFolders, allSnippets] = await Promise.all([
-      db.folders.toArray(),
-      db.snippets.toArray(),
-    ]);
+    const { folders: allFolders, snippets: allSnippets } =
+      await readAllWorkspaceRecords(currentOwnerId);
+    if (!allFolders.some((folder) => folder.id === id)) return;
     const subtree = collectFolderSubtree(id, allFolders);
     const snippetsInSubtree = allSnippets.filter((s) => s.folderId && subtree.has(s.folderId));
     const foldersInSubtree = allFolders.filter((f) => subtree.has(f.id));
@@ -431,17 +449,19 @@ export function useWorkspaceMutations({
    *  otherwise it keeps its parent, detaching to the root if that parent is gone
    *  or still trashed. */
   async function handleRestoreFolder(id: string, targetParentId?: string | null) {
-    const [allFolders, allSnippets] = await Promise.all([
-      db.folders.toArray(),
-      db.snippets.toArray(),
-    ]);
+    const { folders: allFolders, snippets: allSnippets } =
+      await readAllWorkspaceRecords(currentOwnerId);
     const folder = allFolders.find((f) => f.id === id);
     if (!folder) return;
 
     const subtree = collectFolderSubtree(id, allFolders);
 
     let parentId: string | null;
-    if (targetParentId !== undefined && !subtree.has(targetParentId ?? "")) {
+    if (
+      targetParentId !== undefined &&
+      isLiveFolderId(targetParentId, allFolders) &&
+      !subtree.has(targetParentId ?? "")
+    ) {
       parentId = targetParentId;
     } else {
       parentId = folder.parentId;
@@ -477,10 +497,9 @@ export function useWorkspaceMutations({
   /** Permanently remove a trashed folder and its subtree: purge locally and queue
    *  the cloud delete for the rows that reached the cloud. */
   async function handlePermanentlyDeleteFolder(id: string) {
-    const [allFolders, allSnippets] = await Promise.all([
-      db.folders.toArray(),
-      db.snippets.toArray(),
-    ]);
+    const { folders: allFolders, snippets: allSnippets } =
+      await readAllWorkspaceRecords(currentOwnerId);
+    if (!allFolders.some((folder) => folder.id === id)) return;
     const subtree = collectFolderSubtree(id, allFolders);
     const foldersInSubtree = allFolders.filter((f) => subtree.has(f.id));
     const snippetsInSubtree = allSnippets.filter((s) => s.folderId && subtree.has(s.folderId));
@@ -556,7 +575,8 @@ export function useWorkspaceMutations({
     const trash = await readTrash(user?.id ?? null);
     if (trash.folders.length === 0 && trash.snippets.length === 0) return;
 
-    const allFolderIds = new Set((await db.folders.toArray()).map((f) => f.id));
+    const { folders: allFolders } = await readAllWorkspaceRecords(currentOwnerId);
+    const allFolderIds = new Set(allFolders.map((f) => f.id));
     const now = new Date().toISOString();
 
     await db.transaction("rw", [db.folders, db.snippets], async () => {
@@ -597,17 +617,19 @@ export function useWorkspaceMutations({
         db.snippets.bulkGet(entry.snippetIds),
       ]);
       const foldersToRestore = folderRows.filter(
-        (f): f is FolderRecord => !!f && f.deletedAt === entry.deletedAt
+        (f): f is FolderRecord =>
+          !!f && matchesOwner(f.ownerId, currentOwnerId) && f.deletedAt === entry.deletedAt
       );
       const snippetsToRestore = snippetRows.filter(
-        (s): s is SnippetRecord => !!s && s.deletedAt === entry.deletedAt
+        (s): s is SnippetRecord =>
+          !!s && matchesOwner(s.ownerId, currentOwnerId) && s.deletedAt === entry.deletedAt
       );
       if (foldersToRestore.length === 0 && snippetsToRestore.length === 0) continue;
 
       // A parent reference is kept only if it points into this restored batch or
       // at a live folder; a purged or still-trashed container detaches to root so
       // nothing comes back invisible.
-      const allFolders = await db.folders.toArray();
+      const { folders: allFolders } = await readAllWorkspaceRecords(currentOwnerId);
       const validParentIds = new Set([
         ...foldersToRestore.map((f) => f.id),
         ...allFolders.filter((f) => !f.deletedAt).map((f) => f.id),
@@ -661,7 +683,14 @@ export function useWorkspaceMutations({
 
   async function handleMoveFolder(id: string, newParentId: string | null) {
     const folder = folders.find((f) => f.id === id);
-    if (!folder || folder.parentId === newParentId) return;
+    if (
+      !folder ||
+      folder.parentId === newParentId ||
+      !isLiveFolderId(newParentId, folders) ||
+      (newParentId !== null && isDescendantOrSelf(folders, id, newParentId))
+    ) {
+      return;
+    }
     await db.folders.update(id, {
       parentId: newParentId,
       updatedAt: new Date().toISOString(),
@@ -683,17 +712,18 @@ export function useWorkspaceMutations({
     targetParentId: string | null,
     timestamp: string
   ) {
-    const [allFolders, allSnippets] = await Promise.all([
-      db.folders.toArray(),
-      db.snippets.toArray(),
-    ]);
+    const { folders: allFolders, snippets: allSnippets } =
+      await readAllWorkspaceRecords(currentOwnerId);
+    const liveFolders = allFolders.filter((folder) => !folder.deletedAt);
+    const liveSnippets = allSnippets.filter((snippet) => !snippet.deletedAt);
 
     // Collect the source folder and every descendant folder.
+    if (!liveFolders.some((folder) => folder.id === sourceFolderId)) return;
     const subtreeIds = new Set<string>([sourceFolderId]);
     const queue = [sourceFolderId];
     while (queue.length > 0) {
       const current = queue.shift()!;
-      for (const folder of allFolders) {
+      for (const folder of liveFolders) {
         if (folder.parentId === current && !subtreeIds.has(folder.id)) {
           subtreeIds.add(folder.id);
           queue.push(folder.id);
@@ -706,7 +736,7 @@ export function useWorkspaceMutations({
     for (const id of subtreeIds) idMap.set(id, crypto.randomUUID());
 
     const newFolders: FolderRecord[] = [];
-    for (const folder of allFolders) {
+    for (const folder of liveFolders) {
       if (!subtreeIds.has(folder.id)) continue;
       const isRoot = folder.id === sourceFolderId;
       newFolders.push({
@@ -722,7 +752,7 @@ export function useWorkspaceMutations({
     }
 
     const newSnippets: SnippetRecord[] = [];
-    for (const snippet of allSnippets) {
+    for (const snippet of liveSnippets) {
       if (!snippet.folderId || !subtreeIds.has(snippet.folderId)) continue;
       newSnippets.push({
         ...snippet,
@@ -744,6 +774,11 @@ export function useWorkspaceMutations({
 
   async function handlePaste(targetFolderId: string | null) {
     if (!clipboard || clipboard.items.length === 0) return;
+    const { folders: allFolders, snippets: allSnippets } =
+      await readAllWorkspaceRecords(currentOwnerId);
+    const liveFolders = allFolders.filter((folder) => !folder.deletedAt);
+    const liveSnippets = allSnippets.filter((snippet) => !snippet.deletedAt);
+    if (!isLiveFolderId(targetFolderId, allFolders)) return;
     const timestamp = new Date().toISOString();
     const isCut = clipboard.type === "cut";
 
@@ -751,7 +786,7 @@ export function useWorkspaceMutations({
     // (folders deep-copied with the whole subtree under fresh ids).
     for (const item of clipboard.items) {
       if (item.itemType === "snippet") {
-        const snippet = await db.snippets.get(item.id);
+        const snippet = liveSnippets.find((candidate) => candidate.id === item.id);
         if (!snippet) continue;
         if (isCut) {
           await db.snippets.update(item.id, { folderId: targetFolderId, updatedAt: timestamp, dirty: true });
@@ -767,11 +802,11 @@ export function useWorkspaceMutations({
           });
         }
       } else {
-        const folder = await db.folders.get(item.id);
+        const folder = liveFolders.find((candidate) => candidate.id === item.id);
         if (!folder) continue;
         // A cut folder can't be pasted into itself or its own subtree.
         if (isCut) {
-          if (targetFolderId !== null && isDescendantOrSelf(folders, item.id, targetFolderId)) continue;
+          if (targetFolderId !== null && isDescendantOrSelf(liveFolders, item.id, targetFolderId)) continue;
           await db.folders.update(item.id, { parentId: targetFolderId, updatedAt: timestamp, dirty: true });
         } else {
           await duplicateFolderTree(item.id, targetFolderId, timestamp);
@@ -791,10 +826,10 @@ export function useWorkspaceMutations({
    *  twice (which would reset their trash timestamp). */
   async function handleDeleteMany(items: SelectedItem[]) {
     if (items.length === 0) return;
-    const [allFolders, allSnippets] = await Promise.all([
-      db.folders.toArray(),
-      db.snippets.toArray(),
-    ]);
+    const { folders: storedFolders, snippets: storedSnippets } =
+      await readAllWorkspaceRecords(currentOwnerId);
+    const allFolders = storedFolders.filter((folder) => !folder.deletedAt);
+    const allSnippets = storedSnippets.filter((snippet) => !snippet.deletedAt);
 
     const selectedFolderIds = items.filter((i) => i.type === "folder").map((i) => i.id);
     const folderUnion = new Set<string>();
@@ -852,7 +887,11 @@ export function useWorkspaceMutations({
    *  are ignored. */
   async function handleMoveMany(items: SelectedItem[], targetFolderId: string | null) {
     if (items.length === 0) return;
-    const allFolders = await db.folders.toArray();
+    const { folders: storedFolders, snippets: storedSnippets } =
+      await readAllWorkspaceRecords(currentOwnerId);
+    const allFolders = storedFolders.filter((folder) => !folder.deletedAt);
+    const allSnippets = storedSnippets.filter((snippet) => !snippet.deletedAt);
+    if (!isLiveFolderId(targetFolderId, allFolders)) return;
 
     const selectedFolderIds = items.filter((i) => i.type === "folder").map((i) => i.id);
     // Descendant folders of a selected folder travel with their ancestor.
@@ -875,7 +914,7 @@ export function useWorkspaceMutations({
           await db.folders.update(item.id, { parentId: targetFolderId, updatedAt: now, dirty: true });
           changed = true;
         } else {
-          const snippet = await db.snippets.get(item.id);
+          const snippet = allSnippets.find((candidate) => candidate.id === item.id);
           if (!snippet) continue;
           // Skip snippets that live inside a selected folder — they move with it.
           if (snippet.folderId && (covered.has(snippet.folderId) || selectedFolderIds.includes(snippet.folderId))) continue;
@@ -895,7 +934,8 @@ export function useWorkspaceMutations({
    *  A covered item travels with its ancestor's restore/purge, so acting on it
    *  separately would duplicate the operation (or detach it from its folder). */
   async function selectionTops(items: SelectedItem[]): Promise<SelectedItem[]> {
-    const allFolders = await db.folders.toArray();
+    const { folders: allFolders, snippets: allSnippets } =
+      await readAllWorkspaceRecords(currentOwnerId);
     const covered = new Set<string>();
     const selectedFolderIds = items.filter((i) => i.type === "folder").map((i) => i.id);
     for (const fid of selectedFolderIds) {
@@ -908,7 +948,7 @@ export function useWorkspaceMutations({
       if (item.type === "folder") {
         if (!covered.has(item.id)) tops.push(item);
       } else {
-        const snippet = await db.snippets.get(item.id);
+        const snippet = allSnippets.find((candidate) => candidate.id === item.id);
         if (!snippet) continue;
         const parent = snippet.folderId;
         if (!parent || (!covered.has(parent) && !selectedFolderIds.includes(parent))) tops.push(item);

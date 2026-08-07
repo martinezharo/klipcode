@@ -24,6 +24,9 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
   );
 
   const accountSyncInFlightRef = useRef(false);
+  const accountSyncUserIdRef = useRef<string | null>(null);
+  const accountSyncFollowUpRef = useRef(false);
+  const [accountSyncGeneration, setAccountSyncGeneration] = useState(0);
   // Refs ensure async callbacks in effects always see the latest values
   const refreshRef = useRef(refreshWorkspace);
   refreshRef.current = refreshWorkspace;
@@ -36,6 +39,8 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
   const previousUserIdRef = useRef<string | null>(null);
 
   const userId = user?.id ?? null;
+  const currentUserIdRef = useRef(userId);
+  currentUserIdRef.current = userId;
 
   useEffect(() => {
     if (!authReady) {
@@ -43,6 +48,12 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
     }
 
     if (userId === null) {
+      if (
+        accountSyncInFlightRef.current &&
+        accountSyncUserIdRef.current !== null
+      ) {
+        accountSyncFollowUpRef.current = true;
+      }
       const hadUser = previousUserIdRef.current !== null;
       previousUserIdRef.current = null;
       setAccountMessage(cloudConfigured ? copyRef.current.auth.guestMode : copyRef.current.auth.notConfigured);
@@ -52,17 +63,27 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
       return;
     }
 
+    // A session can change while the previous account is still reconciling. Do
+    // not mark the new account as synced before its turn: the completion handler
+    // below will retrigger this effect once the in-flight reconciliation releases
+    // the shared IndexedDB/key state.
+    if (accountSyncInFlightRef.current) {
+      if (accountSyncUserIdRef.current !== userId) {
+        accountSyncFollowUpRef.current = true;
+      }
+      return;
+    }
+
     const alreadySyncedThisUser = previousUserIdRef.current === userId;
     previousUserIdRef.current = userId;
 
-    if (alreadySyncedThisUser || accountSyncInFlightRef.current) {
-      return;
-    }
+    if (alreadySyncedThisUser) return;
 
     setAccountMessage(copyRef.current.auth.signedIn);
 
     let cancelled = false;
     accountSyncInFlightRef.current = true;
+    accountSyncUserIdRef.current = userId;
     setAccountMessage(copyRef.current.auth.syncingSession);
 
     void (async () => {
@@ -77,13 +98,21 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
         setAccountMessage(copyRef.current.auth.syncFailed);
       } finally {
         accountSyncInFlightRef.current = false;
+        accountSyncUserIdRef.current = null;
+        const needsFollowUp =
+          accountSyncFollowUpRef.current || currentUserIdRef.current !== userId;
+        accountSyncFollowUpRef.current = false;
+        if (needsFollowUp) {
+          previousUserIdRef.current = null;
+          setAccountSyncGeneration((generation) => generation + 1);
+        }
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [authReady, cloudConfigured, userId]);
+  }, [authReady, cloudConfigured, userId, accountSyncGeneration]);
 
   async function handleGitHubSignIn() {
     if (!cloudConfigured || signingIn) return;

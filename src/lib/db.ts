@@ -139,12 +139,32 @@ class KlipCodeDatabase extends Dexie {
 
 export const db = new KlipCodeDatabase();
 
-function matchesOwner(ownerId: string | null, currentUserId: string | null) {
+export function matchesOwner(ownerId: string | null, currentUserId: string | null): boolean {
   if (!currentUserId) {
     return ownerId === null;
   }
 
   return ownerId === null || ownerId === currentUserId;
+}
+
+/**
+ * Read every local record that belongs to the active workspace, including trash.
+ * Mutations use this instead of unfiltered table scans so a stale clipboard,
+ * selection, or shared-device database can never make an account operate on
+ * another account's rows.
+ */
+export async function readAllWorkspaceRecords(
+  currentUserId: string | null,
+): Promise<WorkspaceSnapshot> {
+  const [folders, snippets] = await Promise.all([
+    db.folders.toArray(),
+    db.snippets.toArray(),
+  ]);
+
+  return {
+    folders: folders.filter((folder) => matchesOwner(folder.ownerId, currentUserId)),
+    snippets: snippets.filter((snippet) => matchesOwner(snippet.ownerId, currentUserId)),
+  };
 }
 
 function isPinned(record: { isPinnedAside: boolean }) {
@@ -170,10 +190,7 @@ function sortSnippets(left: SnippetRecord, right: SnippetRecord) {
 export async function readWorkspace(
   currentUserId: string | null
 ): Promise<WorkspaceSnapshot> {
-  const [folders, snippets] = await Promise.all([
-    db.folders.toArray(),
-    db.snippets.toArray(),
-  ]);
+  const { folders, snippets } = await readAllWorkspaceRecords(currentUserId);
 
   return {
     folders: folders
@@ -187,16 +204,13 @@ export async function readWorkspace(
 
 /**
  * Read the trashed (soft-deleted) records for the current owner, newest deletion
- * first. The trash is device-local: it holds rows whose `deletedAt` is set, which
- * `readWorkspace` excludes from the normal workspace.
+ * first. It holds rows whose `deletedAt` is set, which `readWorkspace` excludes
+ * from the normal workspace; the field is also synced to the cloud.
  */
 export async function readTrash(
   currentUserId: string | null
 ): Promise<WorkspaceSnapshot> {
-  const [folders, snippets] = await Promise.all([
-    db.folders.toArray(),
-    db.snippets.toArray(),
-  ]);
+  const { folders, snippets } = await readAllWorkspaceRecords(currentUserId);
 
   const byDeletedAtDesc = <T extends { deletedAt: string | null }>(left: T, right: T) =>
     (right.deletedAt ?? "").localeCompare(left.deletedAt ?? "");
@@ -217,10 +231,7 @@ export async function getDirtyWorkspace(
   // Reads directly (not via readWorkspace) so trashed records are included: a
   // soft delete sets `dirty` + `deletedAt` and must be uploaded so the trash
   // syncs to the cloud and other devices.
-  const [folders, snippets] = await Promise.all([
-    db.folders.toArray(),
-    db.snippets.toArray(),
-  ]);
+  const { folders, snippets } = await readAllWorkspaceRecords(currentUserId);
 
   return {
     folders: folders
