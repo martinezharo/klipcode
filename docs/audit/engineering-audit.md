@@ -98,7 +98,7 @@ At the end of this audit:
 
 ## External Workers Build follow-up
 
-The final PR SHA `2f4c1d8` passed the repository's GitHub `verify` check, but the external `Workers Builds: klipcode` check reported `FAILURE`. The same Workers Build check passed at `f48a3cc` and began failing after the dependency/toolchain refresh.
+The dependency-bearing PR SHA `2f4c1d8` and the documentation-only follow-up `1ec3b6a` both passed the repository's GitHub `verify` check, but the external `Workers Builds: klipcode` check reported `FAILURE` for each. The same Workers Build check passed at `f48a3cc` and began failing after the dependency/toolchain refresh.
 
 The GitHub check only exposes the Cloudflare build ID; the build log endpoint requires a Cloudflare API token with Workers CI read permission, which was not available to this audit session. Because the exact remote error is unavailable, no speculative dependency rollback or deployment-setting change was pushed. The next operational action is to inspect that build's Cloudflare log and verify the connected trigger's build/deploy commands and build variables. Cloudflare's documented preview flow uses a separate non-production version-upload command, so both the build and preview deploy commands should be checked.
 
