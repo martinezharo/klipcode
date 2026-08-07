@@ -130,6 +130,40 @@ describe("push", () => {
     expect(snippets[0].title).toBe("newer");
   });
 
+  it("does not let a stale folder move poison cycle validation", async () => {
+    await as(alice).mutation(api.workspace.push, {
+      folders: [folder("a"), folder("b", { parentId: "a" })],
+      snippets: [],
+    });
+
+    await as(alice).mutation(api.workspace.push, {
+      folders: [
+        // This move is older than the stored root relationship and must be
+        // ignored when the complete post-write graph is assembled.
+        folder("a", { parentId: "b", updatedAt: "2023-01-01T00:00:00.000Z" }),
+        folder("c", { parentId: "b", updatedAt: "2024-06-01T00:00:00.000Z" }),
+      ],
+      snippets: [],
+    });
+
+    const { folders } = await as(alice).query(api.workspace.list, {});
+    expect(folders.find((item) => item.clientId === "a")?.parentId).toBeNull();
+    expect(folders.find((item) => item.clientId === "c")?.parentId).toBe("b");
+  });
+
+  it("rejects duplicate logical records in one batch", async () => {
+    await expect(
+      as(alice).mutation(api.workspace.push, {
+        folders: [folder("duplicate"), folder("duplicate", { name: "second" })],
+        snippets: [],
+      }),
+    ).rejects.toThrow("Duplicate folder clientId");
+
+    await expect(
+      as(alice).query(api.workspace.list, {}),
+    ).resolves.toEqual({ folders: [], snippets: [] });
+  });
+
   it("rejects a batch that would make a folder its own ancestor", async () => {
     await as(alice).mutation(api.workspace.push, {
       folders: [folder("a"), folder("b", { parentId: "a" })],
