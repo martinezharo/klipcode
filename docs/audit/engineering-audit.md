@@ -93,6 +93,13 @@ At the end of this audit:
 - `pnpm exec tsc --noEmit`: passed.
 - `NEXT_TELEMETRY_DISABLED=1 KLIPCODE_REMOTE_BINDINGS=false pnpm exec next build`: passed. The only build warning is Next's framework notice that the `middleware` filename convention is deprecated in favor of `proxy`.
 - Cached Playwright/Chromium smoke test: `/en/app` and `/es/app` returned `200`, localized titles/content were present, the locale URL normalized correctly, and no page/request errors were recorded. The English workspace interaction opened the Root control and found zero unlabeled non-hidden buttons.
+- Cloudflare-specific local validation: `pnpm exec opennextjs-cloudflare build`, `pnpm exec wrangler deploy --dry-run`, `pnpm exec wrangler versions upload --dry-run`, and the OpenNext Wrangler preview all passed. The preview served both localized routes with `200` responses and no browser errors.
 - T3 collaborative preview was unavailable in this environment; `preview_status` and `preview_open` both returned an explicit unavailable-host result, so the isolated cached-browser run was used instead.
+
+## External Workers Build follow-up
+
+The final PR SHA `2f4c1d8` passed the repository's GitHub `verify` check, but the external `Workers Builds: klipcode` check reported `FAILURE`. The same Workers Build check passed at `f48a3cc` and began failing after the dependency/toolchain refresh.
+
+The GitHub check only exposes the Cloudflare build ID; the build log endpoint requires a Cloudflare API token with Workers CI read permission, which was not available to this audit session. Because the exact remote error is unavailable, no speculative dependency rollback or deployment-setting change was pushed. The next operational action is to inspect that build's Cloudflare log and verify the connected trigger's build/deploy commands and build variables. Cloudflare's documented preview flow uses a separate non-production version-upload command, so both the build and preview deploy commands should be checked.
 
 Re-run `pnpm audit --prod` before release because advisory counts and transitive resolutions change independently of application code.
