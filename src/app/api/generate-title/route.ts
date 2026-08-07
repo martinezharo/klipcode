@@ -40,7 +40,13 @@ async function readRequestBody(request: Request): Promise<{ body?: string; tooLa
       if (done) break;
       totalBytes += value.byteLength;
       if (totalBytes > MAX_TITLE_REQUEST_BYTES) {
-        await reader.cancel();
+        try {
+          await reader.cancel();
+        } catch {
+          // The size limit has already been established; a source stream may
+          // reject cancellation while it is closing, but that must not turn a
+          // well-defined 413 into the generic malformed-body response.
+        }
         return { tooLarge: true };
       }
       chunks.push(value);

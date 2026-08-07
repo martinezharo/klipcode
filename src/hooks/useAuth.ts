@@ -155,13 +155,16 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
     try {
       const signedOutUserId = userId;
       await session.signOut();
+      // Drop the in-memory key before IndexedDB cleanup. If storage cleanup
+      // fails, the signed-out account must still not retain a usable key.
+      clearWorkspaceEncryptionKey();
       // Wipe this account's local data so it isn't readable on a shared machine.
       // Synced data comes back from the cloud on the next sign-in.
       if (signedOutUserId) await clearOwnedData(signedOutUserId);
-      // The in-memory encryption key goes with it.
-      clearWorkspaceEncryptionKey();
       setAccountMessage(cloudConfigured ? copy.auth.guestMode : copy.auth.notConfigured);
       refreshRef.current();
+    } catch {
+      setAccountMessage(copy.auth.syncFailed);
     } finally {
       setSigningOut(false);
     }
