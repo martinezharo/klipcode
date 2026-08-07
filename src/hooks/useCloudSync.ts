@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { AccountUser } from "@/lib/types";
+import { useLatestRef } from "@/hooks/useLatestRef";
 import { getDirtyWorkspace, getPendingTombstones } from "@/lib/db";
 import { fetchCloudWorkspace, syncDirtyWorkspace, syncTombstones } from "@/lib/sync";
 import type { Dictionary } from "@/i18n";
@@ -42,14 +43,10 @@ export function useCloudSync({
   const syncErrorCountRef = useRef(0);
 
   // Refs for stable access inside async callbacks
-  const userRef = useRef(user);
-  userRef.current = user;
-  const refreshRef = useRef(refreshWorkspace);
-  refreshRef.current = refreshWorkspace;
-  const setAccountMessageRef = useRef(setAccountMessage);
-  setAccountMessageRef.current = setAccountMessage;
-  const copyRef = useRef(copy);
-  copyRef.current = copy;
+  const userRef = useLatestRef(user);
+  const refreshRef = useLatestRef(refreshWorkspace);
+  const setAccountMessageRef = useLatestRef(setAccountMessage);
+  const copyRef = useLatestRef(copy);
 
   function setSnippetStatus(snippetId: string, status: SyncStatus) {
     setSnippetStatuses((prev) => ({ ...prev, [snippetId]: status }));
@@ -177,8 +174,7 @@ export function useCloudSync({
     }
   }
 
-  const runCloudPullRef = useRef(runCloudPull);
-  runCloudPullRef.current = runCloudPull;
+  const runCloudPullRef = useLatestRef(runCloudPull);
 
   function scheduleCloudSync() {
     if (!userRef.current || !cloudConfigured) return;
@@ -194,8 +190,7 @@ export function useCloudSync({
   }
 
   // Stable ref so the reconnect listeners below always call the latest closure.
-  const scheduleCloudSyncRef = useRef(scheduleCloudSync);
-  scheduleCloudSyncRef.current = scheduleCloudSync;
+  const scheduleCloudSyncRef = useLatestRef(scheduleCloudSync);
 
   // Flush whatever this device still owes the cloud as soon as an account is
   // known. Without this the loop is driven only by user edits and by
@@ -228,7 +223,7 @@ export function useCloudSync({
     return () => {
       cancelled = true;
     };
-  }, [cloudConfigured, user]);
+  }, [cloudConfigured, user, scheduleCloudSyncRef]);
 
   // Cleanup sync timers on unmount
   useEffect(() => {
@@ -267,7 +262,7 @@ export function useCloudSync({
       window.removeEventListener("focus", resume);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [cloudConfigured]);
+  }, [cloudConfigured, runCloudPullRef, scheduleCloudSyncRef]);
 
   return { snippetStatuses, setSnippetStatus, settleLocally, scheduleCloudSync };
 }

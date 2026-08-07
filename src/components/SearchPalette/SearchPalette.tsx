@@ -100,11 +100,6 @@ export function SearchPalette({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, snippets, foldersById, copy.snippetCard.untitled]);
 
-  // Keep the active row in range and visible as results change.
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
-
   function choose(index: number) {
     const result = results[index];
     if (!result) return;
@@ -174,7 +169,10 @@ export function SearchPalette({
             aria-autocomplete="list"
             aria-activedescendant={results.length > 0 ? optionId(activeIndex) : undefined}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setActiveIndex(0);
+            }}
             placeholder={t.placeholder}
             className="w-full bg-transparent text-sm text-foreground placeholder:text-faint outline-none"
           />

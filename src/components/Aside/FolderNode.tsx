@@ -42,7 +42,6 @@ export function FolderNode({
   useEffect(() => {
     // Intentional: auto-expand this folder the moment inline folder creation
     // starts here. A synchronize-on-transition effect, guarded by the prev ref.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isCreatingHere && !prevCreating.current) setIsOpen(true);
     prevCreating.current = isCreatingHere;
   }, [isCreatingHere]);
