@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { extractPastedUrl } from "@/components/MarkdownPreview/pastedUrl";
+import { extractPastedUrl, isValidLinkUrl } from "@/components/MarkdownPreview/pastedUrl";
 
 describe("extractPastedUrl", () => {
   it("accepts a plain http(s) URL", () => {
@@ -30,5 +30,20 @@ describe("extractPastedUrl", () => {
     expect(extractPastedUrl("javascript:alert(1)")).toBeNull();
     expect(extractPastedUrl("www.example.com")).toBeNull();
     expect(extractPastedUrl("example.com")).toBeNull();
+  });
+});
+
+describe("isValidLinkUrl", () => {
+  it("accepts http(s), bare hosts and mailto URLs", () => {
+    expect(isValidLinkUrl("https://example.com/docs")).toBe(true);
+    expect(isValidLinkUrl("example.com/docs")).toBe(true);
+    expect(isValidLinkUrl("mailto:person@example.com")).toBe(true);
+  });
+
+  it("rejects unsafe schemes and malformed mailto URLs", () => {
+    expect(isValidLinkUrl("javascript:alert(1)")).toBe(false);
+    expect(isValidLinkUrl("data:text/html,hello")).toBe(false);
+    expect(isValidLinkUrl("mailto:not-an-address")).toBe(false);
+    expect(isValidLinkUrl("https://")).toBe(false);
   });
 });

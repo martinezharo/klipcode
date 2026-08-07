@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Link as LinkIcon } from "lucide-react";
 
 import { useDialogA11y } from "@/hooks/useDialogA11y";
+import { isValidLinkUrl } from "./pastedUrl";
 
 interface LinkDialogProps {
   /** Current href of the mark, if any (drives "edit" vs "insert" wording). */
@@ -24,21 +25,6 @@ interface LinkDialogProps {
   onSubmit: (url: string) => void;
   /** Called when the user explicitly removes an existing link. */
   onRemove: () => void;
-}
-
-// Minimal, dependency-free URL validity check — accepts anything that parses
-// with a scheme+routed via `URL`, or a bare host the Link extension would also
-// autolink. Keeps the dialog self-contained and SSR-safe.
-function isValidUrl(value: string): boolean {
-  const trimmed = value.trim();
-  if (!trimmed) return false;
-  try {
-    const url = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
-    if (!url.hostname) return false;
-    return url.protocol === "http:" || url.protocol === "https:" || url.protocol === "mailto:";
-  } catch {
-    return false;
-  }
 }
 
 export function LinkDialog({ initialHref, copy, onCancel, onSubmit, onRemove }: LinkDialogProps) {
@@ -62,11 +48,11 @@ export function LinkDialog({ initialHref, copy, onCancel, onSubmit, onRemove }: 
   }, []);
 
   const trimmed = value.trim();
-  const showError = touched && trimmed !== "" && !isValidUrl(trimmed);
+  const showError = touched && trimmed !== "" && !isValidLinkUrl(trimmed);
 
   const submit = () => {
     setTouched(true);
-    if (!isValidUrl(trimmed)) return;
+    if (!isValidLinkUrl(trimmed)) return;
     onSubmit(trimmed);
   };
 
