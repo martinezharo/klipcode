@@ -18,6 +18,7 @@ No critical unresolved vulnerability was found in the reviewed code paths. The i
 - `1f03ada` refreshed the stable Cloudflare/Next build toolchain and replaced render-time ref mutations with an effect-safe reusable `useLatestRef` hook. It also removed an effect-based search reset in favor of the input event.
 - `739fd6d` clears the in-memory encryption key immediately after a successful sign-out, before IndexedDB cleanup can fail. It also preserves the API's `413` response if stream cancellation rejects.
 - `91f79c0` fixed manual `mailto:` link validation and added coverage for accepted and rejected schemes.
+- Removed the server-side Open Graph renderer and isolated the browser-owned workspace behind a client-only entry point. This keeps the editor's CodeMirror, lowlight, and optional Prettier graph out of the Cloudflare Worker while retaining static social metadata.
 
 ## Findings intentionally deferred
 
@@ -93,13 +94,17 @@ At the end of this audit:
 - `pnpm exec tsc --noEmit`: passed.
 - `NEXT_TELEMETRY_DISABLED=1 KLIPCODE_REMOTE_BINDINGS=false pnpm exec next build`: passed. The only build warning is Next's framework notice that the `middleware` filename convention is deprecated in favor of `proxy`.
 - Cached Playwright/Chromium smoke test: `/en/app` and `/es/app` returned `200`, localized titles/content were present, the locale URL normalized correctly, and no page/request errors were recorded. The English workspace interaction opened the Root control and found zero unlabeled non-hidden buttons.
-- Cloudflare-specific local validation: `pnpm exec opennextjs-cloudflare build`, `pnpm exec wrangler deploy --dry-run`, `pnpm exec wrangler versions upload --dry-run`, and the OpenNext Wrangler preview all passed. The preview served both localized routes with `200` responses and no browser errors.
+- Cloudflare-specific local validation: `pnpm exec opennextjs-cloudflare build`, `pnpm exec wrangler deploy --dry-run`, and the OpenNext Wrangler preview all passed. After the bundle fix, `pnpm exec wrangler versions upload --dry-run` reported `1,191.77 KiB` gzip (down from `3,691.46 KiB`), with the Worker comfortably below the free 3 MiB script limit. The preview served both localized routes with `200` responses, verified the static social image, loaded the client-only workspace, and recorded no browser errors.
 - T3 collaborative preview was unavailable in this environment; `preview_status` and `preview_open` both returned an explicit unavailable-host result, so the isolated cached-browser run was used instead.
 
 ## External Workers Build follow-up
 
 The dependency-bearing PR SHA `2f4c1d8` and the documentation-only follow-up `1ec3b6a` both passed the repository's GitHub `verify` check, but the external `Workers Builds: klipcode` check reported `FAILURE` for each. The same Workers Build check passed at `f48a3cc` and began failing after the dependency/toolchain refresh.
 
-The GitHub check only exposes the Cloudflare build ID; the build log endpoint requires a Cloudflare API token with Workers CI read permission, which was not available to this audit session. Because the exact remote error is unavailable, no speculative dependency rollback or deployment-setting change was pushed. The next operational action is to inspect that build's Cloudflare log and verify the connected trigger's build/deploy commands and build variables. Cloudflare's documented preview flow uses a separate non-production version-upload command, so both the build and preview deploy commands should be checked.
+The supplied Cloudflare log identified the failure precisely: installation and the OpenNext build completed, but `wrangler versions upload` rejected the generated Worker with error `10027` because the free plan's 3 MiB script limit was exceeded. The generated handler was listed at `17,129.60 KiB`; the upload also included the `next/og` Resvg WASM renderer (`1,346.05 KiB`) and produced a `4,512.26 KiB` gzip upload. The duplicate-case warning in generated code was non-fatal.
+
+The fix removes the dynamic `next/og` routes in favor of the existing static landing image and renders the authenticated, IndexedDB-owned workspace through a client-only entry point. The latter prevents the editor's server graph from pulling CodeMirror, lowlight, and the optional Prettier formatter into the Worker. The local dry-run now reports `1,191.77 KiB` gzip and no longer contains those dependencies. This is a deployment-size correction, not a change to sync, encryption, or workspace data semantics.
+
+Cloudflare's [Workers Builds API reference](https://developers.cloudflare.com/workers/ci-cd/builds/api-reference/) and [build configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/) describe the separate build and deploy commands used by the connected trigger. The next push should be monitored for the external `Workers Builds: klipcode` result, because the local dry-run cannot replace Cloudflare's final account-limit validation.
 
 Re-run `pnpm audit --prod` before release because advisory counts and transitive resolutions change independently of application code.
