@@ -3,7 +3,7 @@
 import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Menu } from "lucide-react";
+import { ArrowLeft, Menu } from "lucide-react";
 
 import { readTrash } from "@/lib/db";
 import { readInitialWorkspace } from "@/lib/seed";
@@ -25,6 +25,8 @@ import { useTheme } from "@/hooks/useTheme";
 import { AccountToast } from "@/components/AccountToast/AccountToast";
 import { CopyToast } from "@/components/CopyToast/CopyToast";
 import { Aside } from "@/components/Aside/Aside";
+import type { WorkspaceShellProps } from "@/components/Aside/types";
+import { MobileHome } from "@/components/MobileHome/MobileHome";
 import { ConfirmDialog } from "@/components/ConfirmDialog/ConfirmDialog";
 import { CreateSnippetModal } from "@/components/CreateSnippetModal/CreateSnippetModal";
 import { CreatedSnippetToast } from "@/components/CreatedSnippetToast/CreatedSnippetToast";
@@ -280,7 +282,22 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     overlayOpen: searchOpen || helpOpen || prefsOpen || pendingEmptyTrash || createModalOpen,
   });
 
-  const menuButton = !sidebarOpen ? (
+  /**
+   * Escape hatch back to the workspace, shown in the editor / folder / trash
+   * headers. On desktop it re-opens the collapsed aside; on touch there is no
+   * aside to open, so it navigates back to the mobile home — which is the only
+   * way back now that the drawer and its edge-swipe gesture are gone.
+   */
+  const menuButton = isMobile ? (
+    <button
+      type="button"
+      aria-label={copy.aside.mySpace}
+      onClick={() => navigate(base)}
+      className="-ml-1.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-ink/50 transition-colors active:bg-ink/6"
+    >
+      <ArrowLeft size={19} />
+    </button>
+  ) : !sidebarOpen ? (
     <Tooltip content={copy.aside.open} placement="bottom">
       <button
         type="button"
@@ -300,6 +317,51 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
       {menuButton}
     </div>
   );
+
+  /**
+   * Everything both workspace shells need. The desktop aside and the mobile
+   * home render the same tree, so this is declared once and spread into
+   * whichever shell is active.
+   */
+  const shellProps: WorkspaceShellProps = {
+    user: auth.user,
+    authReady: auth.authReady,
+    folders,
+    snippets,
+    copy,
+    clipboard,
+    selectedSnippetId,
+    selectedFolderId,
+    onSelectSnippet: (id) => navigate(`${base}?snippet=${id}`),
+    onSelectFolder: (folderId) => navigate(`${base}?folder=${folderId}`),
+    onGoSpace: () => navigate(`${base}?folder=${SPACE_ROOT_ID}`),
+    onOpenCreateModal: openCreateModal,
+    onCreateFolder: mutations.handleCreateFolder,
+    onDeleteFolder: mutations.handleDeleteFolder,
+    onDeleteSnippet: mutations.handleDeleteSnippet,
+    onDeleteMany: mutations.handleDeleteMany,
+    onRenameFolder: mutations.handleRenameFolder,
+    onRenameSnippet: mutations.handleRenameSnippet,
+    onPinFolder: mutations.handlePinFolder,
+    onPinSnippet: mutations.handlePinSnippet,
+    onCut: setClipboard,
+    onCopy: (entry) => setClipboard({ ...entry, type: "copy" }),
+    onPaste: mutations.handlePaste,
+    onOpenSearch: () => setSearchOpen(true),
+    onOpenPreferences: () => setPrefsOpen(true),
+    onSignIn: auth.handleGitHubSignIn,
+    onSignOut: auth.handleSignOut,
+    signingIn: auth.signingIn,
+    signingOut: auth.signingOut,
+    onOpenTrash: () => navigate(`${base}?folder=${TRASH_ROOT_ID}`),
+    onRestoreAll: () => void mutations.handleRestoreAll(),
+    onEmptyTrash: () => setPendingEmptyTrash(true),
+    trashCount,
+  };
+
+  /** No snippet, folder or trash view open — the workspace itself is showing. */
+  const atWorkspaceRoot =
+    !selectedSnippet && !snippetNotFound && !isTrashView && !selectedFolderId;
 
   /* ── Render ───────────────────────────────────────────────────────────── */
 
@@ -349,52 +411,30 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
       }}
       onRestoreMany={(items, targetFolderId) => void mutations.handleRestoreMany(items, targetFolderId)}
     >
+    {/* Touch layout at the workspace root: the tree is the screen, not a
+        drawer over it. Every other view (editor, folder, trash) keeps the
+        shared layout below and gets a back button into this one. */}
+    {isMobile && atWorkspaceRoot ? (
+      <>
+        <AccountToast message={auth.accountMessage} />
+        <MobileHome {...shellProps} />
+      </>
+    ) : (
     <div className="flex h-screen overflow-hidden">
       {/* Lets keyboard users jump past the sidebar tree straight to the canvas. */}
       <a href="#main-content" className="klipcode-skip-link">
         {copy.common.skipToContent}
       </a>
 
-      <Aside
-        user={auth.user}
-        authReady={auth.authReady}
-        folders={folders}
-        snippets={snippets}
-        copy={copy}
-        clipboard={clipboard}
-        isOpen={sidebarOpen}
-        isMobile={isMobile}
-        onSetOpen={setSidebarOpen}
-        onSelectSnippet={(id) => navigate(`${base}?snippet=${id}`)}
-        onGoHome={() => navigate(base)}
-        onOpenSearch={() => setSearchOpen(true)}
-        onOpenShortcuts={() => setHelpOpen(true)}
-        onOpenPreferences={() => setPrefsOpen(true)}
-        onGoSpace={() => navigate(`${base}?folder=${SPACE_ROOT_ID}`)}
-        onOpenCreateModal={openCreateModal}
-        onCreateFolder={mutations.handleCreateFolder}
-        onDeleteFolder={mutations.handleDeleteFolder}
-        onDeleteSnippet={mutations.handleDeleteSnippet}
-        onDeleteMany={mutations.handleDeleteMany}
-        onRenameFolder={mutations.handleRenameFolder}
-        onRenameSnippet={mutations.handleRenameSnippet}
-        onPinFolder={mutations.handlePinFolder}
-        onPinSnippet={mutations.handlePinSnippet}
-        onCut={setClipboard}
-        onCopy={(entry) => setClipboard({ ...entry, type: "copy" })}
-        onPaste={mutations.handlePaste}
-        onSignIn={auth.handleGitHubSignIn}
-        onSignOut={auth.handleSignOut}
-        signingIn={auth.signingIn}
-        signingOut={auth.signingOut}
-        onSelectFolder={(folderId) => navigate(`${base}?folder=${folderId}`)}
-        onOpenTrash={() => navigate(`${base}?folder=${TRASH_ROOT_ID}`)}
-        onRestoreAll={() => void mutations.handleRestoreAll()}
-        onEmptyTrash={() => setPendingEmptyTrash(true)}
-        trashCount={trashCount}
-        selectedSnippetId={selectedSnippetId}
-        selectedFolderId={selectedFolderId}
-      />
+      {!isMobile && (
+        <Aside
+          {...shellProps}
+          isOpen={sidebarOpen}
+          onSetOpen={setSidebarOpen}
+          onGoHome={() => navigate(base)}
+          onOpenShortcuts={() => setHelpOpen(true)}
+        />
+      )}
 
       <div className="relative flex flex-1 flex-col overflow-hidden">
         <AccountToast message={auth.accountMessage} />
@@ -529,6 +569,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         )}
       </div>
     </div>
+    )}
 
     {searchOpen && (
       <SearchPalette

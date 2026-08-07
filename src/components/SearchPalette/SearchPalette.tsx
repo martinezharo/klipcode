@@ -212,7 +212,7 @@ export function SearchPalette({
                   onMouseMove={() => setActiveIndex(index)}
                   onClick={() => choose(index)}
                   className={[
-                    "flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors",
+                    "flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 text-left transition-colors max-lg:min-h-11 lg:py-2",
                     isActive ? "bg-ink/[0.08]" : "hover:bg-ink/[0.04]",
                   ].join(" ")}
                 >

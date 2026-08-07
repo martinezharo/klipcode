@@ -3,6 +3,7 @@
 import { useId } from "react";
 import { createPortal } from "react-dom";
 import { Keyboard, X } from "lucide-react";
+import { IconButton } from "@/ui/IconButton";
 
 import type { Dictionary } from "@/i18n";
 import { useDialogA11y } from "@/hooks/useDialogA11y";
@@ -59,14 +60,13 @@ export function ShortcutsDialog({ copy, onClose }: ShortcutsDialogProps) {
           <h2 id={titleId} className="flex-1 text-sm font-medium text-foreground">
             {t.title}
           </h2>
-          <button
-            type="button"
+          <IconButton
             aria-label={copy.common.close}
             onClick={onClose}
-            className="-mr-1 rounded-md p-1 text-ink/45 transition-colors hover:bg-ink/6 hover:text-ink/80"
+            className="-mr-1 text-ink/45 hover:bg-ink/6 hover:text-ink/80 lg:p-1"
           >
             <X size={15} aria-hidden="true" />
-          </button>
+          </IconButton>
         </div>
 
         {/* Body */}

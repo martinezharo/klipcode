@@ -9,7 +9,8 @@ import { ItemActions } from "./ItemActions";
 import { PinnedAccent } from "./PinnedAccent";
 import { NewFolderInput } from "./NewFolderInput";
 import { SnippetNode } from "./SnippetNode";
-import { STEP, sortByPinThenAlpha, suppressRowDragStart } from "./utils";
+import { ROW_LEAD_SPACER, STEP, sortByPinThenAlpha, suppressRowDragStart, treeRowClass } from "./utils";
+import { IconButton } from "@/ui/IconButton";
 
 export function FolderNode({
   folder,
@@ -68,16 +69,12 @@ export function FolderNode({
   // are only part of a multi-selection get a borderless fill.
   const isActive = ctx.selectedFolderId === folder.id;
   const isMultiSelected = ctx.isItemSelected(folder.id) && !isActive;
-  const sharedRowClass = [
-    "group relative mr-1 flex items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] transition-all duration-100",
-    isActive
-      ? "bg-ink/[0.08] text-foreground ring-1 ring-inset ring-ink/25"
-      : isMultiSelected
-        ? "bg-ink/[0.08] text-foreground"
-        : "text-muted hover:bg-ink/[0.04] hover:text-foreground",
-    isDraggingThis ? "opacity-40" : "",
-    isDropTarget ? "bg-ink/[0.07] text-foreground ring-1 ring-inset ring-ink/[0.18]" : "",
-  ].filter(Boolean).join(" ");
+  const sharedRowClass = treeRowClass({
+    isActive,
+    isMultiSelected,
+    isDragging: isDraggingThis,
+    isDropTarget,
+  });
   const hasChildren = childFolders.length > 0 || childSnippets.length > 0;
   const isAnyCreatingHere = isCreatingHere;
 
@@ -89,10 +86,14 @@ export function FolderNode({
           style={{ paddingLeft }}
           onContextMenu={openContextMenu}
         >
-          <ChevronRight
-            size={13}
-            className={`shrink-0 text-ink/25 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
-          />
+          {/* Matches the chevron button's footprint so the row doesn't shift
+              sideways when it flips into rename mode. */}
+          <span className={`${ROW_LEAD_SPACER} flex items-center justify-center`} aria-hidden="true">
+            <ChevronRight
+              size={13}
+              className={`text-ink/25 transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
+            />
+          </span>
           {isOpen && hasChildren ? (
             <FolderOpen size={13} className="shrink-0 text-ink/25" />
           ) : (
@@ -160,10 +161,9 @@ export function FolderNode({
         >
           <PinnedAccent pinned={!!folder.isPinnedAside} label={ctx.copy.aside.pinned} />
           <Tooltip content={isOpen ? ctx.copy.aside.collapseFolder : ctx.copy.aside.expandFolder}>
-            <button
-              type="button"
+            <IconButton
               data-no-drag=""
-              className="flex h-4 w-4 shrink-0 items-center justify-center text-ink/25 transition-colors hover:text-ink/45"
+              className="text-ink/25 hover:text-ink/45 lg:h-4 lg:w-4"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsOpen((value) => !value);
@@ -171,10 +171,10 @@ export function FolderNode({
               aria-label={isOpen ? ctx.copy.aside.collapseFolder : ctx.copy.aside.expandFolder}
             >
               <ChevronRight
-                size={13}
+                size={14}
                 className={`transition-transform duration-150 ${isOpen ? "rotate-90" : ""}`}
               />
-            </button>
+            </IconButton>
           </Tooltip>
 
           {/* Presentational: the row itself is the activation target, so this

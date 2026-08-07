@@ -9,7 +9,7 @@ import { GeneratingTitle, useIsGeneratingTitle } from "@/components/TitleGenerat
 import { useAsideCtx } from "./AsideContext";
 import { ItemActions } from "./ItemActions";
 import { PinnedAccent } from "./PinnedAccent";
-import { STEP, suppressRowDragStart } from "./utils";
+import { STEP, suppressRowDragStart, treeRowClass, ROW_LEAD_SPACER } from "./utils";
 
 /**
  * The inline rename input for a snippet row. Controlled so the filename's
@@ -37,6 +37,7 @@ function RenameRow({
 
   return (
     <div className={className} style={{ paddingLeft }} onContextMenu={onContextMenu}>
+      <span className={ROW_LEAD_SPACER} aria-hidden="true" />
       <LanguageIcon language={previewLanguage} size={13} className="shrink-0" />
       <input
         autoFocus
@@ -61,21 +62,19 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
 
   const displayName = getSnippetDisplayName(snippet.title, snippet.language, ctx.copy.snippetCard.untitled);
 
-  const paddingLeft = 10 + depth * STEP + 19;
+  // The chevron slot is a spacer inside the row (see ROW_LEAD_SPACER), so the
+  // indent here only has to account for depth.
+  const paddingLeft = 10 + depth * STEP;
   const isDraggingThis = ctx.isDraggingItem(snippet.id);
   // The active row (open in the main view) gets a bordered highlight; rows that
   // are only part of a multi-selection get a borderless fill.
   const isActive = ctx.selectedSnippetId === snippet.id;
   const isMultiSelected = ctx.isItemSelected(snippet.id) && !isActive;
-  const sharedRowClass = [
-    "group relative mr-1 flex items-center gap-1.5 rounded-md py-[5px] pr-2 text-left text-[13px] transition-all duration-100",
-    isActive
-      ? "bg-ink/[0.08] text-foreground ring-1 ring-inset ring-ink/25"
-      : isMultiSelected
-        ? "bg-ink/[0.08] text-foreground"
-        : "text-muted hover:bg-ink/[0.04] hover:text-foreground",
-    isDraggingThis ? "opacity-40" : "",
-  ].filter(Boolean).join(" ");
+  const sharedRowClass = treeRowClass({
+    isActive,
+    isMultiSelected,
+    isDragging: isDraggingThis,
+  });
 
   function openContextMenu(e: React.MouseEvent) {
     e.preventDefault();
@@ -131,6 +130,7 @@ export function SnippetNode({ snippet, depth }: { snippet: SnippetRecord; depth:
       style={{ paddingLeft }}
     >
       <PinnedAccent pinned={!!snippet.isPinnedAside} label={ctx.copy.aside.pinned} />
+      <span className={ROW_LEAD_SPACER} aria-hidden="true" />
       <span className="flex min-w-0 flex-1 items-center gap-1.5">
         <LanguageIcon language={snippet.language} size={13} className="shrink-0" />
         {isGeneratingTitle ? (

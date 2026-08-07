@@ -99,6 +99,9 @@ export const es = {
     snippetNotFoundTitle: "Snippet no encontrado",
     snippetNotFoundDescription: "Este snippet no existe o ha sido eliminado.",
   },
+  mobileHome: {
+    recents: "Editado recientemente",
+  },
   snippetCard: {
     title: "Titulo",
     language: "Lenguaje",

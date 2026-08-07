@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { LANGUAGES, type LanguageId } from "@/lib/constants/languages";
+import { TOUCH_TARGET_Y } from "@/lib/constants/layout";
 import { LanguageIcon } from "@/ui/LanguageIcon";
 import type { Dictionary } from "@/i18n";
 
@@ -101,6 +102,7 @@ export function LanguageSelect({
         onClick={() => setOpen((v) => !v)}
         className={[
           "flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition-colors",
+          TOUCH_TARGET_Y,
           open
             ? "border-ink/20 bg-ink/[0.04] text-foreground"
             : "border-ink/[0.08] text-muted hover:border-ink/15 hover:text-foreground",

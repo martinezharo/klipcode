@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { TOUCH_TARGET_Y } from "@/lib/constants/layout";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, ChevronRight, Folder, FolderOpen } from "lucide-react";
 import type { FolderRecord } from "@/lib/types";
@@ -55,6 +56,10 @@ interface FolderSelectProps {
   copy: Dictionary["folderSelect"];
   /** CSS z-index for the portalled dropdown; raise it when used inside a dialog. */
   menuZIndex?: string;
+  /** Below `lg`, stretch the trigger to fill its row (label left, chevron at the
+   *  far edge) while keeping it visually slim — for touch footers where each
+   *  control owns a row. Above `lg` the trigger stays intrinsically sized. */
+  blockOnTouch?: boolean;
 }
 
 const INDENT = 16;
@@ -66,6 +71,7 @@ export function FolderSelect({
   rootLabel,
   copy,
   menuZIndex = "var(--z-menu)",
+  blockOnTouch = false,
 }: FolderSelectProps) {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -148,20 +154,42 @@ export function FolderSelect({
   }
 
   return (
-    <div className="relative">
+    <div className={blockOnTouch ? "relative max-lg:w-full" : "relative"}>
       <button
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={[
           "flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition-colors",
+          // Full width, but deliberately shorter than the primary action next to
+          // it: the destination is secondary and shouldn't carry the same weight.
+          // The phantom hit area keeps the finger's target at 44px regardless.
+          // Radius and type size match the submit button — stacked at equal width
+          // the two read as one pair, and a 6px/8px mismatch is visible there in
+          // a way it never is across a spread-out desktop row.
+          TOUCH_TARGET_Y,
+          blockOnTouch ? "max-lg:h-8 max-lg:w-full max-lg:rounded-lg max-lg:px-3 max-lg:text-[13px]" : "",
           open
             ? "border-ink/20 bg-ink/[0.04] text-foreground"
             : "border-ink/[0.08] text-muted hover:border-ink/15 hover:text-foreground",
         ].join(" ")}
       >
-        <Folder size={12} className="shrink-0 text-ink/30" />
-        <span className="max-w-[160px] truncate leading-none">{displayLabel}</span>
+        {/* `size` only sets the SVG's width/height attributes, so a utility class
+            wins over it — that's what lets the glyph scale at the breakpoint
+            instead of forcing a second, non-responsive prop value. It matches the
+            14px `Plus` in the submit button it stacks under on touch. */}
+        <Folder
+          size={12}
+          className={`shrink-0 text-ink/30 ${blockOnTouch ? "max-lg:size-[14px]" : ""}`}
+        />
+        <span
+          className={[
+            "truncate leading-none",
+            blockOnTouch ? "max-lg:flex-1 max-lg:text-left lg:max-w-[160px]" : "max-w-[160px]",
+          ].join(" ")}
+        >
+          {displayLabel}
+        </span>
         <ChevronDown
           size={11}
           className={`shrink-0 text-ink/30 transition-transform duration-150 ${open ? "rotate-180" : ""}`}

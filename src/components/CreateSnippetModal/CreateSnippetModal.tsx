@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 import { useDialogA11y } from "@/hooks/useDialogA11y";
+import { IconButton } from "@/ui/IconButton";
 import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
 import type { LanguageId } from "@/lib/constants/languages";
 import type { FolderRecord } from "@/lib/types";
@@ -78,14 +79,13 @@ export function CreateSnippetModal({
             <h2 id={titleId} className="text-[13px] font-medium text-ink/90">
               {copy.forms.snippetTitle}
             </h2>
-            <button
-              type="button"
+            <IconButton
               aria-label={copy.common.close}
               onClick={onClose}
-              className="rounded-md p-1 text-ink/55 transition-colors hover:bg-ink/6 hover:text-ink/80"
+              className="text-ink/55 hover:bg-ink/6 hover:text-ink/80 lg:p-1"
             >
               <X size={15} aria-hidden="true" />
-            </button>
+            </IconButton>
           </div>
 
           <NewSnippet

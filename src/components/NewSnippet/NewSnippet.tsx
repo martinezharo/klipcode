@@ -162,8 +162,17 @@ export function NewSnippet({
           />
         </div>
 
-        {/* Footer: folder selector + create button */}
-        <div className="flex items-center justify-between border-t border-ink/[0.06] px-4 py-2.5">
+        {/* Footer: folder selector + create button.
+            On touch the two controls sit on their own full-width rows — side by
+            side they squeezed the destination into a chip and the primary action
+            into a target barely wider than its own label. Destination first,
+            action last, so the button lands closest to the thumb.
+
+            Both rows are full width, but only the button is full height — the
+            destination stays a slim strip so the two don't read as equals. The
+            gap must clear the select's 44px phantom hit area (6px of overhang
+            per side) to avoid stealing taps from the button. */}
+        <div className="flex flex-col gap-2.5 border-t border-ink/[0.06] px-4 py-2.5 lg:flex-row lg:items-center lg:justify-between lg:gap-2">
           <FolderSelect
             value={folderId}
             onChange={setFolderId}
@@ -171,12 +180,13 @@ export function NewSnippet({
             rootLabel={copy.workspace.rootOption}
             copy={copy.folderSelect}
             menuZIndex={menuZIndex}
+            blockOnTouch
           />
 
           <button
             type="submit"
             disabled={!code.trim()}
-            className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-30"
+            className="flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-30 max-lg:h-11 max-lg:w-full"
           >
             <Plus size={14} strokeWidth={2.5} />
             <span>{copy.forms.submitSnippet}</span>

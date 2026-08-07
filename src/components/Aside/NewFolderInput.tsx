@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Folder } from "lucide-react";
 import { useAsideCtx } from "./AsideContext";
-import { STEP } from "./utils";
+import { ROW_LEAD_SPACER, STEP } from "./utils";
 
 export function NewFolderInput({ depth, parentId }: { depth: number; parentId: string | null }) {
   const { cancelCreateFolder, submitCreateFolder, copy } = useAsideCtx();
@@ -22,10 +22,10 @@ export function NewFolderInput({ depth, parentId }: { depth: number; parentId: s
 
   return (
     <div
-      className="flex items-center gap-1.5 py-[5px] pr-2"
+      className="flex items-center gap-1.5 pr-2 max-lg:h-11 lg:py-[5px]"
       style={{ paddingLeft: `${10 + depth * STEP}px` }}
     >
-      <span className="w-[13px] shrink-0" />
+      <span className={ROW_LEAD_SPACER} />
       <Folder size={13} className="shrink-0 text-ink/30" />
       <input
         ref={inputRef}

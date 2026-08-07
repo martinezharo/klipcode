@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef } from "react";
+import { TOUCH_TARGET_Y } from "@/lib/constants/layout";
 import { createPortal } from "react-dom";
 import { Trash2, FolderOpen, FileCode2 } from "lucide-react";
 
@@ -132,7 +133,7 @@ export function ConfirmDialog({
               ref={cancelRef}
               type="button"
               onClick={onCancel}
-              className="rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-75"
+              className={`rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-75 ${TOUCH_TARGET_Y}`}
               style={{
                 color: "rgba(var(--ink-rgb),0.7)",
                 background: "transparent",
@@ -152,7 +153,7 @@ export function ConfirmDialog({
             <button
               type="button"
               onClick={onConfirm}
-              className="rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-75"
+              className={`rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-75 ${TOUCH_TARGET_Y}`}
               style={{
                 color: "var(--danger)",
                 background: "rgba(239,68,68,0.08)",
