@@ -164,6 +164,8 @@ export const en = {
   },
   folderSelect: {
     noFolders: "No folders",
+    expandFolder: "Expand folder",
+    collapseFolder: "Collapse folder",
   },
   pinnedToHome: {
     title: "Pinned to home",

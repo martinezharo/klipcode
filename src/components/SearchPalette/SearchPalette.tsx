@@ -100,11 +100,6 @@ export function SearchPalette({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, snippets, foldersById, copy.snippetCard.untitled]);
 
-  // Keep the active row in range and visible as results change.
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
-
   function choose(index: number) {
     const result = results[index];
     if (!result) return;
@@ -138,11 +133,11 @@ export function SearchPalette({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[var(--z-dialog)] flex items-start justify-center px-4 pt-[12vh]"
+      className="fixed inset-0 klipcode-z-dialog flex items-start justify-center px-4 pt-[12vh]"
       onMouseDown={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-[var(--scrim)] backdrop-blur-sm" aria-hidden="true" />
+      <div className="absolute inset-0 klipcode-scrim backdrop-blur-sm" aria-hidden="true" />
 
       {/* Palette */}
       <div
@@ -174,7 +169,10 @@ export function SearchPalette({
             aria-autocomplete="list"
             aria-activedescendant={results.length > 0 ? optionId(activeIndex) : undefined}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setActiveIndex(0);
+            }}
             placeholder={t.placeholder}
             className="w-full bg-transparent text-sm text-foreground placeholder:text-faint outline-none"
           />

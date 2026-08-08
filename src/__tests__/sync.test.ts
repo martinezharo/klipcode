@@ -125,10 +125,16 @@ vi.mock("@/lib/convex", () => ({
 // `null` (the default) runs sync in plaintext mode, matching the pre-encryption
 // behavior every other test relies on; individual tests set a real key to
 // exercise the encrypted path.
-const cryptoTestState = vi.hoisted(() => ({ key: null as CryptoKey | null }));
+const cryptoTestState = vi.hoisted(() => ({
+  key: null as CryptoKey | null,
+  shouldFail: false,
+}));
 
 vi.mock("@/lib/encryptionKey", () => ({
-  getWorkspaceEncryptionKey: async () => cryptoTestState.key,
+  getWorkspaceEncryptionKey: async () => {
+    if (cryptoTestState.shouldFail) throw new Error("key unavailable");
+    return cryptoTestState.key;
+  },
   clearWorkspaceEncryptionKey: () => {
     cryptoTestState.key = null;
   },
@@ -231,6 +237,7 @@ beforeEach(async () => {
   cloud.snippets = [];
   currentUserId = USER;
   cryptoTestState.key = null;
+  cryptoTestState.shouldFail = false;
 });
 
 // ── Delete propagation (reconciliation) ─────────────────────────────────────────
@@ -329,6 +336,16 @@ describe("syncDirtyWorkspace() empty-code handling", () => {
     expect(stored?.dirty).toBe(false);
     expect(stored?.lastSyncedAt).toBeNull();
   });
+
+  it("does not require an encryption key for a local-only empty placeholder", async () => {
+    const placeholder = makeSnippet({ code: "", dirty: true, lastSyncedAt: null });
+    await db.snippets.add(placeholder);
+    cryptoTestState.shouldFail = true;
+
+    await expect(syncDirtyWorkspace(USER)).resolves.toMatchObject({
+      localSnippetIds: [placeholder.id],
+    });
+  });
 });
 
 // ── Batched uploads ─────────────────────────────────────────────────────────────
@@ -362,6 +379,15 @@ describe("syncDirtyWorkspace() batching", () => {
     const order = cloud.folders.map((row) => row.clientId);
     expect(order.indexOf(root.id)).toBeLessThan(order.indexOf(child.id));
     expect(order.indexOf(child.id)).toBeLessThan(order.indexOf(grandchild.id));
+  });
+
+  it("fails clearly instead of sending an oversized record forever", async () => {
+    const oversized = makeSnippet({ dirty: true, code: "x".repeat(4_100_000) });
+    await db.snippets.add(oversized);
+
+    await expect(syncDirtyWorkspace(USER)).rejects.toThrow("too large to sync");
+    expect((await db.snippets.get(oversized.id))?.dirty).toBe(true);
+    expect(cloud.snippets).toEqual([]);
   });
 });
 

@@ -256,7 +256,7 @@ function FormattingMenu({ editor, copy }: { editor: Editor; copy: MarkdownEditor
         shouldShow={({ editor, state }) =>
           !state.selection.empty && !editor.isActive("codeBlock")
         }
-        className="klipcode-bubble-menu flex items-center gap-0.5 rounded-lg border border-ink/[0.1] p-1 shadow-[var(--popover-shadow)]"
+        className="klipcode-bubble-menu flex items-center gap-0.5 rounded-lg border border-ink/[0.1] p-1 klipcode-popover-shadow"
       >
         <BubbleButton label={t.bold} active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
           <Bold size={14} />
@@ -327,7 +327,7 @@ function TableMenu({ editor, copy }: { editor: Editor; copy: MarkdownEditorCopy[
       pluginKey="tableMenu"
       shouldShow={({ editor, state }) => editor.isActive("table") && state.selection.empty}
       tippyOptions={{ duration: 120, placement: "top", maxWidth: "none" }}
-      className="klipcode-bubble-menu flex items-center gap-0.5 rounded-lg border border-ink/[0.1] p-1 shadow-[var(--popover-shadow)]"
+      className="klipcode-bubble-menu flex items-center gap-0.5 rounded-lg border border-ink/[0.1] p-1 klipcode-popover-shadow"
     >
       <BubbleButton label={copy.addColumnBefore} onClick={() => editor.chain().focus().addColumnBefore().run()}>
         <ArrowLeftToLine size={14} />

@@ -4,6 +4,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
 import { assertNoFolderCycles, collectDescendantFolderIds, type ParentLink } from "./lib/hierarchy";
+import { assertUniqueClientIds } from "./lib/sync";
 
 // ── Wire shape ──────────────────────────────────────────────────────────────
 // What crosses the wire is the record minus its ownership and Convex bookkeeping:
@@ -141,6 +142,11 @@ export const push = mutation({
       return;
     }
 
+    // Convex indexes are not unique constraints. Reject malformed batches
+    // before any insert can create two rows for the same logical record.
+    assertUniqueClientIds(args.folders, "folder");
+    assertUniqueClientIds(args.snippets, "snippet");
+
     const existingFolders = await ownedFolders(ctx, ownerId);
     const folderByClientId = new Map(existingFolders.map((folder) => [folder.clientId, folder]));
 
@@ -150,7 +156,15 @@ export const push = mutation({
       existingFolders.map((folder) => [folder.clientId, folder.parentId])
     );
     for (const folder of args.folders) {
-      links.set(folder.clientId, folder.parentId);
+      const existing = folderByClientId.get(folder.clientId);
+
+      // Build the effective post-write graph before resolving parents, but do
+      // not let a stale payload overwrite the stored relationship. Otherwise
+      // an old move can make a valid sibling update look cyclic and reject the
+      // entire transaction.
+      if (!existing || existing.updatedAt <= folder.updatedAt) {
+        links.set(folder.clientId, folder.parentId);
+      }
     }
 
     // A parent that is absent even after applying the batch was deleted on

@@ -11,6 +11,7 @@ import type { ClipboardEntry, SnippetRecord, WorkspaceSnapshot } from "@/lib/typ
 import { getDictionary } from "@/i18n";
 import { localeHref, LOCALE_COOKIE, type Locale } from "@/lib/locale";
 import { SPACE_ROOT_ID, TRASH_ROOT_ID } from "@/lib/navigation";
+import { copyTextToClipboard } from "@/lib/utils";
 import { Tooltip } from "@/ui/Tooltip";
 import { Spinner } from "@/ui/Spinner";
 
@@ -267,9 +268,9 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     },
     onCopyCurrent: () => {
       if (!selectedSnippet) return;
-      void navigator.clipboard
-        .writeText(selectedSnippet.code)
-        .then(() => setCopyNonce((n) => n + 1));
+      void copyTextToClipboard(selectedSnippet.code).then((copied) => {
+        if (copied) setCopyNonce((n) => n + 1);
+      });
     },
     onToggleSidebar: () => setSidebarOpen((v) => !v),
     onCloseEditor: () => navigate(base),

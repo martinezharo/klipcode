@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { FilePlus, FolderPlus, Layers } from "lucide-react";
 
 import { ContextMenu } from "@/components/ContextMenu/ContextMenu";
@@ -198,6 +198,28 @@ export function WorkspaceTree({
 
   /* ── Tree data ─────────────────────────────────────────────────────────── */
 
+  const foldersByParent = useMemo(() => {
+    const index = new Map<string, typeof folders>();
+    for (const folder of folders) {
+      if (folder.parentId === null) continue;
+      const children = index.get(folder.parentId) ?? [];
+      children.push(folder);
+      index.set(folder.parentId, children);
+    }
+    return index;
+  }, [folders]);
+
+  const snippetsByFolder = useMemo(() => {
+    const index = new Map<string, typeof snippets>();
+    for (const snippet of snippets) {
+      if (snippet.folderId === null) continue;
+      const children = index.get(snippet.folderId) ?? [];
+      children.push(snippet);
+      index.set(snippet.folderId, children);
+    }
+    return index;
+  }, [snippets]);
+
   const rootFolders    = folders.filter((f) => f.parentId === null);
   const rootSnippets   = snippets.filter((s) => s.folderId === null);
   const pinnedFolders  = sortByPinThenAlpha(rootFolders.filter((f) =>  f.isPinnedAside), (f) => f.name);
@@ -298,14 +320,26 @@ export function WorkspaceTree({
             <div>
               {creatingFolderParentId === null && <NewFolderInput depth={0} parentId={null} />}
               {pinnedFolders.map((folder) => (
-                <FolderNode key={folder.id} folder={folder} folders={folders} snippets={snippets} depth={0} />
+                <FolderNode
+                  key={folder.id}
+                  folder={folder}
+                  foldersByParent={foldersByParent}
+                  snippetsByFolder={snippetsByFolder}
+                  depth={0}
+                />
               ))}
               {pinnedSnippets.map((snippet) => (
                 <SnippetNode key={snippet.id} snippet={snippet} depth={0} />
               ))}
               {hasPinnedBoundary && <PinnedDivider />}
               {unpinnedFolders.map((folder) => (
-                <FolderNode key={folder.id} folder={folder} folders={folders} snippets={snippets} depth={0} />
+                <FolderNode
+                  key={folder.id}
+                  folder={folder}
+                  foldersByParent={foldersByParent}
+                  snippetsByFolder={snippetsByFolder}
+                  depth={0}
+                />
               ))}
               {unpinnedSnippets.map((snippet) => (
                 <SnippetNode key={snippet.id} snippet={snippet} depth={0} />

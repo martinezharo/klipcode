@@ -15,9 +15,21 @@ interface TreeNode {
 }
 
 function buildTree(folders: FolderRecord[], parentId: string | null = null): TreeNode[] {
-  return folders
-    .filter((f) => f.parentId === parentId)
-    .map((folder) => ({ folder, children: buildTree(folders, folder.id) }));
+  const byParent = new Map<string | null, FolderRecord[]>();
+  for (const folder of folders) {
+    const siblings = byParent.get(folder.parentId) ?? [];
+    siblings.push(folder);
+    byParent.set(folder.parentId, siblings);
+  }
+
+  function build(currentParentId: string | null): TreeNode[] {
+    return (byParent.get(currentParentId) ?? []).map((folder) => ({
+      folder,
+      children: build(folder.id),
+    }));
+  }
+
+  return build(parentId);
 }
 
 /** DFS: return nodes in display order, skipping collapsed subtrees */
@@ -242,25 +254,31 @@ export function FolderSelect({
                     style={{ paddingLeft: `${depth * INDENT}px` }}
                   >
                     {/* Expand/collapse chevron */}
-                    <button
-                      type="button"
-                      tabIndex={-1}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (hasChildren) toggleExpand(folder.id);
-                      }}
-                      className="flex h-7 w-5 shrink-0 items-center justify-center rounded text-ink/20 hover:text-ink/50"
-                    >
-                      {hasChildren ? (
+                    {hasChildren ? (
+                      <button
+                        type="button"
+                        aria-label={isExpanded ? copy.collapseFolder : copy.expandFolder}
+                        aria-expanded={isExpanded}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpand(folder.id);
+                        }}
+                        className="flex h-7 w-5 shrink-0 items-center justify-center rounded text-ink/20 hover:text-ink/50"
+                      >
                         <ChevronRight
                           size={11}
                           className={`transition-transform duration-150 ${isExpanded ? "rotate-90" : ""}`}
                         />
-                      ) : (
+                      </button>
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="flex h-7 w-5 shrink-0 items-center justify-center"
+                      >
                         <span className="inline-block h-px w-2 bg-ink/[0.08]" />
-                      )}
-                    </button>
+                      </span>
+                    )}
 
                     {/* Folder select row */}
                     <button

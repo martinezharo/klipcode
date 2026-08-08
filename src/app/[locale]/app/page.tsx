@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import KlipCodeApp from "@/components/KlipCodeApp";
-import { AppProviders } from "@/components/AppProviders";
+import { AppPageClient } from "@/components/AppPageClient";
 import { getDictionary } from "@/i18n";
 import { isLocale } from "@/lib/locale";
 import { buildPageMetadata } from "@/lib/seo";
@@ -32,11 +30,5 @@ export default async function AppPage({
 }) {
   const { locale } = await params;
 
-  return (
-    <AppProviders>
-      <Suspense>
-        <KlipCodeApp locale={locale as Locale} />
-      </Suspense>
-    </AppProviders>
-  );
+  return <AppPageClient locale={locale as Locale} />;
 }

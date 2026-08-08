@@ -14,13 +14,13 @@ import { IconButton } from "@/ui/IconButton";
 
 export function FolderNode({
   folder,
-  folders,
-  snippets,
+  foldersByParent,
+  snippetsByFolder,
   depth,
 }: {
   folder: FolderRecord;
-  folders: FolderRecord[];
-  snippets: SnippetRecord[];
+  foldersByParent: ReadonlyMap<string, FolderRecord[]>;
+  snippetsByFolder: ReadonlyMap<string, SnippetRecord[]>;
   depth: number;
 }) {
   const ctx = useAsideCtx();
@@ -30,11 +30,11 @@ export function FolderNode({
   const isCreatingHere = ctx.creatingFolderParentId === folder.id;
 
   const childFolders = sortByPinThenAlpha(
-    folders.filter((f) => f.parentId === folder.id),
+    foldersByParent.get(folder.id) ?? [],
     (f) => f.name,
   );
   const childSnippets = sortByPinThenAlpha(
-    snippets.filter((s) => s.folderId === folder.id),
+    snippetsByFolder.get(folder.id) ?? [],
     (s) => s.title ?? "",
   );
 
@@ -42,7 +42,6 @@ export function FolderNode({
   useEffect(() => {
     // Intentional: auto-expand this folder the moment inline folder creation
     // starts here. A synchronize-on-transition effect, guarded by the prev ref.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isCreatingHere && !prevCreating.current) setIsOpen(true);
     prevCreating.current = isCreatingHere;
   }, [isCreatingHere]);
@@ -210,8 +209,8 @@ export function FolderNode({
             <FolderNode
               key={child.id}
               folder={child}
-              folders={folders}
-              snippets={snippets}
+              foldersByParent={foldersByParent}
+              snippetsByFolder={snippetsByFolder}
               depth={depth + 1}
             />
           ))}

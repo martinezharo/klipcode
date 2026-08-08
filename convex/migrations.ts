@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, type MutationCtx } from "./_generated/server";
 import { assertNoFolderCycles, type ParentLink } from "./lib/hierarchy";
+import { assertUniqueClientIds } from "./lib/sync";
 
 // ── One-off import from the Supabase backend ────────────────────────────────
 //
@@ -99,6 +100,9 @@ export const importAccount = internalMutation({
     snippets: v.array(importedSnippet),
   },
   handler: async (ctx, args) => {
+    assertUniqueClientIds(args.folders, "folder");
+    assertUniqueClientIds(args.snippets, "snippet");
+
     const { userId, created } = await resolveUserId(ctx, args);
 
     const existingKey = await ctx.db
@@ -135,7 +139,10 @@ export const importAccount = internalMutation({
       storedFolders.map((folder) => [folder.clientId, folder.parentId])
     );
     for (const folder of args.folders) {
-      links.set(folder.clientId, folder.parentId);
+      const existing = folderByClientId.get(folder.clientId);
+      if (!existing || existing.updatedAt <= folder.updatedAt) {
+        links.set(folder.clientId, folder.parentId);
+      }
     }
 
     const resolveParent = (parentId: string | null) =>

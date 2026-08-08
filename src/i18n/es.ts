@@ -165,6 +165,8 @@ export const es = {
   },
   folderSelect: {
     noFolders: "Sin carpetas",
+    expandFolder: "Expandir carpeta",
+    collapseFolder: "Contraer carpeta",
   },
   pinnedToHome: {
     title: "Fijados en inicio",

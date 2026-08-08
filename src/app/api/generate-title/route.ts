@@ -20,6 +20,50 @@ Pick the casing convention idiomatic to what the code is:
 Do NOT include filler words like "snippet", "code", or the language name by itself. Output the name and absolutely nothing else — no explanation, no reasoning.`;
 
 const MAX_TITLE_CHARS = 48;
+const MAX_TITLE_REQUEST_BYTES = 128 * 1024;
+
+async function readRequestBody(request: Request): Promise<{ body?: string; tooLarge?: true }> {
+  const declaredLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_TITLE_REQUEST_BYTES) {
+    return { tooLarge: true };
+  }
+
+  if (!request.body) return { body: "" };
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_TITLE_REQUEST_BYTES) {
+        try {
+          await reader.cancel();
+        } catch {
+          // The size limit has already been established; a source stream may
+          // reject cancellation while it is closing, but that must not turn a
+          // well-defined 413 into the generic malformed-body response.
+        }
+        return { tooLarge: true };
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return { body: new TextDecoder().decode(bytes) };
+}
 
 // Normalize the model output into a single filename-like token while PRESERVING
 // its casing convention (PascalCase / camelCase / snake_case / kebab-case): keep
@@ -59,7 +103,11 @@ export async function POST(request: Request) {
 
   let body: unknown;
   try {
-    body = await request.json();
+    const result = await readRequestBody(request);
+    if (result.tooLarge) {
+      return Response.json({ error: "request too large" }, { status: 413 });
+    }
+    body = JSON.parse(result.body ?? "");
   } catch {
     return Response.json({ error: "invalid body" }, { status: 400 });
   }

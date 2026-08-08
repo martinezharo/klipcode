@@ -14,3 +14,22 @@ export function extractPastedUrl(text: string): string | null {
   }
   return candidate;
 }
+
+/** Validate URLs accepted by the manual link dialog. */
+export function isValidLinkUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+
+  try {
+    const hasScheme = /^[a-z][a-z\d+.-]*:/i.test(trimmed);
+    const url = new URL(hasScheme ? trimmed : `https://${trimmed}`);
+
+    if (url.protocol === "mailto:") {
+      return url.pathname.includes("@");
+    }
+
+    return (url.protocol === "http:" || url.protocol === "https:") && !!url.hostname;
+  } catch {
+    return false;
+  }
+}

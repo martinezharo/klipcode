@@ -43,6 +43,10 @@ function chunkBySize<T>(records: T[], sizeOf: (record: T) => number): T[][] {
   for (const record of records) {
     const bytes = sizeOf(record);
 
+    if (bytes > MAX_BATCH_BYTES) {
+      throw new Error("A record is too large to sync in one batch");
+    }
+
     if (batch.length > 0 && (batch.length >= MAX_BATCH_RECORDS || batchBytes + bytes > MAX_BATCH_BYTES)) {
       batches.push(batch);
       batch = [];
@@ -58,6 +62,10 @@ function chunkBySize<T>(records: T[], sizeOf: (record: T) => number): T[][] {
   }
 
   return batches;
+}
+
+function serializedByteLength(value: unknown): number {
+  return new TextEncoder().encode(JSON.stringify(value)).byteLength;
 }
 
 /**
@@ -236,14 +244,6 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
   const syncedSnippetIds: string[] = [];
   const localSnippetIds: string[] = [];
 
-  // Resolved before anything is uploaded: a transient key failure throws here
-  // and aborts the whole push (retried by the sync loop) — records are never
-  // silently uploaded in plaintext because the key was momentarily unreachable.
-  const encryptionKey =
-    dirtyWorkspace.folders.length > 0 || dirtyWorkspace.snippets.length > 0
-      ? await getWorkspaceEncryptionKey(userId)
-      : null;
-
   // Still-empty, never-uploaded placeholders are settled locally instead of
   // uploaded (no cloud record); once a snippet HAS been synced, an empty body is
   // an intentional clear and must be uploaded — otherwise the next fetch
@@ -262,18 +262,25 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
     return { syncedFolderIds, syncedSnippetIds, localSnippetIds };
   }
 
+  // Resolve the key only when a record will actually cross the network. A new
+  // empty placeholder must settle locally even when the key endpoint is
+  // temporarily unavailable.
+  const encryptionKey = await getWorkspaceEncryptionKey(userId);
+
   const foldersByDepth = [...dirtyWorkspace.folders].sort(
     (left, right) => folderDepth(left, folderMap) - folderDepth(right, folderMap)
   );
 
   const folderBatches = chunkBySize(
     await Promise.all(foldersByDepth.map((folder) => mapFolderToCloud(folder, encryptionKey))),
-    (folder) => folder.name.length + 200
+    serializedByteLength
   );
   const snippetBatches = chunkBySize(
     await Promise.all(snippetsToUpload.map((snippet) => mapSnippetToCloud(snippet, encryptionKey))),
-    (snippet) => snippet.code.length + snippet.title.length + 200
+    serializedByteLength
   );
+
+  const snippetsById = new Map(snippetsToUpload.map((snippet) => [snippet.id, snippet]));
 
   // Folders lead so that the batch carrying a snippet's folder has already
   // landed; the pairing is incidental (each call takes whatever is left of both
@@ -295,7 +302,7 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
     }
 
     for (const snippet of snippets) {
-      const local = snippetsToUpload.find((candidate) => candidate.id === snippet.clientId);
+      const local = snippetsById.get(snippet.clientId);
       if (local && (await markSnippetAsSynced(local, userId, syncedAt))) {
         syncedSnippetIds.push(snippet.clientId);
       }

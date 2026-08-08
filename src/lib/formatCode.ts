@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Client-side code formatting via Prettier's standalone build. Prettier and its
  * plugins are sizeable, so they are dynamically imported only when a format is

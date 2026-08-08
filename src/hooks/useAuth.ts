@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useCloudSession } from "@/hooks/useCloudSession";
+import { useLatestRef } from "@/hooks/useLatestRef";
 import { clearOwnedData } from "@/lib/db";
 import { clearWorkspaceEncryptionKey } from "@/lib/encryptionKey";
 import { reconcileWorkspace } from "@/lib/sync";
@@ -24,30 +25,61 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
   );
 
   const accountSyncInFlightRef = useRef(false);
+  const accountSyncUserIdRef = useRef<string | null>(null);
+  const accountSyncFollowUpRef = useRef(false);
+  const [accountSyncGeneration, setAccountSyncGeneration] = useState(0);
   // Refs ensure async callbacks in effects always see the latest values
-  const refreshRef = useRef(refreshWorkspace);
-  refreshRef.current = refreshWorkspace;
-  const onReconciledRef = useRef(onReconciled);
-  onReconciledRef.current = onReconciled;
-  const copyRef = useRef(copy);
-  copyRef.current = copy;
+  const refreshRef = useLatestRef(refreshWorkspace);
+  const onReconciledRef = useLatestRef(onReconciled);
+  const copyRef = useLatestRef(copy);
   // Distinguishes "signed out all along" (initial render) from "just signed
   // out", which is the only case that needs the workspace re-read.
   const previousUserIdRef = useRef<string | null>(null);
 
   const userId = user?.id ?? null;
+  const currentUserIdRef = useLatestRef(userId);
 
   useEffect(() => {
     if (!authReady) {
       return;
     }
 
+    let cancelled = false;
+    const commitAccountMessage = (message: string) => {
+      // Defer the state transition until after the effect has committed. This
+      // keeps auth-derived status updates out of React's render/effect cascade.
+      queueMicrotask(() => {
+        if (!cancelled) setAccountMessage(message);
+      });
+    };
+
     if (userId === null) {
+      if (
+        accountSyncInFlightRef.current &&
+        accountSyncUserIdRef.current !== null
+      ) {
+        accountSyncFollowUpRef.current = true;
+      }
       const hadUser = previousUserIdRef.current !== null;
       previousUserIdRef.current = null;
-      setAccountMessage(cloudConfigured ? copyRef.current.auth.guestMode : copyRef.current.auth.notConfigured);
+      commitAccountMessage(
+        cloudConfigured ? copyRef.current.auth.guestMode : copyRef.current.auth.notConfigured,
+      );
       if (hadUser) {
         refreshRef.current();
+      }
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // A session can change while the previous account is still reconciling. Do
+    // not mark the new account as synced before its turn: the completion handler
+    // below will retrigger this effect once the in-flight reconciliation releases
+    // the shared IndexedDB/key state.
+    if (accountSyncInFlightRef.current) {
+      if (accountSyncUserIdRef.current !== userId) {
+        accountSyncFollowUpRef.current = true;
       }
       return;
     }
@@ -55,15 +87,13 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
     const alreadySyncedThisUser = previousUserIdRef.current === userId;
     previousUserIdRef.current = userId;
 
-    if (alreadySyncedThisUser || accountSyncInFlightRef.current) {
-      return;
-    }
+    if (alreadySyncedThisUser) return;
 
-    setAccountMessage(copyRef.current.auth.signedIn);
+    commitAccountMessage(copyRef.current.auth.signedIn);
 
-    let cancelled = false;
     accountSyncInFlightRef.current = true;
-    setAccountMessage(copyRef.current.auth.syncingSession);
+    accountSyncUserIdRef.current = userId;
+    commitAccountMessage(copyRef.current.auth.syncingSession);
 
     void (async () => {
       try {
@@ -77,13 +107,30 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
         setAccountMessage(copyRef.current.auth.syncFailed);
       } finally {
         accountSyncInFlightRef.current = false;
+        accountSyncUserIdRef.current = null;
+        const needsFollowUp =
+          accountSyncFollowUpRef.current || currentUserIdRef.current !== userId;
+        accountSyncFollowUpRef.current = false;
+        if (needsFollowUp) {
+          previousUserIdRef.current = null;
+          setAccountSyncGeneration((generation) => generation + 1);
+        }
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [authReady, cloudConfigured, userId]);
+  }, [
+    authReady,
+    cloudConfigured,
+    userId,
+    accountSyncGeneration,
+    copyRef,
+    currentUserIdRef,
+    onReconciledRef,
+    refreshRef,
+  ]);
 
   async function handleGitHubSignIn() {
     if (!cloudConfigured || signingIn) return;
@@ -108,13 +155,16 @@ export function useAuth({ copy, refreshWorkspace, onReconciled }: UseAuthOptions
     try {
       const signedOutUserId = userId;
       await session.signOut();
+      // Drop the in-memory key before IndexedDB cleanup. If storage cleanup
+      // fails, the signed-out account must still not retain a usable key.
+      clearWorkspaceEncryptionKey();
       // Wipe this account's local data so it isn't readable on a shared machine.
       // Synced data comes back from the cloud on the next sign-in.
       if (signedOutUserId) await clearOwnedData(signedOutUserId);
-      // The in-memory encryption key goes with it.
-      clearWorkspaceEncryptionKey();
       setAccountMessage(cloudConfigured ? copy.auth.guestMode : copy.auth.notConfigured);
       refreshRef.current();
+    } catch {
+      setAccountMessage(copy.auth.syncFailed);
     } finally {
       setSigningOut(false);
     }

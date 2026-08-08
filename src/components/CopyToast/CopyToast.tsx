@@ -31,7 +31,7 @@ export function CopyToast({ nonce, message }: CopyToastProps) {
 
   return (
     <div
-      className={`pointer-events-none fixed bottom-4 left-1/2 z-[var(--z-toast)] -translate-x-1/2 transition-opacity duration-200 ${
+      className={`pointer-events-none fixed bottom-4 left-1/2 klipcode-z-toast -translate-x-1/2 transition-opacity duration-200 ${
         visible ? "opacity-100" : "opacity-0"
       }`}
       role="status"
