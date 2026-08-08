@@ -20,7 +20,7 @@ export function buildPageMetadata({
   description: string;
 }): Metadata {
   const canonical = `${siteUrl}${localeHref(locale, path)}`;
-  const socialImage = `${siteUrl}/landing/ui-dark.webp`;
+  const socialImage = `${siteUrl}/og-image.png`;
   // Titles that are already fully branded (e.g. "KlipCode — ...") would
   // otherwise get "· KlipCode" appended twice via the root layout's
   // title.template; `absolute` opts out of the template for those.
@@ -44,7 +44,7 @@ export function buildPageMetadata({
       description,
       siteName: "KlipCode",
       locale: locale === "es" ? "es_ES" : "en_US",
-      images: [{ url: socialImage, alt: title }],
+      images: [{ url: socialImage, width: 1200, height: 630, alt: "KlipCode" }],
     },
     twitter: {
       card: "summary_large_image",
