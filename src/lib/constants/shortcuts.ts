@@ -14,6 +14,7 @@ export type ShortcutId =
   | "search"
   | "newSnippet"
   | "createSnippet"
+  | "openInEditor"
   | "toggleSidebar"
   | "help"
   | "copyCurrent"
@@ -39,6 +40,7 @@ export const SHORTCUTS: ShortcutDescriptor[] = [
   { id: "search", section: "general", mod: true, keys: ["K"] },
   { id: "newSnippet", section: "general", mod: true, alt: true, keys: ["N"] },
   { id: "createSnippet", section: "general", mod: true, keys: ["↵"] },
+  { id: "openInEditor", section: "general", mod: true, shift: true, keys: ["↵"] },
   { id: "toggleSidebar", section: "general", mod: true, keys: ["B"] },
   { id: "help", section: "general", mod: true, keys: ["/"] },
   { id: "undoDelete", section: "general", mod: true, keys: ["Z"] },

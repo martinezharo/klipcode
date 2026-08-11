@@ -166,8 +166,8 @@ export function useWorkspaceMutations({
     folderId: string;
     code: string;
   }): Promise<string | undefined> {
-    if (!data.code.trim()) return;
-
+    // Empty snippets are allowed — the create form lets you open a blank one
+    // straight in the editor rather than forcing a placeholder character.
     const snippetId = newId();
     const timestamp = new Date().toISOString();
     const { folderSegments, title } = resolveSnippetPath(data.title);
@@ -199,7 +199,9 @@ export function useWorkspaceMutations({
     refreshWorkspace();
     syncAfterMutation(snippetId);
 
-    if (!trimmedTitle && user && autoGenerateTitle) {
+    // No code means nothing to name the snippet after — leave it "Untitled"
+    // until the user writes something.
+    if (!trimmedTitle && data.code.trim() && user && autoGenerateTitle) {
       setTitleGenerating(snippetId, true);
       void generateAiTitle(snippetId, data.code, language);
     }

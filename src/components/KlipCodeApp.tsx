@@ -32,7 +32,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog/ConfirmDialog";
 import { CreateSnippetModal } from "@/components/CreateSnippetModal/CreateSnippetModal";
 import { CreatedSnippetToast } from "@/components/CreatedSnippetToast/CreatedSnippetToast";
 import { DragProvider } from "@/components/DragContext";
-import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
+import { NewSnippet, type NewSnippetData } from "@/components/NewSnippet/NewSnippet";
 import { SnippetCards } from "@/components/SnippetCards/SnippetCards";
 import { TitleGenerationProvider } from "@/components/TitleGeneration";
 import { SnippetEditor } from "@/components/SnippetEditor/SnippetEditor";
@@ -246,6 +246,18 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     preferences.defaultFolderId && folders.some((f) => f.id === preferences.defaultFolderId)
       ? preferences.defaultFolderId
       : null;
+
+  /**
+   * Creates the snippet, then hands the user straight to the full editor
+   * instead of the created-snippet toast. Backs the "open in editor" action in
+   * the create form, which is how you start writing in the real editor — the
+   * cramped modal textarea is the wrong surface for composing, and the editor
+   * autosaves while the modal discards on Esc.
+   */
+  async function openSnippetInEditor(data: NewSnippetData) {
+    const id = await mutations.handleCreateSnippet(data);
+    if (id) navigate(`${base}?snippet=${id}`);
+  }
 
   function handleChangeLocale(next: Locale) {
     if (next === locale) {
@@ -549,6 +561,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
                 defaultLanguage={preferences.defaultLanguage}
                 codeWrap={preferences.codeWrap}
                 onCreateSnippet={mutations.handleCreateSnippet}
+                onOpenInEditor={openSnippetInEditor}
               />
 
               <SnippetCards
@@ -611,6 +624,10 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         codeWrap={preferences.codeWrap}
         focusNonce={createModalFocusNonce}
         onClose={() => setCreateModalOpen(false)}
+        onOpenInEditor={(data) => {
+          setCreateModalOpen(false);
+          void openSnippetInEditor(data);
+        }}
         onCreateSnippet={async (data) => {
           const id = await mutations.handleCreateSnippet(data);
           setCreateModalOpen(false);

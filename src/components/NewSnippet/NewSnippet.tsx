@@ -2,7 +2,7 @@
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import type { ReactCodeMirrorRef } from "@uiw/react-codemirror";
-import { Plus } from "lucide-react";
+import { Maximize2, Plus } from "lucide-react";
 import { Editor } from "@/components/Editor/Editor";
 import { LanguageSelect } from "@/ui/LanguageSelect";
 import { FolderSelect } from "@/ui/FolderSelect";
@@ -24,12 +24,20 @@ interface NewSnippetProps {
    *  the card chrome (rounded border) so the form attaches flush to the host's
    *  header separator. */
   embedded?: boolean;
-  onCreateSnippet: (data: {
-    title: string;
-    language: string;
-    folderId: string;
-    code: string;
-  }) => void;
+  /** Lets a dialog host claim the title field as its initial focus target, so
+   *  its focus trap doesn't land on the close button instead. */
+  titleFieldRef?: React.RefObject<HTMLInputElement | null>;
+  onCreateSnippet: (data: NewSnippetData) => void;
+  /** Creates the snippet and hands the user off to the full editor. Optional so
+   *  hosts that have nowhere to navigate can omit the secondary action. */
+  onOpenInEditor?: (data: NewSnippetData) => void;
+}
+
+export interface NewSnippetData {
+  title: string;
+  language: string;
+  folderId: string;
+  code: string;
 }
 
 export function NewSnippet({
@@ -40,7 +48,9 @@ export function NewSnippet({
   codeWrap = false,
   focusNonce = 0,
   embedded = false,
+  titleFieldRef,
   onCreateSnippet,
+  onOpenInEditor,
 }: NewSnippetProps) {
   // When embedded in a dialog host (the create-snippet modal), portalled
   // dropdowns must render above the dialog layer instead of the base menu layer.
@@ -54,7 +64,8 @@ export function NewSnippet({
   // Focus the title when a shortcut requests it (nonce > 0). Tracking the last
   // handled value covers both an in-place bump and a fresh mount after the app
   // navigated home from the editor/folder view.
-  const titleRef = useRef<HTMLInputElement>(null);
+  const ownTitleRef = useRef<HTMLInputElement>(null);
+  const titleRef = titleFieldRef ?? ownTitleRef;
   const editorRef = useRef<ReactCodeMirrorRef>(null);
   const handledFocusNonce = useRef(0);
   useEffect(() => {
@@ -62,6 +73,8 @@ export function NewSnippet({
       handledFocusNonce.current = focusNonce;
       titleRef.current?.focus();
     }
+    // The ref identity is stable for a given host; only the nonce should re-run this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusNonce]);
 
   // Sync the pre-selected folder coming from the aside context menu by adjusting
@@ -98,20 +111,24 @@ export function NewSnippet({
     }
   }
 
-  // ⌘/Ctrl+Enter submits from anywhere in the form (title input or editor).
-  // Mod+Enter isn't bound in CodeMirror's keymap, so the event bubbles here.
+  // ⌘/Ctrl+Enter creates; ⇧⌘/Ctrl+Enter creates and opens the editor. Neither
+  // combo is bound in CodeMirror's keymap, so the events bubble here from both
+  // the title input and the editor.
   function handleFormKeyDown(event: React.KeyboardEvent<HTMLFormElement>) {
-    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-      event.preventDefault();
-      event.currentTarget.requestSubmit();
+    if (!(event.metaKey || event.ctrlKey) || event.key !== "Enter") return;
+    event.preventDefault();
+    if (event.shiftKey) {
+      if (onOpenInEditor) submit(onOpenInEditor);
+      return;
     }
+    event.currentTarget.requestSubmit();
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!code.trim()) return;
-
-    onCreateSnippet({
+  // Empty snippets are allowed: a titled placeholder you fill in later is
+  // legitimate, and "open in editor" depends on being able to create with no
+  // code at all.
+  function submit(handler: (data: NewSnippetData) => void) {
+    handler({
       title: normalizeTitleExtension(title),
       language,
       folderId,
@@ -122,6 +139,11 @@ export function NewSnippet({
     setLanguage(defaultLanguage);
     setFolderId(defaultFolderId ?? "");
     setCode("");
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    submit(onCreateSnippet);
   }
 
   return (
@@ -162,16 +184,17 @@ export function NewSnippet({
           />
         </div>
 
-        {/* Footer: folder selector + create button.
-            On touch the two controls sit on their own full-width rows — side by
-            side they squeezed the destination into a chip and the primary action
+        {/* Footer: folder selector + actions.
+            On touch each control sits on its own full-width row — side by side
+            they squeezed the destination into a chip and the primary action
             into a target barely wider than its own label. Destination first,
-            action last, so the button lands closest to the thumb.
+            action last, so the primary lands closest to the thumb.
 
-            Both rows are full width, but only the button is full height — the
-            destination stays a slim strip so the two don't read as equals. The
-            gap must clear the select's 44px phantom hit area (6px of overhang
-            per side) to avoid stealing taps from the button. */}
+            Every row is full width, but only the primary is full height — the
+            destination stays a slim strip and the secondary sits between them
+            at 40px, so the three never read as equals. The gap must clear the
+            select's 44px phantom hit area (6px of overhang per side) to avoid
+            stealing taps from the buttons. */}
         <div className="flex flex-col gap-2.5 border-t border-ink/[0.06] px-4 py-2.5 lg:flex-row lg:items-center lg:justify-between lg:gap-2">
           <FolderSelect
             value={folderId}
@@ -183,13 +206,29 @@ export function NewSnippet({
             blockOnTouch
           />
 
+          {/* The secondary carries no fill so the footer keeps exactly one
+              obvious action even with two buttons in it. */}
+          {onOpenInEditor && (
+            <button
+              type="button"
+              onClick={() => submit(onOpenInEditor)}
+              title={copy.shortcuts.items.openInEditor}
+              className="flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-ink/60 transition-colors hover:bg-ink/[0.06] hover:text-ink/85 max-lg:h-10 max-lg:w-full lg:ml-auto lg:mr-1"
+            >
+              <Maximize2 size={13} aria-hidden="true" />
+              <span>{copy.forms.openInEditor}</span>
+            </button>
+          )}
+
           <button
             type="submit"
-            disabled={!code.trim()}
-            className="flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-30 max-lg:h-11 max-lg:w-full"
+            className="flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90 max-lg:h-11 max-lg:w-full"
           >
             <Plus size={14} strokeWidth={2.5} />
-            <span>{copy.forms.submitSnippet}</span>
+            {/* Desktop drops the noun: the header and placeholder already say
+                "snippet" and the button also carries a shortcut hint. */}
+            <span className="lg:hidden">{copy.forms.submitSnippet}</span>
+            <span className="max-lg:hidden">{copy.forms.submitSnippetShort}</span>
             <ShortcutHint id="createSnippet" tone="dark" className="ml-0.5 max-lg:hidden" />
           </button>
         </div>

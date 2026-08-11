@@ -1,12 +1,12 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 import { useDialogA11y } from "@/hooks/useDialogA11y";
 import { IconButton } from "@/ui/IconButton";
-import { NewSnippet } from "@/components/NewSnippet/NewSnippet";
+import { NewSnippet, type NewSnippetData } from "@/components/NewSnippet/NewSnippet";
 import type { LanguageId } from "@/lib/constants/languages";
 import type { FolderRecord } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
@@ -19,12 +19,9 @@ interface CreateSnippetModalProps {
   codeWrap?: boolean;
   /** Bumped each time the modal opens so NewSnippet focuses its title field. */
   focusNonce: number;
-  onCreateSnippet: (data: {
-    title: string;
-    language: string;
-    folderId: string;
-    code: string;
-  }) => Promise<string | undefined>;
+  onCreateSnippet: (data: NewSnippetData) => Promise<string | undefined>;
+  /** Creates the snippet and hands off to the full editor. */
+  onOpenInEditor: (data: NewSnippetData) => void;
   onClose: () => void;
 }
 
@@ -42,11 +39,15 @@ export function CreateSnippetModal({
   codeWrap,
   focusNonce,
   onCreateSnippet,
+  onOpenInEditor,
   onClose,
 }: CreateSnippetModalProps) {
-  // NewSnippet focuses its own title field off `focusNonce`, so the trap only
-  // needs to keep Tab inside the panel and hand focus back on close.
-  const panelRef = useDialogA11y({ onClose });
+  // Claim the title field as the initial focus target. Without it the trap
+  // falls back to the first focusable in the panel — the close button — and
+  // since the parent's mount effect runs after NewSnippet's own focusNonce
+  // effect, it would steal focus back from the title every time.
+  const titleFieldRef = useRef<HTMLInputElement>(null);
+  const panelRef = useDialogA11y({ onClose, initialFocusRef: titleFieldRef });
   const titleId = useId();
 
   return createPortal(
@@ -95,8 +96,10 @@ export function CreateSnippetModal({
             defaultLanguage={defaultLanguage}
             codeWrap={codeWrap}
             focusNonce={focusNonce}
+            titleFieldRef={titleFieldRef}
             embedded
             onCreateSnippet={onCreateSnippet}
+            onOpenInEditor={onOpenInEditor}
           />
         </div>
       </div>

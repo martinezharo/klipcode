@@ -82,6 +82,10 @@ export const en = {
     snippetCodePlaceholder: "Write or paste your code here...",
     submitFolder: "Create folder",
     submitSnippet: "Create snippet",
+    /** Desktop drops the noun — the dialog header and the placeholder already
+     *  say "snippet", and the button carries a shortcut hint inside it. */
+    submitSnippetShort: "Create",
+    openInEditor: "Open in editor",
     snippetCreated: "Snippet created",
     open: "Open",
   },
@@ -287,6 +291,7 @@ export const en = {
       search: "Open search",
       newSnippet: "New snippet",
       createSnippet: "Create snippet",
+      openInEditor: "Create and open in the editor",
       toggleSidebar: "Toggle sidebar",
       help: "Show keyboard shortcuts",
       copyCurrent: "Copy current snippet code",
