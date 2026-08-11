@@ -1,24 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { Folder } from "lucide-react";
+
+import { InlineNameInput } from "@/ui/InlineNameInput";
 import { useAsideCtx } from "./AsideContext";
 import { ROW_LEAD_SPACER, STEP } from "./utils";
 
 export function NewFolderInput({ depth, parentId }: { depth: number; parentId: string | null }) {
   const { cancelCreateFolder, submitCreateFolder, copy } = useAsideCtx();
-  const [value, setValue] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  function commit() {
-    const name = value.trim();
-    if (name) submitCreateFolder(parentId, name);
-    else cancelCreateFolder();
-  }
 
   return (
     <div
@@ -27,18 +16,10 @@ export function NewFolderInput({ depth, parentId }: { depth: number; parentId: s
     >
       <span className={ROW_LEAD_SPACER} />
       <Folder size={13} className="shrink-0 text-ink/30" />
-      <input
-        ref={inputRef}
-        type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          e.stopPropagation();
-          if (e.key === "Enter") commit();
-          if (e.key === "Escape") cancelCreateFolder();
-        }}
+      <InlineNameInput
         placeholder={copy.forms.folderName}
+        onSubmit={(name) => submitCreateFolder(parentId, name)}
+        onCancel={cancelCreateFolder}
         className="min-w-0 flex-1 rounded bg-ink/[0.07] px-2 py-0.5 text-[13px] text-foreground placeholder:text-faint outline-none ring-1 ring-ink/15 focus:ring-ink/35 transition-shadow"
       />
     </div>
