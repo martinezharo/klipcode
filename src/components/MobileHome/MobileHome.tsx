@@ -25,6 +25,7 @@ import { Spinner } from "@/ui/Spinner";
 
 import { FeedCard } from "./FeedCard";
 import { FeedCtx, type FeedCtxShape } from "./FeedContext";
+import { FeedTabs } from "./FeedTabs";
 import { FolderGroup, NewFolderCard } from "./FolderGroup";
 import { orderRecentSnippets } from "./ordering";
 import type { MobileHomeProps } from "./types";
@@ -403,28 +404,15 @@ export function MobileHome({
 
         {/* ── What fills the list ── */}
         <div className="shrink-0 px-4 py-2.5">
-          <div
-            role="tablist"
-            aria-label={copy.aside.mySpace}
-            className="flex items-center gap-1 rounded-full bg-ink/[0.06] p-1"
-          >
-            <Tab
-              id={`${tabsId}-recent`}
-              panelId={panelId}
-              selected={tab === "recent"}
-              onSelect={() => setTab("recent")}
-            >
-              {copy.mobileHome.recent}
-            </Tab>
-            <Tab
-              id={`${tabsId}-space`}
-              panelId={panelId}
-              selected={tab === "space"}
-              onSelect={() => setTab("space")}
-            >
-              {copy.aside.mySpace}
-            </Tab>
-          </div>
+          <FeedTabs
+            tabs={[
+              { id: "recent", domId: `${tabsId}-recent`, label: copy.mobileHome.recent },
+              { id: "space", domId: `${tabsId}-space`, label: copy.aside.mySpace },
+            ]}
+            active={tab}
+            panelId={panelId}
+            onSelect={setTab}
+          />
         </div>
 
         <div
@@ -532,36 +520,3 @@ export function MobileHome({
 
 /** No multi-selection on touch — a stable identity keeps the menu builder's deps quiet. */
 const EMPTY_SELECTION: ReadonlySet<string> = new Set();
-
-function Tab({
-  id,
-  panelId,
-  selected,
-  onSelect,
-  children,
-}: {
-  id: string;
-  panelId: string;
-  selected: boolean;
-  onSelect: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      id={id}
-      role="tab"
-      aria-selected={selected}
-      aria-controls={panelId}
-      onClick={onSelect}
-      className={cn(
-        "h-9 flex-1 truncate rounded-full px-3 text-[13.5px] font-medium transition-colors",
-        selected
-          ? "bg-surface text-foreground shadow-sm ring-1 ring-ink/8"
-          : "text-faint active:text-foreground",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
