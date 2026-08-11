@@ -2,11 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { cn } from "@/lib/utils";
+
 interface AccountToastProps {
   message?: string;
+  /**
+   * Position override. The default bottom-left corner is free on the desktop
+   * canvas but not on the mobile home, where the create button owns that edge.
+   */
+  className?: string;
 }
 
-export function AccountToast({ message }: AccountToastProps) {
+export function AccountToast({ message, className }: AccountToastProps) {
   const [visibleMessage, setVisibleMessage] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -46,7 +53,7 @@ export function AccountToast({ message }: AccountToastProps) {
     <div
       role="status"
       aria-live="polite"
-      className="absolute bottom-4 left-4 z-50 pointer-events-none"
+      className={cn("absolute bottom-4 left-4 z-50 pointer-events-none", className)}
     >
       {visibleMessage && (
         <div

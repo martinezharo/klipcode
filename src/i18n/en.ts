@@ -103,7 +103,8 @@ export const en = {
     snippetNotFoundDescription: "This snippet doesn't exist or has been deleted.",
   },
   mobileHome: {
-    recents: "Recently edited",
+    /** Tab label. Short on purpose: it shares a 390px row with "My Space". */
+    recent: "Recent",
   },
   snippetCard: {
     title: "Title",

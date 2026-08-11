@@ -102,7 +102,7 @@ export const es = {
     snippetNotFoundDescription: "Este snippet no existe o ha sido eliminado.",
   },
   mobileHome: {
-    recents: "Editado recientemente",
+    recent: "Recientes",
   },
   snippetCard: {
     title: "Titulo",

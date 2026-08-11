@@ -429,7 +429,12 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         shared layout below and gets a back button into this one. */}
     {isMobile && atWorkspaceRoot ? (
       <>
-        <AccountToast message={auth.accountMessage} />
+        {/* Lifted clear of the create button, which owns the bottom-right corner
+            of the mobile home. */}
+        <AccountToast
+          message={auth.accountMessage}
+          className="inset-x-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-auto max-w-none"
+        />
         <MobileHome {...shellProps} />
       </>
     ) : (
