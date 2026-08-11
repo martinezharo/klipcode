@@ -1,4 +1,5 @@
 import { db, readWorkspace } from "@/lib/db";
+import { newId } from "@/lib/crypto";
 import { api } from "@convex/_generated/api";
 import { getConvexBrowserClient } from "@/lib/convex";
 import type { WorkspaceSnapshot } from "@/lib/types";
@@ -59,8 +60,8 @@ export async function seedWelcomeContent(copy: Dictionary): Promise<boolean> {
   }
 
   const now = new Date().toISOString();
-  const folderId = crypto.randomUUID();
-  const snippetId = crypto.randomUUID();
+  const folderId = newId();
+  const snippetId = newId();
 
   await db.transaction("rw", [db.folders, db.snippets], async () => {
     await db.folders.put({

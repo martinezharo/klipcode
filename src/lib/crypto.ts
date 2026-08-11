@@ -45,6 +45,24 @@ export function generateDekBytes(): Uint8Array<ArrayBuffer> {
   return crypto.getRandomValues(new Uint8Array(DEK_BYTES));
 }
 
+/**
+ * Identifier for a new folder/snippet row. `crypto.randomUUID` is restricted to
+ * secure contexts, so it is simply absent when the app is served over plain
+ * HTTP on a LAN address — the normal way to open a dev server from another
+ * device on the network. Every local write starts by minting an id, so without
+ * this fallback the whole app throws there. `getRandomValues` has no such
+ * restriction, so build the v4 UUID by hand instead.
+ */
+export function newId(): string {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // RFC 4122 variant
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export async function importAesKey(rawKey: Uint8Array<ArrayBuffer>): Promise<CryptoKey> {
   if (rawKey.length !== DEK_BYTES) {
     throw new Error(`AES-256 key must be ${DEK_BYTES} bytes, got ${rawKey.length}`);

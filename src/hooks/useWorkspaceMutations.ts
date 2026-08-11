@@ -3,6 +3,7 @@ import type { AccountUser } from "@/lib/types";
 import { db, matchesOwner, readAllWorkspaceRecords, readTrash } from "@/lib/db";
 import { recordDeletions } from "@/lib/sync";
 import { getAuthToken } from "@/lib/authToken";
+import { newId } from "@/lib/crypto";
 import type { ClipboardEntry, FolderRecord, SelectedItem, SnippetRecord, SyncStatus } from "@/lib/types";
 import { isDescendantOrSelf } from "@/components/Aside/utils";
 import {
@@ -167,7 +168,7 @@ export function useWorkspaceMutations({
   }): Promise<string | undefined> {
     if (!data.code.trim()) return;
 
-    const snippetId = crypto.randomUUID();
+    const snippetId = newId();
     const timestamp = new Date().toISOString();
     const { folderSegments, title } = resolveSnippetPath(data.title);
     const folderId = await ensureFolderPath(
@@ -226,7 +227,7 @@ export function useWorkspaceMutations({
         continue;
       }
       const folder: FolderRecord = {
-        id: crypto.randomUUID(),
+        id: newId(),
         ownerId: user?.id ?? null,
         name,
         parentId,
@@ -733,7 +734,7 @@ export function useWorkspaceMutations({
 
     // Map every original folder id to its freshly generated copy id.
     const idMap = new Map<string, string>();
-    for (const id of subtreeIds) idMap.set(id, crypto.randomUUID());
+    for (const id of subtreeIds) idMap.set(id, newId());
 
     const newFolders: FolderRecord[] = [];
     for (const folder of liveFolders) {
@@ -756,7 +757,7 @@ export function useWorkspaceMutations({
       if (!snippet.folderId || !subtreeIds.has(snippet.folderId)) continue;
       newSnippets.push({
         ...snippet,
-        id: crypto.randomUUID(),
+        id: newId(),
         ownerId: user?.id ?? null,
         folderId: idMap.get(snippet.folderId)!,
         createdAt: timestamp,
@@ -793,7 +794,7 @@ export function useWorkspaceMutations({
         } else {
           await db.snippets.put({
             ...snippet,
-            id: crypto.randomUUID(),
+            id: newId(),
             folderId: targetFolderId,
             createdAt: timestamp,
             updatedAt: timestamp,
