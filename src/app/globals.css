@@ -1,4 +1,10 @@
-@import "tailwindcss";
+/* `source(none)` turns off Tailwind v4's automatic project-wide scan and hands
+   it a single explicit root instead. Left on, the scan sweeps up `.agents/` —
+   800+ files of agent skill documentation — and compiles utilities out of code
+   examples that are not our markup (`bg-[var(--color-brand-500)]` and friends).
+   Our markup only ever lives in `src`. */
+@import "tailwindcss" source(none);
+@source "../../src";
 
 /* ─── Z-index scale ──────────────────────────────────────────────────────────
    Single source of truth for stacking order. Tippy.js poppers default to
