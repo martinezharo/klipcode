@@ -1,13 +1,14 @@
 "use client";
 
 import { Check, Clipboard, Copy, ExternalLink, Folder, MoreHorizontal, PenLine, Pin, PinOff, RotateCcw, Scissors, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useState, type MouseEvent } from "react";
 
 import type { Dictionary } from "@/i18n";
 import type { SelectedItem, SnippetRecord } from "@/lib/types";
 import { cn, copyTextToClipboard, getSnippetDisplayName, getSnippetFileName } from "@/lib/utils";
 import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
+import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { suppressModifierDragStart } from "@/hooks/useMultiSelection";
 import { LanguageIcon } from "@/ui/LanguageIcon";
 import { Tooltip, TruncateTooltip } from "@/ui/Tooltip";
@@ -72,11 +73,10 @@ export function SnippetCard({
   onMenuOpen,
   trashActions,
 }: SnippetCardProps) {
-  const [copied, setCopied] = useState(false);
+  const { copied, copy: copyToClipboard } = useCopyFeedback();
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
-  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isTrash = !!trashActions;
   // Draggable when the page opts in (enableDrag) or when in the trash, where the
@@ -179,20 +179,7 @@ export function SnippetCard({
   const handleCopy = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-
-    if (await copyTextToClipboard(snippet.code)) {
-      setCopied(true);
-
-      if (resetTimerRef.current) {
-        clearTimeout(resetTimerRef.current);
-      }
-
-      resetTimerRef.current = setTimeout(() => {
-        setCopied(false);
-      }, 2000);
-    } else {
-      setCopied(false);
-    }
+    await copyToClipboard(snippet.code);
   };
 
   const handleUnpinHome = (event: MouseEvent<HTMLButtonElement>) => {
@@ -234,14 +221,6 @@ export function SnippetCard({
     if (name) onRename?.(name);
     setIsRenaming(false);
   };
-
-  useEffect(() => {
-    return () => {
-      if (resetTimerRef.current) {
-        clearTimeout(resetTimerRef.current);
-      }
-    };
-  }, []);
 
   const displayName = getSnippetDisplayName(snippet.title, snippet.language, copy.snippetCard.untitled);
   const isGeneratingTitle = useIsGeneratingTitle(snippet.id);

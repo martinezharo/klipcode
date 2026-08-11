@@ -30,11 +30,12 @@ import { Tooltip } from "@/ui/Tooltip";
 import type { LanguageId } from "@/lib/constants/languages";
 import type { SnippetRecord, FolderRecord, SyncStatus } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
+import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { DEBOUNCE_MS } from "@/lib/constants/timing";
 import { formatCode, isFormattable } from "@/lib/formatCode";
 import { FormatErrorToast } from "@/components/FormatErrorToast/FormatErrorToast";
 import { getFolderPath } from "@/components/FolderView/utils";
-import { copyTextToClipboard, resolveSnippetRename } from "@/lib/utils";
+import { resolveSnippetRename } from "@/lib/utils";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Sync status indicator (top-right of header)
@@ -156,7 +157,7 @@ export function SnippetEditor({
 
   // Local state — initialised from snippet once (key={snippet.id} resets on swap)
   const [code, setCode] = useState(snippet.code);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy: copyToClipboard } = useCopyFeedback();
   const [formatting, setFormatting] = useState(false);
   // Bumped each time a format attempt fails, driving the shared error toast.
   const [formatErrorNonce, setFormatErrorNonce] = useState(0);
@@ -251,13 +252,7 @@ export function SnippetEditor({
   }
 
   async function handleCopy() {
-    if (!(await copyTextToClipboard(code))) {
-      setCopied(false);
-      return;
-    }
-
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    await copyToClipboard(code);
   }
 
   async function handleFormat() {

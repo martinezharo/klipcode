@@ -14,7 +14,7 @@ import { FormatErrorToast } from "@/components/FormatErrorToast/FormatErrorToast
 import { formatCode, isFormattable } from "@/lib/formatCode";
 import type { LanguageId } from "@/lib/constants/languages";
 import type { Dictionary } from "@/i18n";
-import { copyTextToClipboard } from "@/lib/utils";
+import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import type { MarkdownEditorCopy } from "./MarkdownEditor";
 
 /**
@@ -40,20 +40,14 @@ export function CodeBlockComponent({
     | MarkdownEditorCopy["codeBlock"]
     | null;
 
-  const [copied, setCopied] = useState(false);
+  const { copied, copy: copyToClipboard } = useCopyFeedback();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [formatting, setFormatting] = useState(false);
   // Bumped each time a format attempt fails, driving the shared error toast.
   const [formatErrorNonce, setFormatErrorNonce] = useState(0);
 
   const handleCopy = async () => {
-    if (!(await copyTextToClipboard(node.textContent))) {
-      setCopied(false);
-      return;
-    }
-
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    await copyToClipboard(node.textContent);
   };
 
   const handleFormat = async () => {
