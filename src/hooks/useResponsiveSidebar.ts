@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { MOBILE_MEDIA_QUERY } from "@/lib/constants/layout";
+import { useIsTouchLayout } from "./useIsTouchLayout";
 
 /**
  * Tracks whether we are on the touch layout, and whether the desktop aside is
@@ -11,24 +11,20 @@ import { MOBILE_MEDIA_QUERY } from "@/lib/constants/layout";
  * the edge-swipe gesture recogniser this hook used to carry, along with its
  * non-passive `touchmove` listener that ran on every horizontal drag inside the
  * aside. `sidebarOpen` is now a desktop-only concern.
+ *
+ * The breakpoint itself lives in {@link useIsTouchLayout}, shared with anything
+ * else that needs to branch on the layout in JS.
  */
 export function useResponsiveSidebar() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsTouchLayout();
 
   useEffect(() => {
-    const mq = window.matchMedia(MOBILE_MEDIA_QUERY);
-    const apply = (matches: boolean) => {
-      setIsMobile(matches);
-      // Coming back to a wide viewport restores the aside; on touch it is not
-      // rendered at all, so the flag just parks in a known state.
-      setSidebarOpen(!matches);
-    };
-    apply(mq.matches);
-    const handler = (e: MediaQueryListEvent) => apply(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
+    // Coming back to a wide viewport restores the aside; on touch it is not
+    // rendered at all, so the flag just parks in a known state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSidebarOpen(!isMobile);
+  }, [isMobile]);
 
   return { sidebarOpen, setSidebarOpen, isMobile };
 }
