@@ -502,15 +502,21 @@ export function MobileHome({
         </div>
 
         {/* Creation is the only action anchored to the thumb, so it gets to be a
-            target instead of sharing a bar with a search field. */}
+            target instead of sharing a bar with a search field.
+
+            Icon-only, and a circle rather than a lozenge: labelled, it was a
+            white pill with dark text inside — the same thing the tab switcher's
+            active segment is — and the two rhymed across the screen at nearly
+            equal area. Dropping the label breaks the rhyme and leaves the one
+            solid shape that reads as "the primary action here". */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-end px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={() => tree.onOpenCreateModal(null)}
-            className="pointer-events-auto flex items-center gap-2 rounded-full bg-foreground px-5 py-3.5 text-[14.5px] font-medium text-background shadow-xl shadow-ink/20 transition-opacity active:opacity-85"
+            aria-label={copy.aside.addSnippet}
+            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-foreground text-background shadow-xl shadow-ink/20 transition-opacity active:opacity-85"
           >
-            <FilePlus size={18} aria-hidden="true" />
-            {copy.aside.addSnippet}
+            <FilePlus size={22} aria-hidden="true" />
           </button>
         </div>
       </main>
