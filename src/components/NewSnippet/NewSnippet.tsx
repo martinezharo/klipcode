@@ -222,6 +222,7 @@ export function NewSnippet({
 
           <button
             type="submit"
+            aria-label={copy.forms.submitSnippet}
             className="flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90 max-lg:h-11 max-lg:w-full"
           >
             <Plus size={14} strokeWidth={2.5} />
