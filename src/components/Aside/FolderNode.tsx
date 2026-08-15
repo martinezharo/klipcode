@@ -162,7 +162,7 @@ export function FolderNode({
           <Tooltip content={isOpen ? ctx.copy.aside.collapseFolder : ctx.copy.aside.expandFolder}>
             <IconButton
               data-no-drag=""
-              className="text-ink/25 hover:text-ink/45 lg:h-4 lg:w-4"
+              className="text-ink/25 hover:text-ink/45 lg:h-6 lg:w-6"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsOpen((value) => !value);
