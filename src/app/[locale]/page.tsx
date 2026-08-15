@@ -186,6 +186,7 @@ export default async function LandingPage({
       title: l.demos.create.title,
       description: l.demos.create.description,
       src: "/landing/create-snippet.gif",
+      webp: "/landing/create-snippet.webp",
       width: 1200,
       height: 600,
     },
@@ -194,6 +195,7 @@ export default async function LandingPage({
       title: l.demos.copy.title,
       description: l.demos.copy.description,
       src: "/landing/copy-snippets.gif",
+      webp: "/landing/copy-snippets.webp",
       width: 1200,
       height: 800,
     },
@@ -202,6 +204,7 @@ export default async function LandingPage({
       title: l.demos.move.title,
       description: l.demos.move.description,
       src: "/landing/move-elements.gif",
+      webp: "/landing/move-elements.webp",
       width: 450,
       height: 300,
       narrow: true,
@@ -373,14 +376,17 @@ export default async function LandingPage({
                 }
               >
                 <div className="overflow-hidden rounded-xl border border-ink/8 bg-ink/2">
-                  <Image
-                    src={demo.src}
-                    alt={demo.title}
-                    width={demo.width}
-                    height={demo.height}
-                    className="w-full"
-                    unoptimized
-                  />
+                  <picture>
+                    <source srcSet={demo.webp} type="image/webp" />
+                    <Image
+                      src={demo.src}
+                      alt={demo.title}
+                      width={demo.width}
+                      height={demo.height}
+                      className="w-full"
+                      unoptimized
+                    />
+                  </picture>
                 </div>
               </div>
             );
