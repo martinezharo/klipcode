@@ -449,6 +449,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
           {...shellProps}
           isOpen={sidebarOpen}
           onSetOpen={setSidebarOpen}
+          onSetWidth={(asideWidth) => updatePreferences({ asideWidth })}
           onGoHome={() => navigate(base)}
           onOpenShortcuts={() => setHelpOpen(true)}
         />

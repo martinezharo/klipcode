@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { ASIDE_WIDTH_INIT_SCRIPT } from "@/lib/asideWidth";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const geistSans = Geist({
@@ -41,6 +42,9 @@ export default async function LocaleLayout({
         {/* Applies the stored theme before the body paints to avoid a flash of
             the wrong surface. Mirrors readTheme()/applyTheme() in lib/theme.ts. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* Same idea for the aside's stored width: applied before the panel
+            paints so it never animates out from the default on every load. */}
+        <script dangerouslySetInnerHTML={{ __html: ASIDE_WIDTH_INIT_SCRIPT }} />
         <ConvexClientProvider>{children}</ConvexClientProvider>
         <ServiceWorkerRegistration />
       </body>

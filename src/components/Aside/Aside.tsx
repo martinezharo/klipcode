@@ -10,6 +10,7 @@ import { ShortcutHint } from "@/ui/ShortcutHint";
 
 import type { AsideProps } from "./types";
 import { AsideHeader } from "./AsideHeader";
+import { AsideResizeHandle } from "./AsideResizeHandle";
 import { GitHubIcon } from "./GitHubIcon";
 
 export type { AsideProps } from "./types";
@@ -39,6 +40,7 @@ export function Aside({
   trashCount,
   isOpen,
   onSetOpen,
+  onSetWidth,
   ...treeProps
 }: AsideProps) {
   const [trashMenu, setTrashMenu] = useState<{ x: number; y: number } | null>(null);
@@ -78,14 +80,25 @@ export function Aside({
       )}
 
       <div
-        className={`overflow-hidden transition-[width] duration-300 ease-in-out${
-          isOpen ? " w-60" : " w-0"
+        className={`klipcode-aside-shell overflow-hidden transition-[width] duration-300 ease-in-out${
+          isOpen ? " w-[var(--aside-w)]" : " w-0"
         }`}
       >
         <aside
+          id="klipcode-aside"
           aria-label={copy.aside.mySpace}
-          className="flex h-dvh w-60 shrink-0 flex-col border-r border-ink/6 bg-surface"
+          className="relative flex h-dvh w-[var(--aside-w)] shrink-0 flex-col border-r border-ink/6 bg-surface"
         >
+          {/* Only while open: collapsed, the panel is clipped to zero width and a
+              focusable handle inside it would be a tab stop pointing at nothing. */}
+          {isOpen && (
+            <AsideResizeHandle
+              copy={copy}
+              onCommit={onSetWidth}
+              onCollapse={() => onSetOpen(false)}
+            />
+          )}
+
           <AsideHeader
             user={user}
             authReady={authReady}

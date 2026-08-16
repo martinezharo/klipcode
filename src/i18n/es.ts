@@ -124,6 +124,7 @@ export const es = {
   aside: {
     collapse: "Colapsar panel",
     open: "Abrir panel",
+    resize: "Redimensionar panel",
     home: "Inicio",
     mySpace: "Mi Espacio",
     expandFolder: "Expandir carpeta",

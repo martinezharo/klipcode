@@ -38,6 +38,9 @@ export interface AsideProps extends WorkspaceShellProps {
   onOpenShortcuts: () => void;
   isOpen: boolean;
   onSetOpen: (open: boolean) => void;
+  /** Persist a resized panel width, in px. Only fires when a resize gesture
+   *  settles — the drag itself paints through a CSS variable. */
+  onSetWidth: (width: number) => void;
 }
 
 /* ─────────────────────────── Internal types ─────────────────────────────── */

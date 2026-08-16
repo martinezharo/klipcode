@@ -21,6 +21,34 @@
   --z-dialog-menu: 10200; /* menus/dropdowns opened from within a dialog */
 }
 
+/* ─── Aside width ────────────────────────────────────────────────────────────
+   The desktop panel is user-resizable, so its width is a custom property the
+   handle can write on every pointer move without a React render. This is the
+   default; a stored width overrides it before first paint (see
+   ASIDE_WIDTH_INIT_SCRIPT in src/lib/asideWidth.ts). Bounds and default are
+   mirrored in src/lib/constants/layout.ts. */
+:root {
+  --aside-w: 240px;
+}
+
+/* While the handle is being dragged: kill the panel's width transition, which
+   would otherwise leave the edge chasing the cursor 300ms behind, and hold the
+   resize cursor even when the pointer runs ahead of the (thin) handle. */
+[data-aside-resizing] {
+  cursor: col-resize;
+  user-select: none;
+}
+
+[data-aside-resizing] .klipcode-aside-shell {
+  transition: none;
+}
+
+/* The grabbed edge stays lit for the whole gesture, even once the cursor has
+   run past the strip (pointer capture keeps the drag alive, :hover does not). */
+[data-aside-resizing] .klipcode-aside-resizer {
+  background: rgba(var(--ink-rgb), 0.25);
+}
+
 /* ─── Theme tokens ──────────────────────────────────────────────────────────
    Dark is the default surface (:root); the light theme overrides below apply
    when <html data-theme="light"> is set (see src/lib/theme.ts). Most of the UI

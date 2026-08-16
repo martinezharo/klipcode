@@ -126,6 +126,7 @@ export const en = {
   aside: {
     collapse: "Collapse panel",
     open: "Open panel",
+    resize: "Resize panel",
     home: "Home",
     mySpace: "My Space",
     expandFolder: "Expand folder",

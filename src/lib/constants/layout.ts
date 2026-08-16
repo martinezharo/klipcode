@@ -18,6 +18,26 @@ export const MOBILE_BP = 1024;
 /** `(max-width: 1023px)` — the media query matching `max-lg:` exactly. */
 export const MOBILE_MEDIA_QUERY = `(max-width: ${MOBILE_BP - 1}px)`;
 
+/* ─── Desktop aside width ───────────────────────────────────────────────────
+   The panel is user-resizable, so its width is a range rather than a constant.
+   The bounds live here because three layers need to agree on them: the resize
+   handle, the stored preference, and the pre-paint init script that applies a
+   stored width before React mounts (see `src/lib/asideWidth.ts`). */
+
+export const DEFAULT_ASIDE_WIDTH = 240;
+export const MIN_ASIDE_WIDTH = 200;
+export const MAX_ASIDE_WIDTH = 420;
+
+/** Releasing the resize handle narrower than this collapses the panel instead
+ *  of leaving it pinned at {@link MIN_ASIDE_WIDTH}. */
+export const ASIDE_COLLAPSE_THRESHOLD = 150;
+
+/** Constrains any width — dragged, stored or hand-edited — to the bounds. */
+export function clampAsideWidth(width: number): number {
+  if (!Number.isFinite(width)) return DEFAULT_ASIDE_WIDTH;
+  return Math.min(MAX_ASIDE_WIDTH, Math.max(MIN_ASIDE_WIDTH, Math.round(width)));
+}
+
 /**
  * Minimum touch target, in px. WCAG 2.2 SC 2.5.8 requires 24; Apple asks for 44
  * and Material for 48. We hold 44 as the floor for anything tappable.

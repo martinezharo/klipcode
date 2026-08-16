@@ -145,6 +145,55 @@ test("open in new tab lands on the snippet view, not the landing page", async ({
   await expect(newPage.getByRole("button", { name: "Copy code" }).first()).toBeVisible();
 });
 
+test("resizes the aside and remembers the width", async ({ page }) => {
+  await gotoApp(page);
+
+  const handle = page.getByRole("separator", { name: "Resize panel" });
+  const asideWidth = async () => {
+    const box = await aside(page).boundingBox();
+    if (!box) throw new Error("Aside has no bounding box");
+    return box.width;
+  };
+  const grabHandle = async () => {
+    const box = await handle.boundingBox();
+    if (!box) throw new Error("Resize handle has no bounding box");
+    const x = box.x + box.width / 2;
+    await page.mouse.move(x, box.y + 200);
+    await page.mouse.down();
+    return x;
+  };
+
+  expect(await asideWidth()).toBe(240);
+
+  const from = await grabHandle();
+  await page.mouse.move(from + 100, 200, { steps: 8 });
+  await page.mouse.up();
+  expect(await asideWidth()).toBe(340);
+
+  // Arrow keys resize too: a drag-only affordance puts the width out of reach
+  // for anyone not using a mouse.
+  await handle.focus();
+  await page.keyboard.press("ArrowLeft");
+  expect(await asideWidth()).toBe(324);
+
+  // A fresh visit applies the stored width — before first paint, so the panel
+  // never animates out from the default (see lib/asideWidth.ts).
+  await gotoApp(page);
+  expect(await asideWidth()).toBe(324);
+
+  // Dragging shut collapses the panel, and re-opening restores the width the
+  // user chose rather than the default.
+  await grabHandle();
+  await page.mouse.move(20, 200, { steps: 10 });
+  await page.mouse.up();
+
+  const reopen = page.getByRole("button", { name: "Open panel" });
+  await expect(reopen).toBeVisible();
+  await reopen.click();
+  await expect(handle).toBeVisible();
+  expect(await asideWidth()).toBe(324);
+});
+
 test("/es/app renders the app in Spanish", async ({ page }) => {
   await page.goto("/es/app");
 
