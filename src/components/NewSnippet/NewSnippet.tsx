@@ -226,10 +226,9 @@ export function NewSnippet({
             className="flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90 max-lg:h-11 max-lg:w-full"
           >
             <Plus size={14} strokeWidth={2.5} />
-            {/* Desktop drops the noun: the header and placeholder already say
-                "snippet" and the button also carries a shortcut hint. */}
-            <span className="lg:hidden">{copy.forms.submitSnippet}</span>
-            <span className="max-lg:hidden">{copy.forms.submitSnippetShort}</span>
+            {/* Keep the visible label aligned with the button's accessible name
+                on every breakpoint; the shortcut hint remains supplemental. */}
+            <span>{copy.forms.submitSnippet}</span>
             <ShortcutHint id="createSnippet" tone="dark" className="ml-0.5 max-lg:hidden" />
           </button>
         </div>
