@@ -194,6 +194,43 @@ test("resizes the aside and remembers the width", async ({ page }) => {
   expect(await asideWidth()).toBe(324);
 });
 
+test("collapsing the aside takes it out of the tab order", async ({ page }) => {
+  await gotoApp(page);
+
+  // Straight off a fresh load, with focus still on <body>: the keyboard toggle
+  // must land somewhere usable rather than leaving the user nowhere.
+  await page.keyboard.press("ControlOrMeta+b");
+  await expect(page.getByRole("button", { name: "Open panel" })).toBeFocused({ timeout: 1000 });
+  await page.keyboard.press("ControlOrMeta+b");
+  await expect(page.getByRole("button", { name: "Collapse panel" })).toBeFocused({ timeout: 1000 });
+
+  await page.getByRole("button", { name: "Collapse panel" }).click();
+
+  // The pressed control is now inert, so focus has to move to the toggle that
+  // replaced it — otherwise the keyboard user is dropped back on <body>.
+  const openPanel = page.getByRole("button", { name: "Open panel" });
+  await expect(openPanel).toBeFocused();
+
+  // Tabbing on never walks into the hidden panel, which is still in the DOM
+  // (clipped to zero width) but inert.
+  const insideAside = () =>
+    page.evaluate(() => !!document.activeElement?.closest("#klipcode-aside"));
+  for (let i = 0; i < 6; i++) {
+    await page.keyboard.press("Tab");
+    expect(await insideAside()).toBe(false);
+  }
+
+  await openPanel.click();
+  await expect(page.getByRole("button", { name: "Collapse panel" })).toBeFocused();
+
+  // Same hand-off for the keyboard toggle, which is where being stranded on
+  // <body> would hurt most.
+  await page.keyboard.press("ControlOrMeta+b");
+  await expect(openPanel).toBeFocused();
+  await page.keyboard.press("ControlOrMeta+b");
+  await expect(page.getByRole("button", { name: "Collapse panel" })).toBeFocused();
+});
+
 test("/es/app renders the app in Spanish", async ({ page }) => {
   await page.goto("/es/app");
 

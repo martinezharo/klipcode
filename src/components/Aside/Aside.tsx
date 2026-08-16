@@ -80,6 +80,12 @@ export function Aside({
       )}
 
       <div
+        // Collapsed, the panel is only clipped to zero width — its tree, its
+        // account controls and its footer links are all still in the document.
+        // `inert` takes the whole subtree out of the tab order and off the
+        // accessibility tree, so a keyboard or screen-reader user isn't walked
+        // through a panel nobody can see.
+        inert={!isOpen}
         className={`klipcode-aside-shell overflow-hidden transition-[width] duration-300 ease-in-out${
           isOpen ? " w-[var(--aside-w)]" : " w-0"
         }`}

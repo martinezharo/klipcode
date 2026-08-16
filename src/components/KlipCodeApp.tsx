@@ -284,7 +284,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
         if (copied) setCopyNonce((n) => n + 1);
       });
     },
-    onToggleSidebar: () => setSidebarOpen((v) => !v),
+    onToggleSidebar: () => setSidebarOpen(!sidebarOpen),
     onCloseEditor: () => navigate(base),
     onUndoDelete: () => {
       void mutations.handleUndoDelete().then((undone) => {
@@ -314,6 +314,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     <Tooltip content={copy.aside.open} placement="bottom">
       <button
         type="button"
+        data-sidebar-toggle="open"
         aria-label={copy.aside.open}
         onClick={() => setSidebarOpen(true)}
         className="shrink-0 rounded-md p-1.5 text-ink/40 transition-colors hover:bg-ink/6 hover:text-ink/70"

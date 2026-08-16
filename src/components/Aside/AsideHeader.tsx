@@ -94,6 +94,7 @@ export function AsideHeader({
         <Tooltip content={copy.aside.collapse} placement="bottom">
           <button
             type="button"
+            data-sidebar-toggle="collapse"
             onClick={onCollapse}
             className="shrink-0 rounded-md p-1.5 text-ink/20 transition-colors hover:bg-ink/6 hover:text-ink/60"
             aria-label={copy.aside.collapse}
