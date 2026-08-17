@@ -1,145 +1,84 @@
 # KlipCode
 
-KlipCode is a cloud-synced code snippet manager that keeps your code available
-wherever you work. Start immediately without an account, then sign in with
-GitHub to securely save your library and access it across all your devices.
+KlipCode is a local-first code snippet manager. Start without an account, keep
+working in a device-local workspace, and sign in with GitHub when you want your
+library available across devices.
 
-## Features
+## Highlights
 
-- Automatic cloud synchronization across devices.
-- Account-free guest workspace for getting started immediately.
-- Fast saving and access to snippets.
-- Folder-based organization with multiple nesting levels.
-- Drag-and-drop to move folders and snippets.
-- Quick copy-to-clipboard.
-- Editor with automatic saving.
-- Pinned snippets in the home view and sidebar.
-- UI text is internationalized (i18n).
-
-## Technologies
-
-- Next.js 16 (App Router).
-- React 19.
-- Tailwind CSS v4.
-- CodeMirror 6.
-- Dexie.js for the guest workspace and local working copy.
-- Convex for the backend: data, functions, and authentication.
-- TanStack Query for remote state management.
+- Create, edit, search, copy, and organize snippets in nested folders.
+- Move snippets and folders with drag and drop, and pin important items to the
+  sidebar or home view.
+- Use a multi-language editor with syntax highlighting, auto-save, and a rich
+  Markdown preview.
+- Optionally generate names for untitled snippets with AI when signed in.
+- Sync a library through Convex after GitHub sign-in. Cloud records use
+  per-user encryption when the Cloudflare Worker `ENCRYPTION_MASTER_KEY` is
+  configured; without that secret, the current plaintext compatibility mode is
+  used.
+- Use the interface in English or Spanish.
 
 ## Requirements
 
 - Node.js 20 or newer.
-- pnpm.
-- A Convex project for cloud sync and authentication.
+- pnpm 10 (the repository pins pnpm 10.11.1).
 
-## Installation
+## Development
 
-1. Install dependencies:
+Install dependencies and start the Next.js development server:
 
 ```bash
 pnpm install
+pnpm dev
 ```
 
-2. Start the Convex backend (writes `.env.local` and watches `convex/`):
+Open <http://localhost:3000>. This is enough for the device-local workspace.
+
+To develop cloud sync and authentication, run the Convex development backend
+in a second terminal before starting the app:
 
 ```bash
 pnpm dev:backend
-```
-
-3. In a second terminal, start the development server:
-
-```bash
 pnpm dev
 ```
 
-4. Open http://localhost:3000 in your browser.
-
-## Environment variables
-
-`pnpm dev:backend` writes `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL` into
-`.env.local`, so cross-device sync needs no manual configuration.
-
-Two secrets are set by hand — see [.env.example](.env.example):
+`pnpm dev:backend` writes the development deployment values to `.env.local`.
+For encrypted local cloud records, copy [.env.example](.env.example) to `.env`
+and set `ENCRYPTION_MASTER_KEY`. GitHub sign-in also requires a GitHub OAuth app
+and these Convex environment variables:
 
 ```bash
-# Cloudflare (.env / .dev.vars / wrangler secret): wraps every per-user key.
-ENCRYPTION_MASTER_KEY=
-# Optional: the public site URL.
-NEXT_PUBLIC_SITE_URL=
+pnpm exec convex env set AUTH_GITHUB_ID <client-id>
+pnpm exec convex env set AUTH_GITHUB_SECRET <client-secret>
 ```
 
-GitHub sign-in needs an OAuth app, whose credentials live on the Convex
-deployment (never in the client bundle):
+## Checks and scripts
 
 ```bash
-npx convex env set AUTH_GITHUB_ID <client-id>
-npx convex env set AUTH_GITHUB_SECRET <client-secret>
-```
-
-If no deployment is configured, the guest workspace remains available on the
-current device, but sign-in and cross-device access are disabled.
-
-## Scripts
-
-```bash
-pnpm dev
-pnpm build
-pnpm start
 pnpm lint
 pnpm test
-pnpm test:watch
 pnpm test:e2e
-pnpm dev:backend
+pnpm build
+pnpm preview
 ```
 
-## Backend
-
-The backend lives in [convex/](convex) and is the schema, the API, and the
-authorization rules in one place:
-
-- [convex/schema.ts](convex/schema.ts) — tables for folders, snippets, and the
-  per-user wrapped encryption keys.
-- [convex/workspace.ts](convex/workspace.ts) — the sync endpoints. Ownership is
-  taken from the authenticated identity and never from the payload, which is
-  what replaced per-table row-level security.
-- [convex/lib/hierarchy.ts](convex/lib/hierarchy.ts) — folder-cycle rejection
-  and the delete cascade, covered by
-  [convex/workspace.test.ts](convex/workspace.test.ts).
-
-The encryption master key is deliberately NOT a Convex environment variable: it
-stays on Cloudflare in [/api/crypto/dek](src/app/api/crypto/dek/route.ts), so a
-dump of the deployment holds only ciphertext and wrapped keys.
-
-## Project structure
-
-- [src/app](src/app) contains the main Next.js entry.
-- [src/components](src/components) holds the application UI components.
-- [src/hooks](src/hooks) contains auth, mutation, and sync logic.
-- [src/lib](src/lib) groups data access, types, and utilities.
-- [src/i18n](src/i18n) centralizes user-facing text for translations.
-
-## Quick start
-
-1. Create a snippet from the main screen or from the sidebar.
-2. Organize it into a folder or move it using drag-and-drop.
-3. Sign in with GitHub to save your library to KlipCode and access it across
-   devices.
-4. Edit the code and let auto-save keep your library synchronized.
+`pnpm preview` uses the Cloudflare/OpenNext build path. `pnpm deploy` also
+deploys the Convex backend before publishing the Worker.
 
 ## Deployment
 
-Cloudflare Workers Builds compiles the app on push. Two things make that work,
-and they live in different places for a reason:
+KlipCode is deployed as a Cloudflare Worker using OpenNext. Configure the
+bindings in [wrangler.jsonc](wrangler.jsonc), set `ENCRYPTION_MASTER_KEY` as a
+Worker secret, and run:
 
-- `NEXT_PUBLIC_CONVEX_URL` is inlined into the client bundle **at build time**,
-  so it is committed in [.env.production](.env.production). Setting it as a
-  Worker runtime variable has no effect — by then the bundle is already
-  compiled, and the app would silently fall back to a device-only guest
-  workspace.
-- `ENCRYPTION_MASTER_KEY` is read per request by the DEK route, so it is a
-  Worker **secret** (`wrangler secret put ENCRYPTION_MASTER_KEY`) and is never
-  committed.
+```bash
+pnpm deploy
+```
 
-Also set `NEXT_PUBLIC_SITE_URL`, and push the backend with `npx convex deploy`
-when the functions in `convex/` change (`pnpm deploy` does both if you are
-deploying from a local checkout instead).
+## Further reading
+
+- [Engineering audit](docs/audit/engineering-audit.md)
+- [Convex backend](convex/)
+- [Environment example](.env.example)
+
+KlipCode is released under the [MIT License](LICENSE).
