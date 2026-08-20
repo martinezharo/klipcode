@@ -49,6 +49,8 @@ next-env.d.ts
 
 # wrangler files
 .wrangler
+# wrangler's "is there a newer version" cache, written on every install.
+update-check
 .dev.vars*
 !.dev.vars.example
 !.env.example
