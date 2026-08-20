@@ -1,5 +1,6 @@
 "use client";
 
+import { SWIPE_TRANSITION, TAB_PROGRESS_VAR } from "@/lib/tabSwipe";
 import { cn } from "@/lib/utils";
 
 /**
@@ -16,13 +17,13 @@ import { cn } from "@/lib/utils";
  * segment is exactly half, the pill moves by its own width, and its inner copy
  * counter-slides by half of its own doubled width. No refs, no measuring, no
  * resize observer.
+ *
+ * The pill's position is not read from `active` but from {@link
+ * TAB_PROGRESS_VAR}, inherited from the ancestor `useSwipeTabs` writes to. A
+ * press moves that property between whole numbers and the transition below
+ * animates the gap; a swipe moves it continuously and suspends the transition.
+ * One pill, one animation, two ways to ask for it.
  */
-
-/** Tailwind v4 compiles `translate-x-full` to the `translate` property, not to
- *  `transform` — transitioning the wrong one leaves the pill snapping. Kept as
- *  classes rather than an inline style so `motion-reduce` can still win. */
-const SLIDE =
-  "transition-[translate] duration-[420ms] ease-[cubic-bezier(0.34,1.4,0.64,1)] motion-reduce:transition-none";
 
 /** The three stacked copies of the row must agree on their columns exactly. */
 const ROW = "flex h-11 items-center";
@@ -47,13 +48,8 @@ export function FeedTabs<T extends string>({
   panelId: string;
   onSelect: (id: T) => void;
 }) {
-  const shifted = active === tabs[1].id;
-
   return (
-    <div
-      role="tablist"
-      className="relative h-11 overflow-hidden rounded-full bg-ink/[0.06]"
-    >
+    <div role="tablist" className="relative h-11 overflow-hidden rounded-full bg-ink/[0.06]">
       <div aria-hidden="true" className={cn(ROW, "absolute inset-0")}>
         {tabs.map((t) => (
           <span key={t.id} className={cn(CELL, "text-faint")}>
@@ -66,17 +62,13 @@ export function FeedTabs<T extends string>({
         aria-hidden="true"
         className={cn(
           "absolute inset-y-0 left-0 w-1/2 overflow-hidden rounded-full bg-ink",
-          SLIDE,
-          shifted && "translate-x-full",
+          SWIPE_TRANSITION,
         )}
+        style={{ translate: `calc(var(${TAB_PROGRESS_VAR}, 0) * 100%)` }}
       >
         <div
-          className={cn(
-            ROW,
-            "absolute inset-y-0 left-0 w-[200%]",
-            SLIDE,
-            shifted && "-translate-x-1/2",
-          )}
+          className={cn(ROW, "absolute inset-y-0 left-0 w-[200%]", SWIPE_TRANSITION)}
+          style={{ translate: `calc(var(${TAB_PROGRESS_VAR}, 0) * -50%)` }}
         >
           {tabs.map((t) => (
             <span key={t.id} className={cn(CELL, "text-background")}>

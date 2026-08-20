@@ -19,7 +19,9 @@ import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/Con
 import type { MenuTarget } from "@/components/Aside/types";
 import { useContextMenuGroups } from "@/components/Aside/useContextMenuGroups";
 import { sortByPinThenAlpha } from "@/components/Aside/utils";
+import { useSwipeTabs } from "@/hooks/useSwipeTabs";
 import { TOUCH_TARGET } from "@/lib/constants/layout";
+import { SWIPE_GROUP, SWIPE_TRANSITION, TAB_SHIFT_VAR } from "@/lib/tabSwipe";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/ui/Spinner";
 
@@ -30,8 +32,10 @@ import { FolderGroup, NewFolderCard } from "./FolderGroup";
 import { orderRecentSnippets } from "./ordering";
 import type { MobileHomeProps } from "./types";
 
-/** The mobile home is one list; the tabs only change what fills it. */
-type FeedTab = "recent" | "space";
+/** The mobile home is one list; the tabs only change what fills it. In order,
+ *  because a swipe moves between neighbours and has to know which is which. */
+const FEED_TABS = ["recent", "space"] as const;
+type FeedTab = (typeof FEED_TABS)[number];
 
 /**
  * The workspace as a full-screen destination, for touch layouts.
@@ -49,6 +53,11 @@ type FeedTab = "recent" | "space";
  * machinery for them bought this screen nothing. Everything else a row can do
  * still comes from the shared {@link useContextMenuGroups} builder, so the two
  * shells can never drift on what "delete" or "pin" means.
+ *
+ * Deliberately present instead: a horizontal drag anywhere across the list
+ * moves between the two tabs (see {@link useSwipeTabs}). Reaching a 44px pill
+ * at the top of the screen is the one thing a thumb is worst at, and it was
+ * the only way through.
  */
 export function MobileHome({
   user,
@@ -78,6 +87,8 @@ export function MobileHome({
 
   const tabsId = useId();
   const panelId = `${tabsId}-panel`;
+
+  const swipe = useSwipeTabs({ ids: FEED_TABS, active: tab, onSelect: setTab });
 
   /* ── Data shaping ──────────────────────────────────────────────────────── */
 
@@ -319,7 +330,11 @@ export function MobileHome({
       <main
         id="main-content"
         tabIndex={-1}
-        className="relative flex h-dvh flex-col overflow-hidden bg-background focus:outline-none"
+        {...swipe.containerProps}
+        className={cn(
+          "relative flex h-dvh flex-col overflow-hidden bg-background focus:outline-none",
+          SWIPE_GROUP,
+        )}
       >
         {/* ── Identity ── */}
         <header className="flex shrink-0 items-center gap-2.5 px-4 pb-1 pt-3">
@@ -415,11 +430,22 @@ export function MobileHome({
           />
         </div>
 
+        {/* The swipe surface. `touch-pan-y` hands vertical drags to the
+            browser's own scrolling — which then cancels our pointer — and
+            keeps horizontal ones for us. The list gives way with the finger
+            rather than sliding a whole page across: there is no second panel
+            mounted behind it, and pretending otherwise would be a lie the
+            release has to undo. */}
         <div
           id={panelId}
           role="tabpanel"
           aria-labelledby={`${tabsId}-${tab}`}
-          className="flex-1 overflow-y-auto overscroll-contain px-4 pb-28"
+          {...swipe.surfaceProps}
+          style={{ translate: `var(${TAB_SHIFT_VAR}, 0px)` }}
+          className={cn(
+            "flex-1 touch-pan-y overflow-y-auto overscroll-contain px-4 pb-28",
+            SWIPE_TRANSITION,
+          )}
         >
           {tab === "recent" ? (
             recents.length === 0 ? (
