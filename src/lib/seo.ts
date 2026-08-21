@@ -13,11 +13,13 @@ export function buildPageMetadata({
   path = "",
   title,
   description,
+  markdownAlternate,
 }: {
   locale: Locale;
   path?: string;
   title: string;
   description: string;
+  markdownAlternate?: string;
 }): Metadata {
   const canonical = `${siteUrl}${localeHref(locale, path)}`;
   const socialImage = `${siteUrl}/og-image.png`;
@@ -36,6 +38,9 @@ export function buildPageMetadata({
         es: `${siteUrl}${localeHref("es", path)}`,
         "x-default": `${siteUrl}${localeHref("en", path)}`,
       },
+      ...(markdownAlternate
+        ? { types: { "text/markdown": `${siteUrl}${markdownAlternate}` } }
+        : {}),
     },
     openGraph: {
       type: "website",

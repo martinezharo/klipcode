@@ -33,19 +33,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
       alternates: { languages: languages("") },
     },
-    {
-      url: url(localeHref("en", "/app")),
-      lastModified: LAST_UPDATED,
-      changeFrequency: "weekly",
-      priority: 0.8,
-      alternates: { languages: languages("/app") },
-    },
-    {
-      url: url(localeHref("es", "/app")),
-      lastModified: LAST_UPDATED,
-      changeFrequency: "weekly",
-      priority: 0.8,
-      alternates: { languages: languages("/app") },
-    },
   ];
 }

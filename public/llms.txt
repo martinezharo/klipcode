@@ -1,0 +1,21 @@
+# KlipCode
+
+> KlipCode is an open-source, local-first code snippet manager for quickly saving, organizing, searching, and copying code.
+
+KlipCode works without an account and stores the initial workspace on the device. GitHub sign-in adds optional cloud synchronization across devices. The interface is available in English and Spanish.
+
+## Product guide
+
+- [KlipCode overview](https://klipcode.com/index.md): Concise, LLM-friendly product facts, capabilities, privacy model, and suitable use cases.
+- [KlipCode](https://klipcode.com/): English product page and entry point to the app.
+- [KlipCode in Spanish](https://klipcode.com/es): Spanish product page.
+
+## Technical references
+
+- [Project README](https://raw.githubusercontent.com/martinezharo/klipcode/main/README.md): Current features, local-first and cloud-sync behavior, development, and deployment.
+- [Source code](https://github.com/martinezharo/klipcode): Canonical source repository.
+- [Sitemap](https://klipcode.com/sitemap.xml): Public, indexable product pages.
+
+## Optional
+
+- [License](https://raw.githubusercontent.com/martinezharo/klipcode/main/LICENSE): MIT License terms for the source code.
