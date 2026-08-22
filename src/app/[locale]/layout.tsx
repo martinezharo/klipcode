@@ -38,6 +38,9 @@ export default async function LocaleLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="describedby" href="https://klipcode.com/llms.txt" />
+      </head>
       <body className="h-full bg-background text-foreground">
         {/* Applies the stored theme before the body paints to avoid a flash of
             the wrong surface. Mirrors readTheme()/applyTheme() in lib/theme.ts. */}

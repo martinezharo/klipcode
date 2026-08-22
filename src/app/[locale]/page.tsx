@@ -30,6 +30,7 @@ export async function generateMetadata({
     locale: loc,
     title: dict.meta.home.title,
     description: dict.meta.home.description,
+    markdownAlternate: loc === "en" ? "/index.md" : undefined,
   });
 }
 
