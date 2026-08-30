@@ -3,7 +3,7 @@
 import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Menu } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { readTrash } from "@/lib/db";
 import { readInitialWorkspace } from "@/lib/seed";
@@ -12,7 +12,6 @@ import { getDictionary } from "@/i18n";
 import { localeHref, LOCALE_COOKIE, type Locale } from "@/lib/locale";
 import { SPACE_ROOT_ID, TRASH_ROOT_ID } from "@/lib/navigation";
 import { copyTextToClipboard } from "@/lib/utils";
-import { Tooltip } from "@/ui/Tooltip";
 import { Spinner } from "@/ui/Spinner";
 
 import { useResponsiveSidebar } from "@/hooks/useResponsiveSidebar";
@@ -296,10 +295,9 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   });
 
   /**
-   * Escape hatch back to the workspace, shown in the editor / folder / trash
-   * headers. On desktop it re-opens the collapsed aside; on touch there is no
-   * aside to open, so it navigates back to the mobile home — which is the only
-   * way back now that the drawer and its edge-swipe gesture are gone.
+   * Escape hatch back to the workspace, shown in touch-layout editor / folder /
+   * trash headers. Desktop uses the aside's persistent edge tab when collapsed;
+   * on touch there is no aside, so this navigates back to the mobile home.
    */
   const menuButton = isMobile ? (
     <button
@@ -310,22 +308,9 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     >
       <ArrowLeft size={19} />
     </button>
-  ) : !sidebarOpen ? (
-    <Tooltip content={copy.aside.open} placement="bottom">
-      <button
-        type="button"
-        data-sidebar-toggle="open"
-        aria-label={copy.aside.open}
-        onClick={() => setSidebarOpen(true)}
-        className="shrink-0 rounded-md p-1.5 text-ink/40 transition-colors hover:bg-ink/6 hover:text-ink/70"
-      >
-        <Menu size={16} />
-      </button>
-    </Tooltip>
   ) : null;
 
-  // Keep the top-bar footprint stable while the desktop aside opens and closes.
-  // Only the toggle changes visibility; content below it must not move vertically.
+  // Keep a stable top-bar footprint across touch and desktop views.
   const menuBar = (
     <div className="sticky top-0 z-10 flex h-11 shrink-0 items-center border-b border-transparent px-3">
       {menuButton}

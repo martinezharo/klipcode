@@ -39,8 +39,34 @@
   user-select: none;
 }
 
-[data-aside-resizing] .klipcode-aside-shell {
+[data-aside-resizing] .klipcode-aside-shell:not([data-collapse-preview]) {
   transition: none;
+}
+
+/* Crossing the collapse threshold is a deliberate snap, not ordinary 1:1
+   resizing. Let that state animate while regular pointer tracking stays
+   transition-free, then the handle clears the marker after a recovery. */
+[data-aside-resizing] .klipcode-aside-shell[data-collapse-preview] {
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* A small edge tab remains after the aside closes. During a held drag it is a
+   visual direction cue; once released it becomes the accessible open button. */
+.klipcode-aside-recovery {
+  transform: translateY(-50%);
+  animation: klipcode-aside-recovery-in 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes klipcode-aside-recovery-in {
+  from {
+    opacity: 0;
+    transform: translate(-100%, -50%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, -50%);
+  }
 }
 
 /* The grabbed edge stays lit for the whole gesture, even once the cursor has

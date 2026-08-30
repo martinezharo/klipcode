@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { Home, Keyboard, RotateCcw, Search, Settings, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { ChevronRight, Home, Keyboard, RotateCcw, Search, Settings, Trash2 } from "lucide-react";
 
 import { ContextMenu } from "@/components/ContextMenu/ContextMenu";
 import { useDragCtx } from "@/components/DragContext";
 import { WorkspaceTree } from "@/components/Workspace/WorkspaceTree";
 import { ShortcutHint } from "@/ui/ShortcutHint";
+import { Tooltip } from "@/ui/Tooltip";
 
 import type { AsideProps } from "./types";
 import { AsideHeader } from "./AsideHeader";
@@ -44,6 +45,8 @@ export function Aside({
   ...treeProps
 }: AsideProps) {
   const [trashMenu, setTrashMenu] = useState<{ x: number; y: number } | null>(null);
+  const [collapsePreview, setCollapsePreview] = useState(false);
+  const shellRef = useRef<HTMLDivElement>(null);
   const drag = useDragCtx();
 
   return (
@@ -80,6 +83,7 @@ export function Aside({
       )}
 
       <div
+        ref={shellRef}
         // Collapsed, the panel is only clipped to zero width — its tree, its
         // account controls and its footer links are all still in the document.
         // `inert` takes the whole subtree out of the tab order and off the
@@ -100,6 +104,8 @@ export function Aside({
           {isOpen && (
             <AsideResizeHandle
               copy={copy}
+              shellRef={shellRef}
+              onCollapsePreviewChange={setCollapsePreview}
               onCommit={onSetWidth}
               onCollapse={() => onSetOpen(false)}
             />
@@ -242,6 +248,25 @@ export function Aside({
           </div>
         </aside>
       </div>
+
+      {(collapsePreview || !isOpen) && (
+        <Tooltip content={copy.aside.open} placement="right" delay={250}>
+          <button
+            type="button"
+            data-sidebar-toggle={collapsePreview ? undefined : "open"}
+            data-aside-recovery
+            aria-label={copy.aside.open}
+            aria-hidden={collapsePreview}
+            tabIndex={collapsePreview ? -1 : 0}
+            onClick={collapsePreview ? undefined : () => onSetOpen(true)}
+            className="klipcode-aside-recovery klipcode-z-tooltip fixed left-0 top-1/2 flex h-14 w-7 items-center justify-center rounded-r-lg border border-l-0 border-ink/10 bg-surface/95 text-ink/55 shadow-[4px_0_18px_rgba(0,0,0,0.22)] backdrop-blur-sm transition-colors hover:border-ink/20 hover:bg-surface-hover hover:text-foreground"
+          >
+            <span className="flex h-7 w-3 items-center justify-center rounded-full bg-ink/6">
+              <ChevronRight size={13} strokeWidth={2.25} aria-hidden="true" />
+            </span>
+          </button>
+        </Tooltip>
+      )}
     </>
   );
 }

@@ -181,6 +181,24 @@ test("resizes the aside and remembers the width", async ({ page }) => {
   await gotoApp(page);
   expect(await asideWidth()).toBe(324);
 
+  // Crossing the snap threshold previews the collapsed state immediately. The
+  // pointer is still captured by the handle, so reversing the same drag opens
+  // the panel again without requiring a second gesture.
+  const reversibleFrom = await grabHandle();
+  await page.mouse.move(20, 200, { steps: 10 });
+  const shell = page.locator(".klipcode-aside-shell");
+  const recoveryCue = page.locator("[data-aside-recovery]");
+  await expect(shell).toHaveCSS("transition-duration", "0.18s");
+  await expect(shell).toHaveCSS("width", "0px");
+  await expect(recoveryCue).toBeVisible();
+  await expect(recoveryCue).toHaveCSS("opacity", "1");
+  expect((await recoveryCue.boundingBox())?.x).toBe(0);
+  await page.mouse.move(reversibleFrom, 200, { steps: 10 });
+  await expect(shell).toHaveCSS("width", "324px");
+  await expect(recoveryCue).toBeHidden();
+  await page.mouse.up();
+  expect(await asideWidth()).toBe(324);
+
   // Dragging shut collapses the panel, and re-opening restores the width the
   // user chose rather than the default.
   await grabHandle();
@@ -189,6 +207,11 @@ test("resizes the aside and remembers the width", async ({ page }) => {
 
   const reopen = page.getByRole("button", { name: "Open panel" });
   await expect(reopen).toBeVisible();
+  await expect(reopen).toHaveCSS("opacity", "1");
+  const reopenBox = await reopen.boundingBox();
+  expect(Math.round(reopenBox?.x ?? -1)).toBe(0);
+  expect(reopenBox?.width).toBeGreaterThanOrEqual(24);
+  expect(reopenBox?.height).toBeGreaterThanOrEqual(24);
   await reopen.click();
   await expect(handle).toBeVisible();
   expect(await asideWidth()).toBe(324);

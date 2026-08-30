@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
+import type {
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+  RefObject,
+} from "react";
 
 import type { Dictionary } from "@/i18n";
 import { applyAsideWidth, readAsideWidth, setAsideResizing } from "@/lib/asideWidth";
@@ -16,9 +20,14 @@ import {
 /** Pixels per arrow key press; Shift moves in bigger jumps. */
 const KEYBOARD_STEP = 16;
 const KEYBOARD_STEP_LARGE = 48;
+const SNAP_TRANSITION_MS = 180;
 
 interface AsideResizeHandleProps {
   copy: Dictionary;
+  /** The clipping shell whose width previews the snap while dragging. */
+  shellRef: RefObject<HTMLDivElement | null>;
+  /** Shows or hides the recovery cue while the pointer remains held. */
+  onCollapsePreviewChange: (collapsed: boolean) => void;
   /** Persist a settled width — drag released, arrow key, or reset. */
   onCommit: (width: number) => void;
   /** Released past the collapse threshold: treat the drag as "close the panel". */
@@ -37,8 +46,16 @@ interface AsideResizeHandleProps {
  * pointer-only affordance would put the width out of reach for anyone not using
  * a mouse.
  */
-export function AsideResizeHandle({ copy, onCommit, onCollapse }: AsideResizeHandleProps) {
+export function AsideResizeHandle({
+  copy,
+  shellRef,
+  onCollapsePreviewChange,
+  onCommit,
+  onCollapse,
+}: AsideResizeHandleProps) {
   const [width, setWidth] = useState(DEFAULT_ASIDE_WIDTH);
+  const collapsePreview = useRef(false);
+  const snapTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const drag = useRef<{
     pointerId: number;
     startX: number;
@@ -56,7 +73,55 @@ export function AsideResizeHandle({ copy, onCommit, onCollapse }: AsideResizeHan
 
   // Nothing should stay half-dragged if we unmount mid-gesture (the panel being
   // collapsed, or the viewport crossing into the touch layout).
-  useEffect(() => () => setAsideResizing(false), []);
+  useEffect(
+    () => () => {
+      setAsideResizing(false);
+      if (snapTransitionTimer.current) clearTimeout(snapTransitionTimer.current);
+      if (shellRef.current) {
+        shellRef.current.style.removeProperty("width");
+        delete shellRef.current.dataset.collapsePreview;
+      }
+    },
+    [shellRef],
+  );
+
+  function clearSnapTransitionTimer() {
+    if (!snapTransitionTimer.current) return;
+    clearTimeout(snapTransitionTimer.current);
+    snapTransitionTimer.current = null;
+  }
+
+  function previewWidth(raw: number, nextWidth: number) {
+    const shell = shellRef.current;
+    if (!shell) return;
+
+    const collapsed = raw < ASIDE_COLLAPSE_THRESHOLD;
+    if (collapsePreview.current !== collapsed) {
+      collapsePreview.current = collapsed;
+      onCollapsePreviewChange(collapsed);
+      clearSnapTransitionTimer();
+
+      if (collapsed) {
+        shell.dataset.collapsePreview = "true";
+      } else {
+        // Keep the snap transition for the return trip, then hand width control
+        // back to direct pointer tracking once the panel has visibly recovered.
+        snapTransitionTimer.current = setTimeout(() => {
+          if (!collapsePreview.current) delete shell.dataset.collapsePreview;
+          snapTransitionTimer.current = null;
+        }, SNAP_TRANSITION_MS);
+      }
+    }
+
+    shell.style.width = collapsed ? "0px" : `${nextWidth}px`;
+  }
+
+  function clearCollapsePreview() {
+    clearSnapTransitionTimer();
+    collapsePreview.current = false;
+    onCollapsePreviewChange(false);
+    if (shellRef.current) delete shellRef.current.dataset.collapsePreview;
+  }
 
   function commit(next: number) {
     setWidth(next);
@@ -70,6 +135,8 @@ export function AsideResizeHandle({ copy, onCommit, onCollapse }: AsideResizeHan
     e.preventDefault();
     const startWidth = readAsideWidth();
     drag.current = { pointerId: e.pointerId, startX: e.clientX, startWidth, raw: startWidth };
+    clearCollapsePreview();
+    shellRef.current?.style.removeProperty("width");
     // Capture routes the rest of the gesture here even when the cursor outruns
     // this 4px strip, so no window-level listeners are needed.
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -80,7 +147,13 @@ export function AsideResizeHandle({ copy, onCommit, onCollapse }: AsideResizeHan
     const state = drag.current;
     if (!state || state.pointerId !== e.pointerId) return;
     state.raw = state.startWidth + (e.clientX - state.startX);
-    applyAsideWidth(clampAsideWidth(state.raw));
+    const nextWidth = clampAsideWidth(state.raw);
+    applyAsideWidth(nextWidth);
+
+    // Snap the clipping shell shut as soon as the pointer crosses the threshold
+    // without committing React's open state yet. Pointer capture keeps the
+    // preview reversible while a visible edge cue points back to the panel.
+    previewWidth(state.raw, nextWidth);
   }
 
   function endResize(e: ReactPointerEvent<HTMLDivElement>) {
@@ -88,14 +161,18 @@ export function AsideResizeHandle({ copy, onCommit, onCollapse }: AsideResizeHan
     if (!state || state.pointerId !== e.pointerId) return;
     drag.current = null;
     setAsideResizing(false);
+    clearCollapsePreview();
 
     if (state.raw < ASIDE_COLLAPSE_THRESHOLD) {
       // Dragged shut. Restore the last committed width first so re-opening
       // brings back the panel the user sized, not the minimum.
       applyAsideWidth(width);
       onCollapse();
+      const shell = shellRef.current;
+      requestAnimationFrame(() => shell?.style.removeProperty("width"));
       return;
     }
+    shellRef.current?.style.removeProperty("width");
     commit(clampAsideWidth(state.raw));
   }
 
