@@ -2,15 +2,15 @@ import { describe, it, expect } from "vitest";
 
 import {
   applyTabSwipe,
-  contentShift,
   detectSwipeAxis,
+  overscrollShift,
   resolveSwipe,
   setTabSwiping,
   SWIPE_AXIS_SLOP,
   SWIPE_COMMIT_RATIO,
   SWIPE_COMMIT_VELOCITY,
+  TAB_OVERSCROLL_VAR,
   TAB_PROGRESS_VAR,
-  TAB_SHIFT_VAR,
   tabProgress,
 } from "@/lib/tabSwipe";
 
@@ -72,32 +72,37 @@ describe("tabProgress()", () => {
   });
 });
 
-// ── contentShift() ────────────────────────────────────────────────────────────
+// ── overscrollShift() ─────────────────────────────────────────────────────────
 
-describe("contentShift()", () => {
-  it("follows the finger, damped, in the same direction", () => {
-    const shift = contentShift(0, -100, WIDTH, COUNT);
-    expect(shift).toBeLessThan(0);
-    expect(Math.abs(shift)).toBeLessThan(100);
+describe("overscrollShift()", () => {
+  it("stays put while there is a tab to reveal — the track's own travel says it all", () => {
+    expect(overscrollShift(0, -100, WIDTH, COUNT)).toBe(0);
+    expect(overscrollShift(1, 100, WIDTH, COUNT)).toBe(0);
   });
 
-  it("resists much harder when there is no tab to reveal", () => {
-    const free = Math.abs(contentShift(0, -100, WIDTH, COUNT));
-    const againstTheEdge = Math.abs(contentShift(0, 100, WIDTH, COUNT));
-    expect(againstTheEdge).toBeGreaterThan(0);
-    expect(againstTheEdge).toBeLessThan(free);
+  it("gives way, damped, to a finger pulling past an end", () => {
+    const shift = overscrollShift(0, 100, WIDTH, COUNT);
+    expect(shift).toBeGreaterThan(0);
+    expect(shift).toBeLessThan(100);
+    expect(overscrollShift(1, -100, WIDTH, COUNT)).toBeLessThan(0);
   });
 
-  it("caps the follow however far the finger goes", () => {
-    const far = Math.abs(contentShift(0, -5000, WIDTH, COUNT));
-    const further = Math.abs(contentShift(0, -50_000, WIDTH, COUNT));
+  it("only counts the part of the drag that runs past the end", () => {
+    // Half a screen to the next tab, then half a screen against the end.
+    const past = overscrollShift(0, -WIDTH * 1.5, WIDTH, COUNT);
+    expect(past).toBeCloseTo(overscrollShift(1, -WIDTH * 0.5, WIDTH, COUNT));
+  });
+
+  it("caps the rubber band however far the finger goes", () => {
+    const far = Math.abs(overscrollShift(0, 5000, WIDTH, COUNT));
+    const further = Math.abs(overscrollShift(0, 50_000, WIDTH, COUNT));
     expect(far).toBe(further);
     expect(far).toBeLessThanOrEqual(56);
   });
 
   it("does not move at all without a gesture, or without a surface", () => {
-    expect(contentShift(0, 0, WIDTH, COUNT)).toBe(0);
-    expect(contentShift(0, -100, 0, COUNT)).toBe(0);
+    expect(overscrollShift(0, 0, WIDTH, COUNT)).toBe(0);
+    expect(overscrollShift(0, -100, 0, COUNT)).toBe(0);
   });
 });
 
@@ -157,11 +162,11 @@ describe("applyTabSwipe() / setTabSwiping()", () => {
     };
   }
 
-  it("writes both custom properties, the shift in px", () => {
+  it("writes both custom properties, the overscroll in px", () => {
     const el = fakeElement();
     applyTabSwipe(el as unknown as HTMLElement, 0.25, -12.5);
     expect(el.read(TAB_PROGRESS_VAR)).toBe("0.25");
-    expect(el.read(TAB_SHIFT_VAR)).toBe("-12.5px");
+    expect(el.read(TAB_OVERSCROLL_VAR)).toBe("-12.5px");
   });
 
   it("adds and removes the flag that suspends the settle animation", () => {

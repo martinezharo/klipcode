@@ -31,21 +31,22 @@ const CELL = "flex-1 truncate px-3 text-center text-[13.5px] font-medium";
 
 export interface FeedTabDef<T extends string> {
   id: T;
-  /** Used for the button's `id`, which the tab panel points at. */
+  /** Used for the button's `id`, which its panel points back at. */
   domId: string;
+  /** The panel this tab controls. Every tab has one mounted at all times —
+   *  they are the pages of a track that slides — so each needs its own. */
+  panelId: string;
   label: string;
 }
 
 export function FeedTabs<T extends string>({
   tabs,
   active,
-  panelId,
   onSelect,
 }: {
   /** Exactly two — the layout maths below assumes halves. */
   tabs: readonly [FeedTabDef<T>, FeedTabDef<T>];
   active: T;
-  panelId: string;
   onSelect: (id: T) => void;
 }) {
   return (
@@ -88,7 +89,7 @@ export function FeedTabs<T extends string>({
             id={t.domId}
             role="tab"
             aria-selected={active === t.id}
-            aria-controls={panelId}
+            aria-controls={t.panelId}
             onClick={() => onSelect(t.id)}
             className={cn(CELL, "h-full rounded-full text-transparent")}
           >

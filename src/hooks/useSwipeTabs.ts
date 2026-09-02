@@ -4,12 +4,12 @@ import { useRef, type CSSProperties, type MouseEvent, type PointerEvent, type Re
 
 import {
   applyTabSwipe,
-  contentShift,
   detectSwipeAxis,
+  overscrollShift,
   resolveSwipe,
   setTabSwiping,
+  TAB_OVERSCROLL_VAR,
   TAB_PROGRESS_VAR,
-  TAB_SHIFT_VAR,
   tabProgress,
   type SwipeAxis,
 } from "@/lib/tabSwipe";
@@ -27,9 +27,12 @@ interface Gesture {
 }
 
 export interface SwipeTabs {
-  /** For the ancestor both the switcher and the panel live under: it carries
+  /** For the ancestor both the switcher and the panels live under: it carries
    *  the custom properties they animate off. */
   containerProps: { ref: Ref<HTMLElement | null>; style: CSSProperties };
+  /** For the row that holds every panel side by side, inside a clipping
+   *  viewport: it is what actually slides. */
+  trackProps: { style: CSSProperties };
   /** For the element the finger actually lands on. */
   surfaceProps: {
     onPointerDown: (e: PointerEvent<HTMLElement>) => void;
@@ -50,7 +53,7 @@ export interface SwipeTabs {
  * in-between values directly to the DOM and hands control back by writing the
  * settled one when the finger lifts.
  *
- * Vertical drags are left entirely alone — the surface keeps `touch-action:
+ * Vertical drags are left entirely alone — each panel keeps `touch-action:
  * pan-y`, so the browser scrolls the list natively and cancels the pointer,
  * rather than us re-implementing momentum scrolling on the main thread.
  */
@@ -75,7 +78,7 @@ export function useSwipeTabs<T extends string>({
     applyTabSwipe(
       containerRef.current,
       tabProgress(index, dx, width, ids.length),
-      contentShift(index, dx, width, ids.length),
+      overscrollShift(index, dx, width, ids.length),
     );
   }
 
@@ -156,7 +159,14 @@ export function useSwipeTabs<T extends string>({
       ref: containerRef,
       // React owns the resting position: a tab pressed with the keyboard or a
       // finger animates through the very same property a swipe drives.
-      style: { [TAB_PROGRESS_VAR]: index, [TAB_SHIFT_VAR]: "0px" } as CSSProperties,
+      style: { [TAB_PROGRESS_VAR]: index, [TAB_OVERSCROLL_VAR]: "0px" } as CSSProperties,
+    },
+    trackProps: {
+      // One panel width per whole tab, so the track's offset *is* the gesture:
+      // halfway through, each panel is half on screen.
+      style: {
+        translate: `calc(var(${TAB_PROGRESS_VAR}, 0) * -100% + var(${TAB_OVERSCROLL_VAR}, 0px))`,
+      },
     },
     surfaceProps: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onClickCapture },
   };
