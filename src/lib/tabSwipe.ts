@@ -4,15 +4,19 @@
  *
  * A horizontal drag across the mobile feed moves between Recent and My Space,
  * so the tabs stop being the only way in. Nothing here touches React state: a
- * gesture writes {@link TAB_PROGRESS_VAR} and {@link TAB_SHIFT_VAR} straight to
- * the DOM on every pointer move — exactly as the aside's resize handle writes
- * its width — because routing 60 updates a second through a render would
- * re-render every card in the feed to move a 200px pill.
+ * gesture writes {@link TAB_PROGRESS_VAR} and {@link TAB_OVERSCROLL_VAR}
+ * straight to the DOM on every pointer move — exactly as the aside's resize
+ * handle writes its width — because routing 60 updates a second through a
+ * render would re-render every card in the feed to move a 200px pill.
  *
- * The custom properties are inherited, so the switcher and the list read the
- * same two numbers from a shared ancestor without either knowing about the
+ * The custom properties are inherited, so the switcher and the panel track read
+ * the same two numbers from a shared ancestor without either knowing about the
  * other. React owns their resting values; a gesture only borrows them, and
  * writes the settled value back itself when the finger lifts.
+ *
+ * Both tabs are mounted side by side on one track, so a swipe — or a tap on the
+ * switcher — slides one panel out while the other slides in, at the same pace
+ * and over the same 420ms as the pill above them.
  */
 
 /** How far a finger must travel before the gesture commits to an axis. Below
@@ -26,41 +30,50 @@ export const SWIPE_COMMIT_RATIO = 0.28;
  *  confident swipe that only crosses a third of the screen would spring back. */
 export const SWIPE_COMMIT_VELOCITY = 0.4;
 
-/** The list follows the finger at this fraction of its travel. Deliberately
- *  small: the list is not a carousel — there is no second page sliding in
- *  behind it — so it acknowledges the gesture rather than pretending to be
- *  dragged by it. */
-const CONTENT_TRAVEL = 0.18;
-
-/** And at this fraction of that once there is no further tab to reveal, which
- *  is what makes the first and last tab feel like ends rather than dead pixels. */
+/** Fraction of a drag that still moves the track once there is no further tab
+ *  to reveal, which is what makes the first and last tab feel like ends rather
+ *  than dead pixels. */
 const EDGE_RESISTANCE = 0.35;
 
-/** Hard cap on the list's follow, in px. */
-const MAX_CONTENT_SHIFT = 56;
+/** Hard cap on that rubber band, in px. */
+const MAX_OVERSCROLL = 56;
 
-/** Position between the tabs, as a fractional index (0 = first, 1 = second). */
+/** Position between the tabs, as a fractional index (0 = first, 1 = second).
+ *  The track sits at exactly `-progress` panel widths, so the panels follow the
+ *  finger 1:1 and each is half on screen halfway through. */
 export const TAB_PROGRESS_VAR = "--tab-progress";
 
-/** How far the list itself has given way to the finger, in px. */
-export const TAB_SHIFT_VAR = "--tab-shift";
+/** How far the track has been pulled past an end, in px — zero everywhere
+ *  inside the real range of tabs, where {@link TAB_PROGRESS_VAR} says it all. */
+export const TAB_OVERSCROLL_VAR = "--tab-overscroll";
 
 /** Marks the ancestor that owns the two custom properties. Anything animating
- *  off them pairs it with {@link SWIPE_TRANSITION}. */
+ *  off them pairs it with one of the transitions below. */
 export const SWIPE_GROUP = "group/swipe";
 
 /**
- * The spring every swipe-driven element settles with — and, crucially, does
- * *not* animate with while a finger is down: a 420ms ease between the finger
- * and the pill would leave the pill trailing the gesture that is supposed to be
- * moving it.
+ * What every swipe-driven element has in common: it settles over 420ms, and —
+ * crucially — does *not* animate while a finger is down, because a 420ms ease
+ * between the finger and the pill would leave the pill trailing the gesture
+ * that is supposed to be moving it.
  *
  * Tailwind v4 compiles translate utilities to the `translate` property, not to
  * `transform`, so that is what is transitioned here.
  */
-export const SWIPE_TRANSITION =
-  "transition-[translate] duration-[420ms] ease-[cubic-bezier(0.34,1.4,0.64,1)] " +
+const SWIPE_SETTLE =
+  "transition-[translate] duration-[420ms] " +
   "group-data-[swiping]/swipe:transition-none motion-reduce:transition-none";
+
+/** The switcher's spring. It overshoots slightly, which is what makes the pill
+ *  feel thrown rather than driven. */
+export const SWIPE_TRANSITION = SWIPE_SETTLE + " ease-[cubic-bezier(0.34,1.4,0.64,1)]";
+
+/**
+ * The panel track's settle: the same duration, so the panels and the pill
+ * arrive together, but decelerating onto its mark without overshoot — a track
+ * that sprang past its end would flash the background beyond the last panel.
+ */
+export const SWIPE_PAGE_TRANSITION = SWIPE_SETTLE + " ease-[cubic-bezier(0.32,0.72,0,1)]";
 
 export type SwipeAxis = "horizontal" | "vertical";
 
@@ -87,26 +100,28 @@ export function detectSwipeAxis(
 }
 
 /**
- * Where the switcher's pill sits mid-gesture, as a fractional tab index.
+ * Where the gesture sits mid-drag, as a fractional tab index — the switcher's
+ * pill and the panel track both read it.
  *
  * Dragging left (negative `dx`) pulls the next tab in, so progress rises. It
- * never leaves the range of real tabs — the pill has nowhere to go past the
- * ends, and {@link contentShift} is what expresses the overshoot instead.
+ * never leaves the range of real tabs — there is no third panel to slide in —
+ * and {@link overscrollShift} is what expresses the pull past an end instead.
  */
 export function tabProgress(index: number, dx: number, width: number, count: number): number {
   if (!(width > 0) || count < 2) return index;
   return clamp(index - dx / width, 0, count - 1);
 }
 
-/** How far the list gives way to the finger, in px, damped past the ends. */
-export function contentShift(index: number, dx: number, width: number, count: number): number {
+/** How far the track gives way to a finger pulling past the first or last tab,
+ *  in px. Zero for any drag that has a panel to reveal. */
+export function overscrollShift(index: number, dx: number, width: number, count: number): number {
   if (!(width > 0) || count < 2) return 0;
-  // The part of the drag that maps onto a tab that actually exists...
-  const travelled = (index - tabProgress(index, dx, width, count)) * width;
-  // ...and the part pulling against an end.
-  const overflow = dx - travelled;
-  const shift = (travelled + overflow * EDGE_RESISTANCE) * CONTENT_TRAVEL;
-  return clamp(shift, -MAX_CONTENT_SHIFT, MAX_CONTENT_SHIFT);
+  // The drag that lands exactly on the first tab, and the one that lands on the
+  // last: between them every pixel has a panel to show for itself.
+  const toFirst = index * width;
+  const toLast = (index - (count - 1)) * width;
+  const overflow = dx - clamp(dx, toLast, toFirst);
+  return clamp(overflow * EDGE_RESISTANCE, -MAX_OVERSCROLL, MAX_OVERSCROLL);
 }
 
 /**
@@ -130,10 +145,10 @@ export function resolveSwipe(
 }
 
 /** Paints a position immediately, bypassing React. */
-export function applyTabSwipe(el: HTMLElement | null, progress: number, shift: number): void {
+export function applyTabSwipe(el: HTMLElement | null, progress: number, overscroll: number): void {
   if (!el) return;
   el.style.setProperty(TAB_PROGRESS_VAR, String(progress));
-  el.style.setProperty(TAB_SHIFT_VAR, `${shift}px`);
+  el.style.setProperty(TAB_OVERSCROLL_VAR, `${overscroll}px`);
 }
 
 /** Suspends the settle animation for as long as the finger is driving it. */

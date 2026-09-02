@@ -21,7 +21,7 @@ import { useContextMenuGroups } from "@/components/Aside/useContextMenuGroups";
 import { sortByPinThenAlpha } from "@/components/Aside/utils";
 import { useSwipeTabs } from "@/hooks/useSwipeTabs";
 import { TOUCH_TARGET } from "@/lib/constants/layout";
-import { SWIPE_GROUP, SWIPE_TRANSITION, TAB_SHIFT_VAR } from "@/lib/tabSwipe";
+import { SWIPE_GROUP, SWIPE_PAGE_TRANSITION } from "@/lib/tabSwipe";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/ui/Spinner";
 
@@ -32,8 +32,8 @@ import { FolderGroup, NewFolderCard } from "./FolderGroup";
 import { orderRecentSnippets } from "./ordering";
 import type { MobileHomeProps } from "./types";
 
-/** The mobile home is one list; the tabs only change what fills it. In order,
- *  because a swipe moves between neighbours and has to know which is which. */
+/** The two lists the home switches between, in the order they sit on the track:
+ *  a swipe moves between neighbours and has to know which is which. */
 const FEED_TABS = ["recent", "space"] as const;
 type FeedTab = (typeof FEED_TABS)[number];
 
@@ -57,7 +57,9 @@ type FeedTab = (typeof FEED_TABS)[number];
  * Deliberately present instead: a horizontal drag anywhere across the list
  * moves between the two tabs (see {@link useSwipeTabs}). Reaching a 44px pill
  * at the top of the screen is the one thing a thumb is worst at, and it was
- * the only way through.
+ * the only way through. Both lists are mounted on a sliding track, so the one
+ * you are leaving stays on screen until the one you are arriving at has taken
+ * its place.
  */
 export function MobileHome({
   user,
@@ -86,7 +88,8 @@ export function MobileHome({
   >(undefined);
 
   const tabsId = useId();
-  const panelId = `${tabsId}-panel`;
+  /** One id per tab: both panels stay mounted, so both are real tab panels. */
+  const panelId = (id: FeedTab) => `${tabsId}-${id}-panel`;
 
   const swipe = useSwipeTabs({ ids: FEED_TABS, active: tab, onSelect: setTab });
 
@@ -265,6 +268,14 @@ export function MobileHome({
     setAccountMenu({ x: rect.left, y: rect.bottom + 6 });
   }
 
+  /** Both lists hang the same menu off a card's ⋯, anchored under the button. */
+  function openSnippetMenu(e: React.MouseEvent, id: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenuTarget({ type: "snippet", id, x: rect.left, y: rect.bottom + 4 });
+  }
+
   function openRootMenu(e: React.MouseEvent<HTMLButtonElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
     // Right-aligned controls open menus that would otherwise run off-screen;
@@ -421,110 +432,99 @@ export function MobileHome({
         <div className="shrink-0 px-4 py-2.5">
           <FeedTabs
             tabs={[
-              { id: "recent", domId: `${tabsId}-recent`, label: copy.mobileHome.recent },
-              { id: "space", domId: `${tabsId}-space`, label: copy.aside.mySpace },
+              {
+                id: "recent",
+                domId: `${tabsId}-recent`,
+                panelId: panelId("recent"),
+                label: copy.mobileHome.recent,
+              },
+              {
+                id: "space",
+                domId: `${tabsId}-space`,
+                panelId: panelId("space"),
+                label: copy.aside.mySpace,
+              },
             ]}
             active={tab}
-            panelId={panelId}
             onSelect={setTab}
           />
         </div>
 
-        {/* The swipe surface. `touch-pan-y` hands vertical drags to the
-            browser's own scrolling — which then cancels our pointer — and
-            keeps horizontal ones for us. The list gives way with the finger
-            rather than sliding a whole page across: there is no second panel
-            mounted behind it, and pretending otherwise would be a lie the
-            release has to undo. */}
+        {/* The swipe surface: a window onto a track that carries both panels
+            side by side. `touch-pan-y` hands vertical drags to the browser's
+            own scrolling — which then cancels our pointer — and keeps
+            horizontal ones for us. Because both panels are mounted, a swipe
+            (or a tap on the switcher) slides one out while the other slides
+            in, in step with the pill above; neither ever pops. */}
         <div
-          id={panelId}
-          role="tabpanel"
-          aria-labelledby={`${tabsId}-${tab}`}
           {...swipe.surfaceProps}
-          style={{ translate: `var(${TAB_SHIFT_VAR}, 0px)` }}
-          className={cn(
-            "flex-1 touch-pan-y overflow-y-auto overscroll-contain px-4 pb-28",
-            SWIPE_TRANSITION,
-          )}
+          className="relative flex-1 touch-pan-y overflow-hidden"
         >
-          {tab === "recent" ? (
-            recents.length === 0 ? (
-              <p className="px-1 pt-2 text-[13px] text-faint">{copy.recentSnippets.empty}</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {recents.map((snippet) => (
-                  <li key={snippet.id}>
-                    <FeedCard
-                      snippet={snippet}
-                      copy={copy}
-                      folderName={
-                        snippet.folderId ? (folderNames.get(snippet.folderId) ?? null) : null
-                      }
-                      isActive={tree.selectedSnippetId === snippet.id}
-                      isRenaming={renamingId === snippet.id}
-                      onOpen={() => tree.onSelectSnippet(snippet.id)}
-                      onMore={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                        setMenuTarget({
-                          type: "snippet",
-                          id: snippet.id,
-                          x: rect.left,
-                          y: rect.bottom + 4,
-                        });
-                      }}
-                      onSubmitRename={(value) => ctxValue.submitSnippetRename(snippet.id, value)}
-                      onCancelRename={ctxValue.cancelRename}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )
-          ) : (
-            <div className="flex flex-col gap-1">
-              {creatingFolderParentId === null && <NewFolderCard depth={0} parentId={null} />}
-
-              {isSpaceEmpty && creatingFolderParentId === undefined ? (
-                <p className="px-1 pt-2 text-[13px] text-faint">{copy.aside.emptySpace}</p>
+          <div
+            {...swipe.trackProps}
+            className={cn("flex h-full w-full", SWIPE_PAGE_TRANSITION)}
+          >
+            <FeedPanel id={panelId("recent")} tabId={`${tabsId}-recent`} active={tab === "recent"}>
+              {recents.length === 0 ? (
+                <p className="px-1 pt-2 text-[13px] text-faint">{copy.recentSnippets.empty}</p>
               ) : (
-                <>
-                  {rootFolders.map((folder) => (
-                    <FolderGroup key={folder.id} folder={folder} depth={0} />
+                <ul className="flex flex-col gap-2">
+                  {recents.map((snippet) => (
+                    <li key={snippet.id}>
+                      <FeedCard
+                        snippet={snippet}
+                        copy={copy}
+                        folderName={
+                          snippet.folderId ? (folderNames.get(snippet.folderId) ?? null) : null
+                        }
+                        isActive={tree.selectedSnippetId === snippet.id}
+                        isRenaming={renamingId === snippet.id}
+                        onOpen={() => tree.onSelectSnippet(snippet.id)}
+                        onMore={(e) => openSnippetMenu(e, snippet.id)}
+                        onSubmitRename={(value) => ctxValue.submitSnippetRename(snippet.id, value)}
+                        onCancelRename={ctxValue.cancelRename}
+                      />
+                    </li>
                   ))}
-                  <ul className="mt-1 flex flex-col gap-2">
-                    {rootSnippets.map((snippet) => (
-                      <li key={snippet.id}>
-                        <FeedCard
-                          snippet={snippet}
-                          copy={copy}
-                          folderName={null}
-                          isActive={tree.selectedSnippetId === snippet.id}
-                          isRenaming={renamingId === snippet.id}
-                          onOpen={() => tree.onSelectSnippet(snippet.id)}
-                          onMore={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                            setMenuTarget({
-                              type: "snippet",
-                              id: snippet.id,
-                              x: rect.left,
-                              y: rect.bottom + 4,
-                            });
-                          }}
-                          onSubmitRename={(value) =>
-                            ctxValue.submitSnippetRename(snippet.id, value)
-                          }
-                          onCancelRename={ctxValue.cancelRename}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                </>
+                </ul>
               )}
-            </div>
-          )}
+            </FeedPanel>
+
+            <FeedPanel id={panelId("space")} tabId={`${tabsId}-space`} active={tab === "space"}>
+              <div className="flex flex-col gap-1">
+                {creatingFolderParentId === null && <NewFolderCard depth={0} parentId={null} />}
+
+                {isSpaceEmpty && creatingFolderParentId === undefined ? (
+                  <p className="px-1 pt-2 text-[13px] text-faint">{copy.aside.emptySpace}</p>
+                ) : (
+                  <>
+                    {rootFolders.map((folder) => (
+                      <FolderGroup key={folder.id} folder={folder} depth={0} />
+                    ))}
+                    <ul className="mt-1 flex flex-col gap-2">
+                      {rootSnippets.map((snippet) => (
+                        <li key={snippet.id}>
+                          <FeedCard
+                            snippet={snippet}
+                            copy={copy}
+                            folderName={null}
+                            isActive={tree.selectedSnippetId === snippet.id}
+                            isRenaming={renamingId === snippet.id}
+                            onOpen={() => tree.onSelectSnippet(snippet.id)}
+                            onMore={(e) => openSnippetMenu(e, snippet.id)}
+                            onSubmitRename={(value) =>
+                              ctxValue.submitSnippetRename(snippet.id, value)
+                            }
+                            onCancelRename={ctxValue.cancelRename}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            </FeedPanel>
+          </div>
         </div>
 
         {/* Creation is the only action anchored to the thumb, so it gets to be a
@@ -552,3 +552,38 @@ export function MobileHome({
 
 /** No multi-selection on touch — a stable identity keeps the menu builder's deps quiet. */
 const EMPTY_SELECTION: ReadonlySet<string> = new Set();
+
+/**
+ * One page of the sliding track: a full-width scroller of its own.
+ *
+ * Both pages are mounted at all times — that is the whole point, there has to
+ * be something to see sliding in — so the one that is off screen is made
+ * `inert` and hidden from assistive tech. It keeps its own scroll position,
+ * which is what makes coming back to a tab feel like returning rather than
+ * reloading.
+ */
+function FeedPanel({
+  id,
+  tabId,
+  active,
+  children,
+}: {
+  id: string;
+  /** The tab that labels this panel. */
+  tabId: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      id={id}
+      role="tabpanel"
+      aria-labelledby={tabId}
+      aria-hidden={!active}
+      inert={!active}
+      className="h-full w-full shrink-0 touch-pan-y overflow-y-auto overscroll-contain px-4 pb-28"
+    >
+      {children}
+    </div>
+  );
+}
