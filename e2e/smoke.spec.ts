@@ -64,14 +64,20 @@ test("keeps focus on the Markdown view toggle", async ({ page }) => {
 
   await page.getByRole("button", { name: "klipcode.md", exact: true }).first().click();
 
+  // The toggle announces the view it switches to, so its name flips on every
+  // click; matching either label keeps hold of the same button throughout.
+  const toggle = page.getByRole("button", { name: /^(Rich text view|Markdown source)$/ });
+
   // Both editors stay mounted after their first visit to preserve cursor and
   // scroll. Re-activating either one must not let it steal focus from the
   // control, which used to happen only from the second toggle onwards.
-  for (const name of ["Rich text view", "Markdown source", "Rich text view"]) {
-    const toggle = page.getByRole("button", { name });
+  for (const nextLabel of ["Markdown source", "Rich text view", "Markdown source"]) {
     await toggle.click();
-    await page.waitForTimeout(100);
-    await expect(page.locator('button[aria-pressed]')).toBeFocused();
+    // Waiting for the label to flip proves React committed the view change and
+    // ran the effects that used to steal focus, so the assertion below is not
+    // just winning a race against them.
+    await expect(toggle).toHaveAccessibleName(nextLabel);
+    await expect(toggle).toBeFocused();
   }
 });
 
