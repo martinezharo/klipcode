@@ -59,6 +59,22 @@ test("creates a snippet and copies its content", async ({ page }) => {
   expect(clipboard).toBe("console.log('hello from e2e');");
 });
 
+test("keeps focus on the Markdown view toggle", async ({ page }) => {
+  await gotoApp(page);
+
+  await page.getByRole("button", { name: "klipcode.md", exact: true }).first().click();
+
+  // Both editors stay mounted after their first visit to preserve cursor and
+  // scroll. Re-activating either one must not let it steal focus from the
+  // control, which used to happen only from the second toggle onwards.
+  for (const name of ["Rich text view", "Markdown source", "Rich text view"]) {
+    const toggle = page.getByRole("button", { name });
+    await toggle.click();
+    await page.waitForTimeout(100);
+    await expect(page.locator('button[aria-pressed]')).toBeFocused();
+  }
+});
+
 test("creates folders from a path typed in the snippet title", async ({ page }) => {
   await gotoApp(page);
 

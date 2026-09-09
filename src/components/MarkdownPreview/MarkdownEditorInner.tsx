@@ -506,8 +506,11 @@ export default function MarkdownEditorInner({
       lastMarkdownRef.current = value;
       editor.commands.setContent(value, false);
     }
-    if (editable) editor.commands.focus(null, { scrollIntoView: false });
-  }, [active, editor, value, editable]);
+    // Keep focus wherever the user initiated the view change. The editor
+    // preserves its cursor while hidden without needing to reclaim focus, and
+    // moving it here makes repeated toggles inconsistent (and can summon a
+    // mobile keyboard).
+  }, [active, editor, value]);
 
   return (
     <div
