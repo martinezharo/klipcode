@@ -182,7 +182,7 @@ function RenameField({
           if (e.key === "Enter") onSubmit((e.target as HTMLInputElement).value);
           if (e.key === "Escape") onCancel();
         }}
-        className="min-w-0 flex-1 rounded-md bg-ink/[0.07] px-2 py-1.5 text-[14px] text-foreground outline-none ring-1 ring-ink/15 transition-shadow focus:ring-ink/35"
+        className="klipcode-editable-focus min-w-0 flex-1 rounded-md bg-ink/[0.07] px-2 py-1.5 text-[14px] text-foreground outline-none ring-1 ring-ink/15 transition-shadow focus:ring-ink/45"
       />
     </span>
   );

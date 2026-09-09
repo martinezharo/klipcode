@@ -235,6 +235,13 @@ html { scrollbar-gutter: stable; }
   outline-offset: 2px;
 }
 
+/* Text-editing controls use a quieter, component-shaped focus treatment. Each
+   instance pairs this opt-out with a neutral ring or a focus-within surface;
+   everything else keeps the high-contrast keyboard ring above. */
+.klipcode-editable-focus:focus-visible {
+  outline: none;
+}
+
 /* Sticky top bars must not hide the element that was just focused (WCAG 2.4.11). */
 :focus-visible,
 :target {

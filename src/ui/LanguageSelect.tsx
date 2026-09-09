@@ -131,7 +131,7 @@ export function LanguageSelect({
           >
             {/* Search input */}
             <div className="border-b border-ink/[0.06] px-2 py-2">
-              <div className="flex items-center gap-2 rounded-lg bg-ink/[0.05] px-2.5 py-1.5">
+              <div className="flex items-center gap-2 rounded-lg bg-ink/[0.05] px-2.5 py-1.5 transition-[background-color,box-shadow] focus-within:bg-ink/[0.07] focus-within:ring-1 focus-within:ring-inset focus-within:ring-ink/45">
                 <Search size={12} className="shrink-0 text-ink/30" />
                 <input
                   ref={searchRef}
@@ -139,7 +139,7 @@ export function LanguageSelect({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={copy.searchPlaceholder}
-                  className="w-full bg-transparent text-xs text-ink/70 placeholder:text-faint outline-none"
+                  className="klipcode-editable-focus w-full bg-transparent text-xs text-ink/70 placeholder:text-faint outline-none"
                 />
               </div>
             </div>

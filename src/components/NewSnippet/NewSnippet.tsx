@@ -159,7 +159,7 @@ export function NewSnippet({
             onKeyDown={handleTitleKeyDown}
             aria-label={copy.forms.snippetTitlePlaceholder}
             placeholder={copy.forms.snippetNamePlaceholder}
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-faint outline-none"
+            className="klipcode-editable-focus -mx-2 flex-1 rounded-md bg-transparent px-2 py-1.5 text-sm text-foreground outline-none transition-[background-color,box-shadow] placeholder:text-faint focus:bg-ink/[0.04] focus:ring-1 focus:ring-inset focus:ring-ink/45"
           />
           <LanguageSelect
             value={language}

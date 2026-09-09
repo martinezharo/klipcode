@@ -65,7 +65,7 @@ export function FolderGroup({ folder, depth }: { folder: FolderRecord; depth: nu
               placeholder={folder.name}
               onSubmit={(name) => ctx.submitFolderRename(folder.id, name)}
               onCancel={ctx.cancelRename}
-              className="min-w-0 flex-1 rounded-md bg-ink/[0.07] px-2 py-1.5 text-[13px] text-foreground outline-none ring-1 ring-ink/15 transition-shadow focus:ring-ink/35"
+              className="min-w-0 flex-1 rounded-md bg-ink/[0.07] px-2 py-1.5 text-[13px] text-foreground outline-none ring-1 ring-ink/15 transition-shadow focus:ring-ink/45"
             />
           </span>
         ) : (
@@ -169,7 +169,7 @@ export function NewFolderCard({
         placeholder={ctx.copy.forms.folderName}
         onSubmit={(name) => ctx.submitCreateFolder(parentId, name)}
         onCancel={ctx.cancelCreateFolder}
-        className="min-w-0 flex-1 rounded-md bg-ink/[0.07] px-2 py-1.5 text-[13px] text-foreground placeholder:text-faint outline-none ring-1 ring-ink/15 transition-shadow focus:ring-ink/35"
+        className="min-w-0 flex-1 rounded-md bg-ink/[0.07] px-2 py-1.5 text-[13px] text-foreground placeholder:text-faint outline-none ring-1 ring-ink/15 transition-shadow focus:ring-ink/45"
       />
     </div>
   );

@@ -116,7 +116,7 @@ export function LinkDialog({ initialHref, copy, onCancel, onSubmit, onRemove }: 
               onBlur={() => setTouched(true)}
               aria-invalid={showError || undefined}
               aria-describedby={showError ? errorId : undefined}
-              className="w-full rounded-lg bg-ink/[0.04] px-3 py-2 text-[13px] text-ink/90 transition-colors placeholder:text-faint focus:bg-ink/[0.06]"
+              className="klipcode-editable-focus w-full rounded-lg bg-ink/[0.04] px-3 py-2 text-[13px] text-ink/90 outline-none transition-[background-color,box-shadow] placeholder:text-faint focus:bg-ink/[0.06] focus:ring-1 focus:ring-ink/45"
               style={{ border: "1px solid rgba(var(--ink-rgb),0.08)" }}
             />
             {showError && (

@@ -244,7 +244,7 @@ export function FolderCard({
                 if (e.key === "Escape") setIsRenaming(false);
               }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full select-text rounded bg-ink/[0.07] px-2 py-0.5 text-[13px] font-medium text-foreground outline-none ring-1 ring-ink/15 focus:ring-ink/35 transition-shadow"
+              className="klipcode-editable-focus w-full select-text rounded bg-ink/[0.07] px-2 py-0.5 text-[13px] font-medium text-foreground outline-none ring-1 ring-ink/15 transition-shadow focus:ring-ink/45"
             />
           ) : (
             <>

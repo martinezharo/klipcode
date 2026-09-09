@@ -476,7 +476,7 @@ function InlineCreate({
   }
 
   return (
-    <div className="flex items-center gap-2.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-2">
+    <div className="flex items-center gap-2.5 rounded-lg border border-ink/[0.08] bg-ink/[0.03] px-3 py-2 transition-[background-color,border-color,box-shadow] focus-within:border-ink/25 focus-within:bg-ink/[0.05] focus-within:ring-1 focus-within:ring-ink/45">
       <Folder size={15} className="shrink-0 text-ink/30" />
       <input
         ref={inputRef}
@@ -490,7 +490,7 @@ function InlineCreate({
           if (e.key === "Escape") onCancel();
         }}
         placeholder={copy.forms.folderName}
-        className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-faint outline-none"
+        className="klipcode-editable-focus min-w-0 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-faint outline-none"
       />
     </div>
   );
