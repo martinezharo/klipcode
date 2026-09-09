@@ -157,7 +157,7 @@ export function SearchPalette({
         }}
       >
         {/* Search input */}
-        <div className="flex items-center gap-2.5 border-b border-ink/[0.07] px-4 py-3">
+        <div className="flex items-center gap-2.5 border-b border-ink/[0.07] px-4 py-3 transition-colors focus-within:bg-ink/[0.025]">
           <Search size={16} className="shrink-0 text-ink/35" aria-hidden="true" />
           <input
             ref={inputRef}
@@ -174,7 +174,7 @@ export function SearchPalette({
               setActiveIndex(0);
             }}
             placeholder={t.placeholder}
-            className="w-full bg-transparent text-sm text-foreground placeholder:text-faint outline-none"
+            className="klipcode-editable-focus -mx-2 w-full rounded-md bg-transparent px-2 py-1.5 text-sm text-foreground outline-none transition-shadow placeholder:text-faint focus:ring-1 focus:ring-inset focus:ring-ink/45"
           />
         </div>
 

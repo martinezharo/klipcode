@@ -49,7 +49,7 @@ function RenameRow({
           if (e.key === "Enter") onSubmit((e.target as HTMLInputElement).value);
           if (e.key === "Escape") onCancel();
         }}
-        className="min-w-0 flex-1 rounded bg-ink/[0.07] px-2 py-0.5 text-[13px] text-foreground outline-none ring-1 ring-ink/15 focus:ring-ink/35 transition-shadow"
+        className="klipcode-editable-focus min-w-0 flex-1 rounded bg-ink/[0.07] px-2 py-0.5 text-[13px] text-foreground outline-none ring-1 ring-ink/15 transition-shadow focus:ring-ink/45"
       />
     </div>
   );

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { cn } from "@/lib/utils";
+
 /**
  * A single-use text field for naming something inline: commit on Enter or blur,
  * abandon on Escape, and treat an empty value as "never mind" rather than as a
@@ -47,7 +49,7 @@ export function InlineNameInput({
         if (e.key === "Escape") onCancel();
       }}
       placeholder={placeholder}
-      className={className}
+      className={cn("klipcode-editable-focus", className)}
     />
   );
 }

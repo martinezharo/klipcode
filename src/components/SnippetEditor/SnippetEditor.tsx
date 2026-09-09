@@ -303,7 +303,7 @@ export function SnippetEditor({
           onInput={handleRenameInput}
           onBlur={handleRenameBlur}
           onKeyDown={handleRenameKeyDown}
-          className="px-0.5 -mx-0.5 rounded outline-none transition focus:bg-ink/[0.05] focus:ring-1 focus:ring-ink/15"
+          className="klipcode-editable-focus -mx-0.5 rounded px-0.5 outline-none transition focus:bg-ink/[0.05] focus:ring-1 focus:ring-ink/45"
         >
           {snippet.title}
         </span>
