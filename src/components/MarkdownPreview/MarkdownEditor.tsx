@@ -55,7 +55,7 @@ export interface MarkdownEditorProps {
   editable: boolean;
   /** False while the pane is kept mounted but hidden behind the source editor.
    *  Flipping back to true re-syncs the document from `value` if the source
-   *  changed meanwhile; when it didn't, cursor and scroll survive untouched. */
+   *  changed meanwhile; cursor and scroll survive without moving DOM focus. */
   active?: boolean;
   /** Language pre-selected on newly inserted code blocks (user preference). */
   defaultCodeLanguage: LanguageId;

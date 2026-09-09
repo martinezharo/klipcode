@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
-import type { ReactCodeMirrorRef } from "@uiw/react-codemirror";
+import { useState, useRef, useCallback } from "react";
 import {
   Copy,
   Check,
@@ -178,8 +177,6 @@ export function SnippetEditor({
   // toggling back hands it the live code — a single replace, only if changed.
   const [sourceFreeze, setSourceFreeze] = useState(snippet.code);
 
-  const sourceEditorRef = useRef<ReactCodeMirrorRef>(null);
-
   // Inline rename of the snippet title via the breadcrumb crumb itself: the
   // title text is contentEditable, so clicking it places the caret in place
   // and typing edits it directly — no separate field, no layout shift. The icon
@@ -225,16 +222,6 @@ export function SnippetEditor({
     if (next) setSourceFreeze(code);
     onMarkdownPreviewChange?.(next);
   }, [showPreview, code, onMarkdownPreviewChange]);
-
-  // Focus the source editor when flipping back to it so the preserved cursor
-  // is immediately usable (the preview pane focuses itself on activation — see
-  // MarkdownEditorInner).
-  const prevShowPreviewRef = useRef(showPreview);
-  useEffect(() => {
-    if (prevShowPreviewRef.current === showPreview) return;
-    prevShowPreviewRef.current = showPreview;
-    if (!showPreview && !readOnly) sourceEditorRef.current?.view?.focus();
-  }, [showPreview, readOnly]);
 
   // Per-field debounce timers
   const codeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -499,7 +486,6 @@ export function SnippetEditor({
                 gutterBackground="var(--background)"
                 lineWrapping={codeWrap}
                 ariaLabel={copy.forms.codeEditor}
-                editorRef={sourceEditorRef}
               />
             </div>
           )}
