@@ -77,18 +77,6 @@ pnpm preview
 CI runs all of the above on every push to `main` and on every pull request.
 `pnpm preview` uses the Cloudflare/OpenNext build path.
 
-## Deployment
-
-KlipCode is deployed as a Cloudflare Worker using OpenNext. Configure the
-bindings in [wrangler.jsonc](wrangler.jsonc), set `ENCRYPTION_MASTER_KEY` as a
-Worker secret, and run:
-
-```bash
-pnpm deploy
-```
-
-`pnpm deploy` deploys the Convex backend before publishing the Worker.
-
 ## Further reading
 
 - [Engineering audit](docs/audit/engineering-audit.md)
