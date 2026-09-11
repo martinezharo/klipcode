@@ -1,3 +1,5 @@
+import { IMAGE_MAX_UPLOAD_MB } from "@/lib/images";
+
 const WELCOME_SNIPPET_CONTENT = `# Welcome to KlipCode!
 
 KlipCode is a tool designed to keep your favorite code snippets always at hand,
@@ -259,6 +261,31 @@ export const en = {
       tableDesc: "Insert a 3×3 table",
       dividerTitle: "Divider",
       dividerDesc: "Visually separate sections",
+      imageTitle: "Image",
+      imageDesc: "Upload a picture from your device",
+    },
+    mdImage: {
+      /** Shown in place of the image while it uploads. */
+      uploading: "Uploading image…",
+      resizeLeft: "Drag to resize from the left",
+      resizeRight: "Drag to resize from the right",
+      /** Tooltip on a width preset, e.g. "50% of the column width". */
+      presetTooltip: (percent: number) => `${percent}% of the column width`,
+      alignment: "Image alignment",
+      align: {
+        left: "Align left",
+        center: "Align center",
+        right: "Align right",
+      },
+      resetSize: "Reset to original size",
+      delete: "Delete image",
+      /** Keyed by the upload failure reason (see imageUpload.ts). */
+      errors: {
+        unauthorized: "Sign in to upload images",
+        "too-large": `Images must be under ${IMAGE_MAX_UPLOAD_MB} MB`,
+        unsupported: "That file type can't be used as an image",
+        failed: "The image couldn't be uploaded. Try again.",
+      },
     },
     mdTable: {
       addColumnBefore: "Add column before",

@@ -781,6 +781,72 @@ body {
   display: flex; align-items: center; gap: 0.25rem;
 }
 .klipcode-md img { max-width: 100%; border-radius: 0.5rem; border: 1px solid rgba(var(--ink-rgb), 0.08); margin: 1rem 0; }
+
+/* ── Images (NodeView: ImageComponent) ──────────────────────────────────────
+   An image is an inline node so it can sit in a line of prose, but it lays out
+   as a block when it is the only thing in its paragraph. The frame is what the
+   user resizes: the <img> fills it, so its aspect ratio is preserved for free
+   and `max-width: 100%` still keeps a wide image inside the column. */
+.klipcode-md-image { display: inline-block; max-width: 100%; vertical-align: bottom; }
+.klipcode-md-image[data-align="center"],
+.klipcode-md-image[data-align="right"] { display: block; width: fit-content; }
+.klipcode-md-image[data-align="center"] { margin-inline: auto; }
+.klipcode-md-image[data-align="right"] { margin-left: auto; margin-right: 0; }
+.klipcode-md-image-frame {
+  position: relative; display: inline-block; max-width: 100%; line-height: 0;
+}
+.klipcode-md-image-frame > img { display: block; width: 100%; height: auto; margin: 0; }
+/* Selected or actively resizing: make the bounds of the image unmistakable. */
+.klipcode-md-image[data-selected="true"] .klipcode-md-image-frame > img,
+.klipcode-md-image[data-resizing="true"] .klipcode-md-image-frame > img {
+  outline: 2px solid rgba(74, 163, 255, 0.75); outline-offset: -1px;
+}
+.klipcode-md-image[data-resizing="true"] { user-select: none; }
+
+/* Live pixel readout, pinned under the cursor's side of the image. */
+.klipcode-md-image-size {
+  position: absolute; bottom: 0.5rem; left: 50%; transform: translateX(-50%);
+  z-index: 2; border-radius: 9999px; padding: 0.15rem 0.5rem;
+  background: rgba(0, 0, 0, 0.7); color: #fff;
+  font-family: var(--font-geist-sans), sans-serif; font-size: 11px; line-height: 1.4;
+  font-variant-numeric: tabular-nums; pointer-events: none;
+}
+
+/* Hover toolbar: width presets, reset and delete. Mirrors the code block's
+   overlaid controls (same corner, same reveal-on-hover behaviour). */
+.klipcode-md-image-toolbar {
+  position: absolute; top: 0.5rem; right: 0.5rem; z-index: 2;
+  display: flex; align-items: center; gap: 0.125rem;
+  border-radius: 0.5rem; border: 1px solid rgba(var(--ink-rgb), 0.1);
+  background: var(--panel-bg); padding: 0.2rem;
+  transition: opacity 150ms ease;
+}
+.klipcode-md-image-toolbar:focus-within { opacity: 1; }
+.klipcode-md-image-toolbar-button {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 1.5rem; min-width: 1.5rem; padding: 0 0.35rem; border-radius: 0.375rem;
+  font-family: var(--font-geist-sans), sans-serif; font-size: 11px; line-height: 1;
+  color: rgba(var(--ink-rgb), 0.55); transition: background-color 120ms ease, color 120ms ease;
+}
+.klipcode-md-image-toolbar-button:hover {
+  background: rgba(var(--ink-rgb), 0.08); color: rgba(var(--ink-rgb), 0.9);
+}
+
+/* Upload placeholder (a ProseMirror decoration, not a node — see ImageUpload). */
+.klipcode-md-image-uploading {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  border-radius: 0.5rem; border: 1px dashed rgba(var(--ink-rgb), 0.2);
+  padding: 0.35rem 0.7rem; font-size: 12px; color: rgba(var(--ink-rgb), 0.55);
+  background: rgba(var(--ink-rgb), 0.03);
+  animation: klipcode-image-uploading 1.4s ease-in-out infinite;
+}
+@keyframes klipcode-image-uploading {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .klipcode-md-image-uploading { animation: none; }
+}
 .klipcode-md table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 14px; }
 .klipcode-md th, .klipcode-md td { border: 1px solid rgba(var(--ink-rgb), 0.1); padding: 0.4rem 0.6rem; text-align: left; }
 .klipcode-md th { background: rgba(var(--ink-rgb), 0.04); font-weight: 600; color: var(--foreground); }

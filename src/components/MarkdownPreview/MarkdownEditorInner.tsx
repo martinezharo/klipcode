@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useEditor,
   EditorContent,
@@ -45,9 +45,13 @@ import {
   Rows3,
   Trash2,
   Link as LinkIcon,
+  ImagePlus,
+  AlertCircle,
 } from "lucide-react";
 
 import { Tooltip } from "@/ui/Tooltip";
+import { Toast } from "@/ui/Toast";
+import { IMAGE_ACCEPT_ATTRIBUTE } from "@/lib/images";
 import type { MarkdownEditorCopy } from "./MarkdownEditor";
 import { LinkDialog } from "./LinkDialog";
 import { CodeBlockComponent } from "./CodeBlockComponent";
@@ -55,6 +59,14 @@ import { SlashCommand, type SlashCommandItem } from "./SlashCommand";
 import { ListExitShortcut } from "./ListExitShortcut";
 import { MarkdownClipboardUnwrap } from "./MarkdownClipboardUnwrap";
 import { SmartLinkPaste } from "./SmartLinkPaste";
+import { ResizableImage } from "./ResizableImage";
+import {
+  handleImagePaste,
+  ImageUpload,
+  uploadImageFiles,
+  type ImageUploadHandlers,
+} from "./ImageUpload";
+import type { ImageUploadFailure } from "./imageApi";
 
 // Syntax highlighting inside fenced code blocks. `common` bundles ~35 popular
 // grammars (js, ts, python, css, html, json, bash, …) — enough for snippets,
@@ -88,6 +100,7 @@ const CodeBlock = CodeBlockLowlight.extend<CodeBlockOptions>({
 function buildSlashItems(
   copy: MarkdownEditorCopy["slash"],
   defaultCodeLanguage: string,
+  pickImage: () => void,
 ): SlashCommandItem[] {
   const ICON = 16;
   return [
@@ -159,6 +172,19 @@ function buildSlashItems(
           .deleteRange(range)
           .setCodeBlock({ language: defaultCodeLanguage })
           .run(),
+    },
+    {
+      title: copy.imageTitle,
+      description: copy.imageDesc,
+      icon: <ImagePlus size={ICON} />,
+      keywords: ["image", "img", "picture", "photo", "screenshot", "upload"],
+      run: (editor, range) => {
+        // The picker is asynchronous and outside the editor: drop the "/image"
+        // text now so the document is already clean whether or not a file comes
+        // back, and let the upload land at the resulting cursor position.
+        editor.chain().focus().deleteRange(range).run();
+        pickImage();
+      },
     },
     {
       title: copy.tableTitle,
@@ -414,10 +440,40 @@ export default function MarkdownEditorInner({
     onChangeRef.current = onChange;
   }, [onChange]);
 
+  // ── Image uploads ─────────────────────────────────────────────────────────
+  // The editor instance is built once and outlives every re-render, so the
+  // upload handlers reach the ProseMirror plugins through a box kept current by
+  // an effect rather than through options captured at construction time.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadHandlersRef = useRef<ImageUploadHandlers | null>(null);
+  const [uploadError, setUploadError] = useState({ nonce: 0, message: "" });
+
+  const reportUploadError = useCallback(
+    (reason: ImageUploadFailure) => {
+      setUploadError((previous) => ({
+        nonce: previous.nonce + 1,
+        message: copy.image.errors[reason],
+      }));
+    },
+    [copy.image.errors],
+  );
+
+  useEffect(() => {
+    uploadHandlersRef.current = {
+      onError: reportUploadError,
+      uploadingLabel: copy.image.uploading,
+    };
+  }, [copy.image.uploading, reportUploadError]);
+
+  const pickImage = useCallback(() => fileInputRef.current?.click(), []);
+
   // Localized slash-menu items — rebuilt only if copy or the default language change.
   const slashItems = useMemo(
-    () => buildSlashItems(copy.slash, defaultCodeLanguage),
-    [copy.slash, defaultCodeLanguage],
+    // `pickImage` only reads the input ref when the user invokes the command;
+    // building the menu does not access the ref during render.
+    // eslint-disable-next-line react-hooks/refs
+    () => buildSlashItems(copy.slash, defaultCodeLanguage, pickImage),
+    [copy.slash, defaultCodeLanguage, pickImage],
   );
 
   // Last Markdown this editor produced (or consumed on mount). Compared against
@@ -465,6 +521,11 @@ export default function MarkdownEditorInner({
       Markdown.configure({ html: false, tightLists: true, transformPastedText: true, transformCopiedText: true }),
       MarkdownClipboardUnwrap,
       SmartLinkPaste,
+      ResizableImage.configure({ imageCopy: copy.image }),
+      // The extension keeps the box and reads `.current` from paste/drop event
+      // handlers, never while React is rendering this component.
+      // eslint-disable-next-line react-hooks/refs
+      ImageUpload.configure({ handlers: uploadHandlersRef }),
       SlashCommand.configure({
         items: slashItems,
         emptyText: copy.slash.noResults,
@@ -474,6 +535,11 @@ export default function MarkdownEditorInner({
     ],
     content: value,
     editorProps: {
+      // Direct editor props run before extension plugins. In particular this
+      // lets image bytes win over tiptap-markdown's generic paste handler.
+      handlePaste: (view, event) =>
+        // The ref is read when a DOM paste occurs, never during React render.
+        handleImagePaste(view, event, uploadHandlersRef.current),
       attributes: {
         class: "klipcode-md focus:outline-none",
         // Enable spellcheck for prose; the browser still honours its own
@@ -528,6 +594,25 @@ export default function MarkdownEditorInner({
         {editor && editable && <FormattingMenu editor={editor} copy={copy} />}
         {editor && editable && <TableMenu editor={editor} copy={copy.table} />}
         <EditorContent editor={editor} />
+        {/* Hidden picker driven by the "/image" slash command. Rendered here
+            (rather than opened from the command) so the same <input> is reused
+            and the choice always lands on this editor instance. */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={IMAGE_ACCEPT_ATTRIBUTE}
+          multiple
+          className="hidden"
+          onChange={(event) => {
+            const files = Array.from(event.target.files ?? []);
+            // Reset so picking the very same file twice in a row still fires.
+            event.target.value = "";
+            if (files.length > 0 && editor) {
+              uploadImageFiles(editor, files, uploadHandlersRef.current);
+            }
+          }}
+        />
+
         {editor && editable && (
           <div
             aria-hidden
@@ -540,6 +625,13 @@ export default function MarkdownEditorInner({
           />
         )}
       </div>
+
+      <Toast
+        nonce={uploadError.nonce}
+        message={uploadError.message}
+        durationMs={2500}
+        icon={<AlertCircle size={13} className="text-danger" aria-hidden="true" />}
+      />
     </div>
   );
 }

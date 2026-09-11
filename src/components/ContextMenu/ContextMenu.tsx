@@ -13,6 +13,8 @@ export interface ContextMenuItemDef {
   onClick: () => void;
   variant?: "default" | "destructive";
   disabled?: boolean;
+  /** Marks the current choice when the menu represents a single selection. */
+  selected?: boolean;
 }
 
 export interface ContextMenuGroup {
@@ -102,7 +104,8 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
                   <button
                     key={item.id}
                     type="button"
-                    role="menuitem"
+                    role={item.selected === undefined ? "menuitem" : "menuitemradio"}
+                    aria-checked={item.selected}
                     disabled={item.disabled}
                     onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
@@ -116,13 +119,15 @@ export function ContextMenu({ x, y, groups, onClose }: ContextMenuProps) {
                       "disabled:pointer-events-none disabled:opacity-25",
                       destructive
                         ? "text-danger hover:bg-red-500/10 hover:text-danger-strong"
-                        : "text-ink/60 hover:bg-ink/[0.07] hover:text-ink/90",
+                        : item.selected
+                          ? "bg-ink/[0.07] text-ink/90"
+                          : "text-ink/60 hover:bg-ink/[0.07] hover:text-ink/90",
                     ].join(" ")}
                   >
                     <Ic
                       size={13}
                       aria-hidden="true"
-                      className={`shrink-0 ${destructive ? "opacity-80" : "opacity-55"}`}
+                      className={`shrink-0 ${destructive || item.selected ? "opacity-80" : "opacity-55"}`}
                     />
                     <span>{item.label}</span>
                   </button>
