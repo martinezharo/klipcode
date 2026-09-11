@@ -458,6 +458,7 @@ export function SnippetEditor({
                   linkDialog: editorCopy.linkDialog,
                   toolbar: editorCopy.mdToolbar,
                   slash: editorCopy.mdSlash,
+                  image: editorCopy.mdImage,
                   table: editorCopy.mdTable,
                   codeBlock: {
                     copy: editorCopy.copyCode,

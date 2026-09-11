@@ -20,10 +20,20 @@
     {
       "binding": "NEXT_INC_CACHE_R2_BUCKET",
       "bucket_name": "klipcode-opennext-cache"
+    },
+    // Images embedded in Markdown snippets, stored as WebP under an
+    // unguessable per-user key. See src/app/api/images/route.ts.
+    {
+      "binding": "SNIPPET_IMAGES",
+      "bucket_name": "klipcode-images"
     }
   ],
+  // Cloudflare Images transformations: every upload is re-encoded to WebP here
+  // before it reaches R2. Remote in local dev — like Workers AI, there is no
+  // local emulation of the transformation engine.
   "images": {
-    "binding": "IMAGES"
+    "binding": "IMAGES",
+    "remote": true
   },
   "ai": {
     "binding": "AI",

@@ -24,13 +24,13 @@ const nextConfig: NextConfig = {
 
 export default nextConfig;
 
-// Remote bindings let `env.AI` work in local `next dev` — Workers AI has no
-// local emulation and must proxy to Cloudflare. Enable them ONLY for the dev
+// Remote bindings let `env.AI` and `env.IMAGES` work in local `next dev` —
+// neither service has a local emulation. Enable them ONLY for the dev
 // server: the remote proxy needs a `wrangler login` session, so turning it on
 // during `next build` (CI/production, never logged in) crashes with "You must
 // be logged in to use wrangler dev in remote mode". Only bindings marked
-// `"remote": true` in wrangler.jsonc (currently just `ai`) use the proxy; the
-// rest stay local. In dev without a login the AI route degrades to local-only.
+// `"remote": true` in wrangler.jsonc (currently AI and Images) use the proxy;
+// the rest stay local. Without a login, their routes degrade gracefully.
 const enableRemoteBindings =
   process.env.NODE_ENV === "development" && process.env.KLIPCODE_REMOTE_BINDINGS !== "false";
 import('@opennextjs/cloudflare').then((m) =>

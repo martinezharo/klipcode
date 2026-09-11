@@ -27,6 +27,8 @@ export interface MarkdownEditorCopy {
   toolbar: Dictionary["snippetEditor"]["mdToolbar"];
   /** Labels for the "/" block-inserter menu. */
   slash: Dictionary["snippetEditor"]["mdSlash"];
+  /** Labels for the image placeholder, resize handles and hover toolbar. */
+  image: Dictionary["snippetEditor"]["mdImage"];
   /** Aria labels for the in-table controls. */
   table: Dictionary["snippetEditor"]["mdTable"];
   /** Labels for the hover copy button and options menu on fenced code blocks. */

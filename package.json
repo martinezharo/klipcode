@@ -44,6 +44,7 @@
     "@replit/codemirror-lang-svelte": "^6.0.0",
     "@tanstack/react-query": "^5.95.2",
     "@tiptap/extension-code-block-lowlight": "^2.27.2",
+    "@tiptap/extension-image": "2.27.2",
     "@tiptap/extension-link": "^2.27.2",
     "@tiptap/extension-placeholder": "^2.27.2",
     "@tiptap/extension-table": "^2.27.2",

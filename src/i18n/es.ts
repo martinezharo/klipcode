@@ -1,4 +1,5 @@
 import type { Dictionary } from "@/i18n";
+import { IMAGE_MAX_UPLOAD_MB } from "@/lib/images";
 
 const WELCOME_SNIPPET_CONTENT = `# ¡Bienvenido a KlipCode!
 
@@ -257,6 +258,28 @@ export const es = {
       tableDesc: "Inserta una tabla de 3×3",
       dividerTitle: "Separador",
       dividerDesc: "Separa secciones visualmente",
+      imageTitle: "Imagen",
+      imageDesc: "Sube una imagen desde tu dispositivo",
+    },
+    mdImage: {
+      uploading: "Subiendo imagen…",
+      resizeLeft: "Arrastra para redimensionar desde la izquierda",
+      resizeRight: "Arrastra para redimensionar desde la derecha",
+      presetTooltip: (percent: number) => `${percent}% del ancho de la columna`,
+      alignment: "Alineación de la imagen",
+      align: {
+        left: "Alinear a la izquierda",
+        center: "Centrar",
+        right: "Alinear a la derecha",
+      },
+      resetSize: "Restaurar el tamaño original",
+      delete: "Eliminar imagen",
+      errors: {
+        unauthorized: "Inicia sesión para subir imágenes",
+        "too-large": `Las imágenes deben pesar menos de ${IMAGE_MAX_UPLOAD_MB} MB`,
+        unsupported: "Ese tipo de archivo no se puede usar como imagen",
+        failed: "No se ha podido subir la imagen. Inténtalo de nuevo.",
+      },
     },
     mdTable: {
       addColumnBefore: "Añadir columna antes",
