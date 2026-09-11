@@ -4,10 +4,12 @@ import { readViewerId } from "@/lib/convexServer";
 import { readBodyWithinLimit } from "@/lib/requestBody";
 import {
   IMAGE_MAX_STORED_DIMENSION,
+  IMAGE_MAX_STORED_PER_USER,
   IMAGE_MAX_UPLOAD_BYTES,
   IMAGE_STORED_CONTENT_TYPE,
   IMAGE_WEBP_QUALITY,
   imageUrlForKey,
+  imageKeyPrefixForUser,
   isAcceptedImageType,
   newImageKey,
 } from "@/lib/images";
@@ -49,10 +51,14 @@ function streamOf(bytes: Uint8Array): ReadableStream<Uint8Array> {
 export async function POST(request: Request) {
   // Signed-in only: an anonymous workspace is device-local by definition, and
   // uploading gives an unauthenticated caller a write into our storage.
-  const userId = await readViewerId(request);
-  if (userId === null) {
+  const viewer = await readViewerId(request);
+  if (viewer.status === "unavailable") {
+    return json({ error: "authentication unavailable" }, 503);
+  }
+  if (viewer.status === "anonymous") {
     return json({ error: "unauthorized" }, 401);
   }
+  const userId = viewer.userId;
 
   const declaredType = (request.headers.get("content-type") ?? "").split(";")[0].trim();
   if (!isAcceptedImageType(declaredType)) {
@@ -75,6 +81,21 @@ export async function POST(request: Request) {
     return json({ error: "image storage unavailable" }, 503);
   }
   if (!env.IMAGES || !env.SNIPPET_IMAGES) {
+    return json({ error: "image storage unavailable" }, 503);
+  }
+
+  // Snippet bodies are end-to-end encrypted, so the server cannot safely tell
+  // which immutable objects are abandoned. A hard per-owner ceiling bounds
+  // storage and transformation abuse without age-deleting a still-live image.
+  try {
+    const existing = await env.SNIPPET_IMAGES.list({
+      prefix: imageKeyPrefixForUser(userId),
+      limit: IMAGE_MAX_STORED_PER_USER,
+    });
+    if (existing.objects.length >= IMAGE_MAX_STORED_PER_USER) {
+      return json({ error: "image quota exceeded" }, 429);
+    }
+  } catch {
     return json({ error: "image storage unavailable" }, 503);
   }
 

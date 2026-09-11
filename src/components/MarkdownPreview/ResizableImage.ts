@@ -100,9 +100,15 @@ export const ResizableImage = Image.extend<ResizableImageOptions>({
       },
       align: {
         default: "left",
-        parseHTML: (element: HTMLElement) =>
-          readImageAlignment(element.getAttribute("src") ?? ""),
-        renderHTML: () => ({}),
+        parseHTML: (element: HTMLElement) => {
+          const explicit = element.getAttribute("data-align");
+          if (explicit === "left" || explicit === "center" || explicit === "right") {
+            return explicit;
+          }
+          return readImageAlignment(element.getAttribute("src") ?? "");
+        },
+        renderHTML: (attributes: Record<string, unknown>) =>
+          typeof attributes.align === "string" ? { "data-align": attributes.align } : {},
       },
     };
   },

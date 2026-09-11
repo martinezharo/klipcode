@@ -19,6 +19,9 @@
 export const IMAGE_MAX_UPLOAD_MB = 12;
 export const IMAGE_MAX_UPLOAD_BYTES = IMAGE_MAX_UPLOAD_MB * 1024 * 1024;
 
+/** Hard storage ceiling per account, including uploads no longer referenced. */
+export const IMAGE_MAX_STORED_PER_USER = 500;
+
 /**
  * Longest edge kept when re-encoding. The editor column is ~720px wide, so this
  * still covers 2x displays and a full-screen lightbox without storing the
@@ -81,7 +84,12 @@ export function clampDisplayWidth(width: number): number {
 export function newImageKey(userId: string): string {
   const random = crypto.getRandomValues(new Uint8Array(16));
   const id = Array.from(random, (byte) => byte.toString(16).padStart(2, "0")).join("");
-  return `${encodeURIComponent(userId)}/${id}.${IMAGE_STORED_EXTENSION}`;
+  return `${imageKeyPrefixForUser(userId)}${id}.${IMAGE_STORED_EXTENSION}`;
+}
+
+/** R2 prefix that contains every image owned by one authenticated account. */
+export function imageKeyPrefixForUser(userId: string): string {
+  return `${encodeURIComponent(userId)}/`;
 }
 
 /**

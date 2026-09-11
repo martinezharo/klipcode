@@ -36,24 +36,31 @@ export function getConvexClientForToken(token: string): ConvexHttpClient | null 
 }
 
 /**
- * The id of the signed-in caller, or `null` for anyone this deployment cannot
- * vouch for — no token, a rejected one, or no Convex deployment at all.
+ * Authentication result for a protected Cloudflare route. Keeping backend
+ * failures distinct prevents a Convex outage from masquerading as a sign-out.
  *
  * `users.viewer` resolves to `null` for an anonymous caller rather than
- * throwing, so "guest" and "bad token" collapse into the same answer: not
- * authorised. Routes that only need a yes/no can compare against `null`; the
- * image upload also uses the id to scope the object key it writes.
+ * throwing, so "guest" and "bad token" collapse into the same anonymous
+ * result. The image upload also uses the authenticated id to scope its key.
  */
-export async function readViewerId(request: Request): Promise<string | null> {
+export type ViewerResult =
+  | { status: "authenticated"; userId: string }
+  | { status: "anonymous" }
+  | { status: "unavailable" };
+
+export async function readViewerId(request: Request): Promise<ViewerResult> {
   const token = readBearerToken(request);
-  if (!token) return null;
+  if (!token) return { status: "anonymous" };
 
   const convex = getConvexClientForToken(token);
-  if (!convex) return null;
+  if (!convex) return { status: "unavailable" };
 
   try {
-    return (await convex.query(api.users.viewer, {}))?.id ?? null;
+    const viewer = await convex.query(api.users.viewer, {});
+    return viewer
+      ? { status: "authenticated", userId: viewer.id }
+      : { status: "anonymous" };
   } catch {
-    return null;
+    return { status: "unavailable" };
   }
 }

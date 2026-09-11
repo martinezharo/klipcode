@@ -60,15 +60,15 @@ export interface ImageUploadOptions {
 }
 
 /**
- * Insert a placeholder, upload, then swap in the image node. Returns
- * immediately — the caller is a DOM event handler, not an async one.
+ * Insert a placeholder, upload, then swap in the image node. Resolves to the
+ * mapped position immediately after the inserted image (or the failed slot).
  */
-export function startImageUpload(
+export async function startImageUpload(
   view: EditorView,
   file: File,
   pos: number,
   handlers: ImageUploadHandlers,
-): void {
+): Promise<number | null> {
   const id = {};
 
   const insert = view.state.tr;
@@ -80,44 +80,53 @@ export function startImageUpload(
   } satisfies PlaceholderAction);
   view.dispatch(insert);
 
-  void uploadSnippetImage(file)
-    .then((uploaded) => {
-      const placeholderPos = findPlaceholder(view, id);
-      // The user undid, or deleted the surrounding block, while we uploaded:
-      // the image is stored but has nowhere to go. Dropping it is the least
-      // surprising outcome — inserting it somewhere else would not be.
-      if (placeholderPos === null) return;
+  try {
+    const uploaded = await uploadSnippetImage(file);
+    if (view.isDestroyed) return null;
 
-      const node = view.state.schema.nodes.image.create({
-        src: uploaded.url,
-        alt: file.name.replace(/\.[^.]+$/, ""),
-      });
+    const placeholderPos = findPlaceholder(view, id);
+    // The user undid, or deleted the surrounding block, while we uploaded:
+    // the image is stored but has nowhere to go. Dropping it is the least
+    // surprising outcome — inserting it somewhere else would not be.
+    if (placeholderPos === null) return null;
 
-      view.dispatch(
-        view.state.tr
-          .replaceWith(placeholderPos, placeholderPos, node)
-          .setMeta(placeholderKey, { remove: { id } } satisfies PlaceholderAction),
-      );
-    })
-    .catch((error: unknown) => {
-      view.dispatch(
-        view.state.tr.setMeta(placeholderKey, { remove: { id } } satisfies PlaceholderAction),
-      );
-      handlers.onError(
-        error instanceof ImageUploadError ? error.reason : "failed",
-      );
+    const node = view.state.schema.nodes.image.create({
+      src: uploaded.url,
+      alt: file.name.replace(/\.[^.]+$/, ""),
     });
+
+    view.dispatch(
+      view.state.tr
+        .replaceWith(placeholderPos, placeholderPos, node)
+        .setMeta(placeholderKey, { remove: { id } } satisfies PlaceholderAction),
+    );
+    return placeholderPos + node.nodeSize;
+  } catch (error: unknown) {
+    if (view.isDestroyed) return null;
+    const placeholderPos = findPlaceholder(view, id) ?? pos;
+    view.dispatch(
+      view.state.tr.setMeta(placeholderKey, { remove: { id } } satisfies PlaceholderAction),
+    );
+    handlers.onError(
+      error instanceof ImageUploadError ? error.reason : "failed",
+    );
+    return placeholderPos;
+  }
 }
 
 /** Upload several files in order, each after the previous insertion point. */
-function startImageUploads(
+async function startImageUploads(
   view: EditorView,
   files: File[],
   pos: number,
   handlers: ImageUploadHandlers,
-): void {
+): Promise<void> {
+  let nextPos = pos;
   for (const file of files) {
-    startImageUpload(view, file, pos, handlers);
+    if (view.isDestroyed) return;
+    const insertedAt = await startImageUpload(view, file, nextPos, handlers);
+    if (insertedAt === null) return;
+    nextPos = insertedAt;
   }
 }
 
@@ -140,7 +149,7 @@ export function handleImagePaste(
   // points to the original site. Owning the bytes avoids a hotlink that may
   // expire or require the original user's session.
   event.preventDefault();
-  startImageUploads(view, files, view.state.selection.from, handlers);
+  void startImageUploads(view, files, view.state.selection.from, handlers);
   return true;
 }
 
@@ -154,7 +163,7 @@ export function uploadImageFiles(
   handlers: ImageUploadHandlers | null,
 ): void {
   if (!handlers || files.length === 0) return;
-  startImageUploads(editor.view, files, editor.state.selection.from, handlers);
+  void startImageUploads(editor.view, files, editor.state.selection.from, handlers);
 }
 
 export const ImageUpload = Extension.create<ImageUploadOptions>({
@@ -210,7 +219,7 @@ export const ImageUpload = Extension.create<ImageUploadOptions>({
 
             event.preventDefault();
             const coords = view.posAtCoords({ left: event.clientX, top: event.clientY });
-            startImageUploads(
+            void startImageUploads(
               view,
               files,
               coords?.pos ?? view.state.selection.from,

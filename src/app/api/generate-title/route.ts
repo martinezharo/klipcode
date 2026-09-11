@@ -38,7 +38,11 @@ function sanitizeTitle(raw: string): string {
 }
 
 export async function POST(request: Request) {
-  if ((await readViewerId(request)) === null) {
+  const viewer = await readViewerId(request);
+  if (viewer.status === "unavailable") {
+    return Response.json({ error: "authentication unavailable" }, { status: 503 });
+  }
+  if (viewer.status === "anonymous") {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 

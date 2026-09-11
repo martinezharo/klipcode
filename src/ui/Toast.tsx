@@ -28,19 +28,21 @@ export interface ToastProps {
  * be rendered inside (e.g. a TipTap NodeView).
  */
 export function Toast({ nonce, message, icon, durationMs = 1800 }: ToastProps) {
-  const [visible, setVisible] = useState(false);
+  const [visibleNonce, setVisibleNonce] = useState<number | null>(null);
 
   useEffect(() => {
     if (nonce === 0) return;
-    // Defer both toggles into timers so neither is a synchronous setState in
-    // the effect body; the short show delay also restarts the fade on repeats.
-    const show = setTimeout(() => setVisible(true), 10);
-    const hide = setTimeout(() => setVisible(false), durationMs + 10);
+    // The rendered nonce becomes hidden immediately when a newer one arrives;
+    // the delay then gives React a frame at opacity zero before showing it.
+    const show = setTimeout(() => setVisibleNonce(nonce), 10);
+    const hide = setTimeout(() => setVisibleNonce(null), durationMs + 10);
     return () => {
       clearTimeout(show);
       clearTimeout(hide);
     };
   }, [nonce, durationMs]);
+
+  const visible = nonce !== 0 && visibleNonce === nonce;
 
   if (typeof document === "undefined") return null;
 
@@ -52,10 +54,12 @@ export function Toast({ nonce, message, icon, durationMs = 1800 }: ToastProps) {
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-center gap-1.5 rounded-full border border-ink/[0.08] bg-background/90 px-3 py-1.5 text-[12px] text-ink/80 backdrop-blur-sm">
-        {icon}
-        {message}
-      </div>
+      {visible ? (
+        <div className="flex items-center gap-1.5 rounded-full border border-ink/[0.08] bg-background/90 px-3 py-1.5 text-[12px] text-ink/80 backdrop-blur-sm">
+          {icon}
+          {message}
+        </div>
+      ) : null}
     </div>,
     document.body,
   );

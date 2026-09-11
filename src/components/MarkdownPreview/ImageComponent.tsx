@@ -61,6 +61,7 @@ export function ImageComponent({
   // handler can read the final value without re-subscribing on every frame.
   const [draftWidth, setDraftWidth] = useState<number | null>(null);
   const draftWidthRef = useRef<number | null>(null);
+  const dragCleanupRef = useRef<(() => void) | null>(null);
   const [alignmentMenu, setAlignmentMenu] = useState<{ x: number; y: number } | null>(null);
 
   const editable = editor.isEditable;
@@ -96,6 +97,7 @@ export function ImageComponent({
       // The editor must not turn the drag into a text selection or a node drag.
       event.preventDefault();
       event.stopPropagation();
+      dragCleanupRef.current?.();
 
       const startX = event.clientX;
       const startWidth = imageRef.current?.getBoundingClientRect().width ?? availableWidth();
@@ -114,9 +116,8 @@ export function ImageComponent({
       };
 
       const onUp = () => {
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onUp);
-        window.removeEventListener("pointercancel", onUp);
+        dragCleanupRef.current?.();
+        dragCleanupRef.current = null;
         const finalWidth = draftWidthRef.current;
         setDraft(null);
         if (finalWidth !== null) commitWidth(finalWidth);
@@ -125,6 +126,11 @@ export function ImageComponent({
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onUp);
+      dragCleanupRef.current = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+      };
     },
     [availableWidth, commitWidth, editable, setDraft],
   );
@@ -152,7 +158,14 @@ export function ImageComponent({
 
   // A resize started on a handle can end anywhere; make sure the listeners never
   // outlive the NodeView if the node is deleted mid-drag.
-  useEffect(() => () => setDraft(null), [setDraft]);
+  useEffect(
+    () => () => {
+      dragCleanupRef.current?.();
+      dragCleanupRef.current = null;
+      draftWidthRef.current = null;
+    },
+    [],
+  );
 
   if (!src) return null;
 

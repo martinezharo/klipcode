@@ -5,6 +5,7 @@ import {
   IMAGE_MIN_DISPLAY_WIDTH,
   clampDisplayWidth,
   imageUrlForKey,
+  imageKeyPrefixForUser,
   isAcceptedImageType,
   isValidImageKey,
   newImageKey,
@@ -65,6 +66,7 @@ describe("Markdown image URLs", () => {
     expect(isValidImageKey(first)).toBe(true);
     expect(imageUrlForKey(first)).toBe(`/api/images/${first}`);
     expect(second).not.toBe(first);
+    expect(imageKeyPrefixForUser("user/with spaces")).toBe("user%2Fwith%20spaces/");
   });
 
   it("rejects keys that could escape or probe the bucket", () => {
