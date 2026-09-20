@@ -212,7 +212,6 @@ export function NewSnippet({
             <button
               type="button"
               onClick={() => submit(onOpenInEditor)}
-              title={copy.shortcuts.items.openInEditor}
               className="flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-ink/60 transition-colors hover:bg-ink/[0.06] hover:text-ink/85 max-lg:h-10 max-lg:w-full lg:ml-auto lg:mr-1"
             >
               <Maximize2 size={13} aria-hidden="true" />
