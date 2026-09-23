@@ -1,10 +1,9 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
   FilePlus,
-  FolderOpen,
   LogIn,
   LogOut,
   MoreHorizontal,
@@ -31,11 +30,7 @@ import { FeedTabs } from "./FeedTabs";
 import { FolderGroup, NewFolderCard } from "./FolderGroup";
 import { orderRecentSnippets } from "./ordering";
 import type { MobileHomeProps } from "./types";
-
-/** The two lists the home switches between, in the order they sit on the track:
- *  a swipe moves between neighbours and has to know which is which. */
-const FEED_TABS = ["recent", "space"] as const;
-type FeedTab = (typeof FEED_TABS)[number];
+import { FEED_TABS, type FeedTab, type MobileFeedState } from "./useMobileFeedState";
 
 /**
  * The workspace as a full-screen destination, for touch layouts.
@@ -77,9 +72,10 @@ export function MobileHome({
   onRestoreAll,
   onEmptyTrash,
   trashCount,
+  feed,
   ...tree
 }: MobileHomeProps) {
-  const [tab, setTab] = useState<FeedTab>("recent");
+  const { tab, setTab } = feed;
   const [accountMenu, setAccountMenu] = useState<{ x: number; y: number } | null>(null);
   const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -138,10 +134,11 @@ export function MobileHome({
   /**
    * Creating a folder has to be visible to be understood, and the inline field
    * only exists in the structure tab — so asking for one from anywhere switches
-   * to it first.
+   * to it first, and opens the folder it is being created in.
    */
   function beginCreateFolder(parentId: string | null) {
     setTab("space");
+    if (parentId) feed.setFolderExpanded(parentId, true);
     setCreatingFolderParentId(parentId);
   }
 
@@ -195,37 +192,18 @@ export function MobileHome({
   }
 
   /**
-   * The shared menus, plus the entries the desktop tree doesn't need.
+   * The shared menus, plus the trash on the root menu.
    *
-   * On the root: the desktop reaches the trash from the aside's own rail, which
-   * touch layouts never render, so the header's ⋯ has to carry it. It belongs
-   * here rather than under the avatar — the trash holds workspace content, not
+   * The desktop reaches the trash from the aside's own rail, which touch
+   * layouts never render, so the header's ⋯ has to carry it. It belongs here
+   * rather than under the avatar — the trash holds workspace content, not
    * account settings. Composed at this level on purpose: `buildMenuGroups` is
    * shared with the desktop, where the root menu is the right-click menu of the
    * tree's empty space and has no business offering the trash.
-   *
-   * On a folder: the desktop tree opens a folder by tapping the row and expands
-   * it with the chevron. Here the header is the expander, so the folder view
-   * needs its own way in.
    */
   function menuGroupsFor(target: MenuTarget) {
     const groups = buildMenuGroups(target);
-    if (target.type === "root") return [...groups, ...trashGroups()];
-    if (target.type !== "folder" || !target.id) return groups;
-    const folderId = target.id;
-    return [
-      {
-        items: [
-          {
-            id: "open-folder",
-            label: copy.forms.open,
-            Icon: FolderOpen,
-            onClick: () => tree.onSelectFolder?.(folderId),
-          },
-        ],
-      },
-      ...groups,
-    ];
+    return target.type === "root" ? [...groups, ...trashGroups()] : groups;
   }
 
   const ctxValue: FeedCtxShape = {
@@ -236,8 +214,11 @@ export function MobileHome({
     creatingFolderParentId,
     selectedSnippetId: tree.selectedSnippetId,
     selectedFolderId: tree.selectedFolderId,
+    expandedIds: feed.expandedIds,
+    setFolderExpanded: feed.setFolderExpanded,
+    scrollTargetId: feed.scrollTargetId,
+    clearScrollTarget: feed.clearScrollTarget,
     openSnippet: tree.onSelectSnippet,
-    openFolder: (id) => tree.onSelectFolder?.(id),
     openMenu: setMenuTarget,
     submitFolderRename: (id, value) => {
       const name = value.trim();
@@ -464,7 +445,7 @@ export function MobileHome({
             {...swipe.trackProps}
             className={cn("flex h-full w-full", SWIPE_PAGE_TRANSITION)}
           >
-            <FeedPanel id={panelId("recent")} tabId={`${tabsId}-recent`} active={tab === "recent"}>
+            <FeedPanel tab="recent" id={panelId("recent")} tabId={`${tabsId}-recent`} active={tab === "recent"} feed={feed}>
               {recents.length === 0 ? (
                 <p className="px-1 pt-2 text-[13px] text-faint">{copy.recentSnippets.empty}</p>
               ) : (
@@ -490,7 +471,7 @@ export function MobileHome({
               )}
             </FeedPanel>
 
-            <FeedPanel id={panelId("space")} tabId={`${tabsId}-space`} active={tab === "space"}>
+            <FeedPanel tab="space" id={panelId("space")} tabId={`${tabsId}-space`} active={tab === "space"} feed={feed}>
               <div className="flex flex-col gap-1">
                 {creatingFolderParentId === null && <NewFolderCard depth={0} parentId={null} />}
 
@@ -558,29 +539,45 @@ const EMPTY_SELECTION: ReadonlySet<string> = new Set();
  *
  * Both pages are mounted at all times — that is the whole point, there has to
  * be something to see sliding in — so the one that is off screen is made
- * `inert` and hidden from assistive tech. It keeps its own scroll position,
- * which is what makes coming back to a tab feel like returning rather than
- * reloading.
+ * `inert` and hidden from assistive tech. It keeps its own scroll position —
+ * across tab switches, and across the home unmounting while a snippet is open —
+ * which is what makes coming back feel like returning rather than reloading.
  */
 function FeedPanel({
+  tab,
   id,
   tabId,
   active,
+  feed,
   children,
 }: {
+  tab: FeedTab;
   id: string;
   /** The tab that labels this panel. */
   tabId: string;
   active: boolean;
+  feed: MobileFeedState;
   children: React.ReactNode;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { savedScroll, saveScroll } = feed;
+
+  // A layout effect, so it lands before a revealed folder (a passive effect
+  // further down the tree) scrolls itself into view, and before first paint.
+  useLayoutEffect(() => {
+    if (ref.current) ref.current.scrollTop = savedScroll(tab);
+  }, [savedScroll, tab]);
+
   return (
     <div
+      ref={ref}
       id={id}
       role="tabpanel"
       aria-labelledby={tabId}
       aria-hidden={!active}
       inert={!active}
+      data-feed-panel
+      onScroll={(e) => saveScroll(tab, e.currentTarget.scrollTop)}
       className="h-full w-full shrink-0 touch-pan-y overflow-y-auto overscroll-contain px-4 pb-28"
     >
       {children}

@@ -128,3 +128,60 @@ test("the tab buttons still switch on their own", async ({ page }) => {
   await page.getByRole("tab", { name: "Recent" }).click();
   await expectSelected(page, "Recent");
 });
+
+/*
+ * Touch layouts have no folder view: folders are browsed by expanding them in
+ * the feed, and anything that links to a folder expands it there instead.
+ */
+
+function folderHeader(page: Page) {
+  return panel(page).getByRole("button", { name: /welcome/ });
+}
+
+test("an expanded folder is still open after visiting one of its snippets", async ({ page }) => {
+  await gotoMobileApp(page);
+  await page.getByRole("tab", { name: "My Space" }).click();
+
+  await folderHeader(page).click();
+  await expect(folderHeader(page)).toHaveAttribute("aria-expanded", "true");
+
+  await panel(page).getByRole("button", { name: "klipcode.md", exact: true }).click();
+  await expect(page).toHaveURL(/\?snippet=/);
+
+  // The editor's back button, ahead of the breadcrumb's own "My Space" crumb.
+  await page.getByRole("button", { name: "My Space" }).first().click();
+  await expectSelected(page, "My Space");
+  await expect(folderHeader(page)).toHaveAttribute("aria-expanded", "true");
+});
+
+test("a folder breadcrumb lands on the feed with that folder open", async ({ page }) => {
+  await gotoMobileApp(page);
+
+  await panel(page).getByRole("button", { name: "klipcode.md", exact: true }).click();
+  await expect(page).toHaveURL(/\?snippet=/);
+
+  await page
+    .getByRole("navigation", { name: "breadcrumb" })
+    .getByRole("button", { name: "welcome", exact: true })
+    .click();
+
+  await expect(page).toHaveURL(/\?folder=/);
+  await expectSelected(page, "My Space");
+  await expect(folderHeader(page)).toHaveAttribute("aria-expanded", "true");
+  await expect(panel(page).getByRole("button", { name: "klipcode.md", exact: true })).toBeVisible();
+});
+
+test("a deep link to a folder opens it in the feed", async ({ page }) => {
+  await gotoMobileApp(page);
+  await panel(page).getByRole("button", { name: "klipcode.md", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "breadcrumb" })
+    .getByRole("button", { name: "welcome", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\?folder=/);
+
+  // A fresh load of the same URL: no in-memory feed state to lean on.
+  await page.reload();
+  await expectSelected(page, "My Space");
+  await expect(folderHeader(page)).toHaveAttribute("aria-expanded", "true");
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { ChevronDown, ChevronRight, Folder, MoreHorizontal, Pin } from "lucide-react";
 
 import { sortByPinThenAlpha } from "@/components/Aside/utils";
@@ -21,12 +21,13 @@ import { useFeedCtx } from "./FeedContext";
  * feed uses, so there is one row shape and one interaction to learn.
  *
  * Tapping the header expands it, because on this screen browsing is what a
- * folder is for. Opening the folder's own view — breadcrumbs, its card grid —
- * stays available from the row's actions menu.
+ * folder is for. Touch layouts have no separate folder view: whatever links to
+ * a folder expands it here instead (see `useMobileFeedState`).
  */
 export function FolderGroup({ folder, depth }: { folder: FolderRecord; depth: number }) {
   const ctx = useFeedCtx();
-  const [isOpen, setIsOpen] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+  const isOpen = ctx.expandedIds.has(folder.id);
 
   const isRenaming = ctx.renamingId === folder.id;
   const isCreatingHere = ctx.creatingFolderParentId === folder.id;
@@ -41,12 +42,20 @@ export function FolderGroup({ folder, depth }: { folder: FolderRecord; depth: nu
   );
   const childCount = childFolders.length + childSnippets.length;
 
-  const prevCreating = useRef(false);
+  const isScrollTarget = ctx.scrollTargetId === folder.id;
+  const { clearScrollTarget } = ctx;
   useEffect(() => {
-    // Creating a folder in here must reveal where it is being created.
-    if (isCreatingHere && !prevCreating.current) setIsOpen(true);
-    prevCreating.current = isCreatingHere;
-  }, [isCreatingHere]);
+    if (!isScrollTarget) return;
+    const section = sectionRef.current;
+    const panel = section?.closest<HTMLElement>("[data-feed-panel]");
+    if (section && panel) {
+      // Measured by hand: `scrollIntoView` would also scroll the swipe surface
+      // sideways, since this panel may still be sliding in off-screen.
+      const offset = section.getBoundingClientRect().top - panel.getBoundingClientRect().top;
+      panel.scrollTop += offset - 8;
+    }
+    clearScrollTarget();
+  }, [isScrollTarget, clearScrollTarget]);
 
   function openMoreMenu(e: React.MouseEvent) {
     e.preventDefault();
@@ -56,7 +65,7 @@ export function FolderGroup({ folder, depth }: { folder: FolderRecord; depth: nu
   }
 
   return (
-    <section style={{ paddingLeft: depth * 12 }}>
+    <section ref={sectionRef} style={{ paddingLeft: depth * 12 }}>
       <div className="flex items-center gap-1">
         {isRenaming ? (
           <span className="flex h-11 min-w-0 flex-1 items-center gap-2 px-1">
@@ -72,7 +81,7 @@ export function FolderGroup({ folder, depth }: { folder: FolderRecord; depth: nu
           <button
             type="button"
             aria-expanded={isOpen}
-            onClick={() => setIsOpen((v) => !v)}
+            onClick={() => ctx.setFolderExpanded(folder.id, !isOpen)}
             className={cn(
               "flex h-11 min-w-0 flex-1 items-center gap-2 rounded-lg px-1 text-left transition-colors active:bg-ink/6",
               ctx.selectedFolderId === folder.id && "text-foreground",
@@ -111,7 +120,7 @@ export function FolderGroup({ folder, depth }: { folder: FolderRecord; depth: nu
         </button>
       </div>
 
-      {(isOpen || isCreatingHere) && (
+      {isOpen && (
         <div className="flex flex-col gap-2 pb-2">
           {isCreatingHere && (
             <NewFolderCard depth={depth + 1} parentId={folder.id} />

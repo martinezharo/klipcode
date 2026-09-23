@@ -27,8 +27,13 @@ export interface FeedCtxShape {
   /** Open in the main view — highlighted when the user comes back. */
   selectedSnippetId: string | null;
   selectedFolderId: string | null;
+  /** Folder groups currently showing their contents. */
+  expandedIds: ReadonlySet<string>;
+  setFolderExpanded: (id: string, open: boolean) => void;
+  /** A folder the URL just revealed, still waiting to be scrolled into view. */
+  scrollTargetId: string | null;
+  clearScrollTarget: () => void;
   openSnippet: (id: string) => void;
-  openFolder: (id: string) => void;
   /** Opens the shared actions menu for a row, anchored at viewport coordinates. */
   openMenu: (target: MenuTarget) => void;
   submitFolderRename: (id: string, value: string) => void;

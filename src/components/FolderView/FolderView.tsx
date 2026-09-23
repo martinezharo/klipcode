@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Clipboard, FileCode2, FilePlus, Folder, FolderOpen, FolderPlus, Layers } from "lucide-react";
 
 import type { Dictionary } from "@/i18n";
@@ -41,7 +41,6 @@ export interface FolderViewProps {
   onPaste?: (targetFolderId: string | null) => Promise<void>;
   onCreateFolder?: (parentId: string | null, name: string) => Promise<void>;
   onOpenCreateModal?: (folderId: string | null) => void;
-  menuButton?: ReactNode;
 }
 
 export function FolderView({
@@ -65,7 +64,6 @@ export function FolderView({
   onPaste,
   onCreateFolder,
   onOpenCreateModal,
-  menuButton,
 }: FolderViewProps) {
   const drag = useDragCtx();
 
@@ -286,7 +284,7 @@ export function FolderView({
         ? (e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY }); }
         : undefined}
     >
-      <Breadcrumbs items={breadcrumbItems} leading={menuButton} />
+      <Breadcrumbs items={breadcrumbItems} />
 
       <div
         ref={selectionContainerRef}

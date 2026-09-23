@@ -27,6 +27,7 @@ import { CopyToast } from "@/components/CopyToast/CopyToast";
 import { Aside } from "@/components/Aside/Aside";
 import type { WorkspaceShellProps } from "@/components/Aside/types";
 import { MobileHome } from "@/components/MobileHome/MobileHome";
+import { useMobileFeedState } from "@/components/MobileHome/useMobileFeedState";
 import { ConfirmDialog } from "@/components/ConfirmDialog/ConfirmDialog";
 import { CreateSnippetModal } from "@/components/CreateSnippetModal/CreateSnippetModal";
 import { CreatedSnippetToast } from "@/components/CreatedSnippetToast/CreatedSnippetToast";
@@ -295,8 +296,8 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   });
 
   /**
-   * Escape hatch back to the workspace, shown in touch-layout editor / folder /
-   * trash headers. Desktop uses the aside's persistent edge tab when collapsed;
+   * Escape hatch back to the workspace, shown in touch-layout editor / trash
+   * headers. Desktop uses the aside's persistent edge tab when collapsed;
    * on touch there is no aside, so this navigates back to the mobile home.
    */
   const menuButton = isMobile ? (
@@ -358,9 +359,16 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     trashCount,
   };
 
-  /** No snippet, folder or trash view open — the workspace itself is showing. */
-  const atWorkspaceRoot =
-    !selectedSnippet && !snippetNotFound && !isTrashView && !selectedFolderId;
+  /**
+   * The touch layout has no folder view: the mobile home browses folders by
+   * expanding them in place, so it stands in for `?folder=` too and reveals
+   * the folder there. Only a snippet or the trash take the screen from it.
+   */
+  const showMobileHome = isMobile && !selectedSnippet && !snippetNotFound && !isTrashView;
+  const mobileFeed = useMobileFeedState({
+    revealFolderId: isMobile && !isTrashView ? selectedFolderId : null,
+    folders,
+  });
 
   /* ── Render ───────────────────────────────────────────────────────────── */
 
@@ -411,9 +419,9 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
       onRestoreMany={(items, targetFolderId) => void mutations.handleRestoreMany(items, targetFolderId)}
     >
     {/* Touch layout at the workspace root: the tree is the screen, not a
-        drawer over it. Every other view (editor, folder, trash) keeps the
-        shared layout below and gets a back button into this one. */}
-    {isMobile && atWorkspaceRoot ? (
+        drawer over it. The editor and the trash keep the shared layout below
+        and get a back button into this one. */}
+    {showMobileHome ? (
       <>
         {/* Lifted clear of the create button, which owns the bottom-right corner
             of the mobile home. */}
@@ -421,7 +429,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
           message={auth.accountMessage}
           className="inset-x-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-auto max-w-none"
         />
-        <MobileHome {...shellProps} />
+        <MobileHome {...shellProps} feed={mobileFeed} />
       </>
     ) : (
     <div className="flex h-screen overflow-hidden">
@@ -536,7 +544,6 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
             onPaste={mutations.handlePaste}
             onCreateFolder={mutations.handleCreateFolder}
             onOpenCreateModal={openCreateModal}
-            menuButton={menuButton}
           />
         ) : (
           <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto focus:outline-none">
