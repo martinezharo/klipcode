@@ -848,12 +848,38 @@ describe("fetchCloudWorkspace() incremental pull", () => {
     failing.mockRestore();
   });
 
-  it("does not advance the cursor past a record it could not decode", async () => {
+  it("keeps pulling incrementally past a record it could not decode, remembering it is held back", async () => {
     pushFromElsewhere([], [{ ...cloudSnippet(makeSnippet()), cryptoVersion: CURRENT_CRYPTO_VERSION + 1 }]);
 
     await fetchCloudWorkspace(USER);
+    const first = await db.syncCursors.get(USER);
+    expect(first).toEqual({ userId: USER, cursor: cloud.clock + 1, heldBack: true });
 
-    expect(await db.syncCursors.get(USER)).toBeUndefined();
+    // This page load already did its full pull, so the next one is a delta: the
+    // undecodable row is not re-read on every pull, and it stays held back
+    // until a full pull (next load) reads it.
+    const later = makeSnippet();
+    pushFromElsewhere([], [cloudSnippet(later)]);
+    await fetchCloudWorkspace(USER);
+
+    expect(changesCalls.at(-1)).toEqual({ since: first!.cursor });
+    expect(await db.snippets.get(later.id)).toBeDefined();
+    expect(await db.syncCursors.get(USER)).toEqual({ userId: USER, cursor: cloud.clock + 1, heldBack: true });
+  });
+
+  it("retries held-back records with one full pull on the next page load, then clears the mark", async () => {
+    const snippet = makeSnippet();
+    pushFromElsewhere([], [cloudSnippet(snippet)]);
+    await db.syncCursors.put({ userId: USER, cursor: cloud.clock + 1, heldBack: true });
+
+    // A fresh module instance is what a reload gives: no full pull made yet.
+    vi.resetModules();
+    const reloaded = await import("@/lib/sync");
+    await reloaded.fetchCloudWorkspace(USER);
+
+    expect(changesCalls.at(-1)).toEqual({ since: null });
+    expect(await db.snippets.get(snippet.id)).toBeDefined();
+    expect((await db.syncCursors.get(USER))?.heldBack).toBeUndefined();
   });
 
   it("forgets the cursor on sign-out together with the records", async () => {

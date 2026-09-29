@@ -116,16 +116,13 @@ export const page = internalQuery({
 export const accountsByEmail = internalQuery({
   args: { emails: v.array(v.string()) },
   handler: async (ctx, { emails }) => {
-    // Stored emails keep the provider's casing; try it as given and lowercased.
-    const variants = new Set(emails.flatMap((e) => [e.trim(), e.trim().toLowerCase()]).filter(Boolean));
-    const ids = new Set<string>();
-    for (const email of variants) {
-      const users = await ctx.db
-        .query("users")
-        .withIndex("email", (q) => q.eq("email", email))
-        .collect();
-      for (const user of users) ids.add(user._id);
-    }
-    return [...ids];
+    const wanted = new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean));
+    if (wanted.size === 0) return [];
+
+    // Stored emails keep the provider's casing, which an index lookup cannot
+    // match case-insensitively. `users` rows are a few hundred bytes (no
+    // workspace content), so comparing them all stays cheap.
+    const users = await ctx.db.query("users").collect();
+    return users.filter((user) => user.email && wanted.has(user.email.trim().toLowerCase())).map((user) => user._id);
   },
 });

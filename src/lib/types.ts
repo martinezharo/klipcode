@@ -67,6 +67,12 @@ export interface TombstoneRecord {
 export interface SyncCursorRecord {
   userId: string;
   cursor: number;
+  /**
+   * Set while a pulled record could not be decoded here (a newer
+   * `cryptoVersion`, or no key). The next page load starts with a full pull so
+   * those records are offered again; incremental pulls would not repeat them.
+   */
+  heldBack?: boolean;
 }
 
 export interface WorkspaceSnapshot {

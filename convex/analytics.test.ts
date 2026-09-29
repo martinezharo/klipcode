@@ -107,6 +107,9 @@ describe("analytics", () => {
     const carol = await t.run((ctx) => ctx.db.insert("users", { email: "Carol@Example.com" }));
 
     expect(await t.query(internal.analytics.accountsByEmail, { emails: ["Carol@Example.com"] })).toEqual([carol]);
+    // Stored with mixed case, asked for in a different casing.
+    expect(await t.query(internal.analytics.accountsByEmail, { emails: [" CAROL@EXAMPLE.COM "] })).toEqual([carol]);
     expect(await t.query(internal.analytics.accountsByEmail, { emails: ["nobody@example.com", " "] })).toEqual([]);
+    expect(await t.query(internal.analytics.accountsByEmail, { emails: [] })).toEqual([]);
   });
 });

@@ -13,6 +13,7 @@ import type {
   CloudSnippet,
   FolderRecord,
   SnippetRecord,
+  SyncCursorRecord,
   SyncResult,
 } from "@/lib/types";
 
@@ -334,19 +335,35 @@ function isMissingFunction(error: unknown): boolean {
 }
 
 /**
- * Ask the cloud for what changed since this device's cursor. With no cursor
- * (a new device, or after sign-out) the answer is the whole workspace, once;
- * after that only what other devices wrote, so a pull costs what changed
- * rather than the size of the workspace.
+ * Accounts that already had a full pull in this page load. Records a device
+ * cannot decode (a newer `cryptoVersion`, or no key) only become readable
+ * after a reload brings a new build or re-probes the key, so one full pull per
+ * load is enough to pick them up; every other pull stays incremental.
+ */
+const fullPullThisLoad = new Set<string>();
+
+/**
+ * Where this pull starts: the stored cursor, or `null` for the whole
+ * workspace — on a new device, after sign-out, or once per page load while
+ * records are still held back as undecodable.
+ */
+function pullStart(userId: string, stored: SyncCursorRecord | undefined): number | null {
+  if (!stored || (stored.heldBack && !fullPullThisLoad.has(userId))) return null;
+  return stored.cursor;
+}
+
+/**
+ * Ask the cloud for what changed since `since`. With no cursor the answer is
+ * the whole workspace; after that only what other devices wrote, so a pull
+ * costs what changed rather than the size of the workspace.
  */
 async function readCloudChanges(
   convex: NonNullable<ReturnType<typeof getConvexBrowserClient>>,
-  userId: string
+  userId: string,
+  since: number | null
 ): Promise<CloudChanges> {
-  const stored = await db.syncCursors.get(userId);
-
   try {
-    return await convex.query(api.workspace.changes, { since: stored?.cursor ?? null });
+    return await convex.query(api.workspace.changes, { since });
   } catch (error) {
     if (!isMissingFunction(error)) throw error;
 
@@ -365,8 +382,10 @@ export async function fetchCloudWorkspace(userId: string) {
     return;
   }
 
-  const changes = await readCloudChanges(convex, userId);
+  const stored = await db.syncCursors.get(userId);
+  const changes = await readCloudChanges(convex, userId, pullStart(userId, stored));
   const { folders, snippets } = changes;
+  if (changes.full) fullPullThisLoad.add(userId);
 
   // A record we deleted locally but whose cloud delete is still pending must not
   // be re-downloaded, or it would resurrect until the queued delete lands.
@@ -390,8 +409,8 @@ export async function fetchCloudWorkspace(userId: string) {
     snippets.some((snippet) => snippet.cryptoVersion !== CRYPTO_VERSION_PLAINTEXT);
   const encryptionKey = hasEncryptedRecords ? await getWorkspaceEncryptionKey(userId) : null;
 
-  // Records this device could not decode. They are left alone, and the cursor
-  // is not advanced past them, so the next pull offers them again.
+  // Records this device could not decode. They are left alone, and a full pull
+  // on the next page load offers them again (see `pullStart`).
   let skipped = 0;
 
   const foldersToPut: FolderRecord[] = [];
@@ -486,8 +505,12 @@ export async function fetchCloudWorkspace(userId: string) {
     );
   }
 
-  if (changes.cursor !== null && skipped === 0) {
-    await db.syncCursors.put({ userId, cursor: changes.cursor });
+  if (changes.cursor !== null) {
+    // The cursor always moves on, so a record that stays undecodable never
+    // makes later pulls re-read an ever-growing window. It is remembered as
+    // held back instead, until a full pull (next page load) reads it cleanly.
+    const heldBack = skipped > 0 || (!changes.full && Boolean(stored?.heldBack));
+    await db.syncCursors.put({ userId, cursor: changes.cursor, ...(heldBack ? { heldBack } : {}) });
   }
 }
 
