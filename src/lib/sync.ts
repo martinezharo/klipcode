@@ -510,6 +510,9 @@ export async function fetchCloudWorkspace(userId: string) {
     // makes later pulls re-read an ever-growing window. It is remembered as
     // held back instead, until a full pull (next page load) reads it cleanly.
     const heldBack = skipped > 0 || (!changes.full && Boolean(stored?.heldBack));
+    // Nothing held back can become readable before a reload, so a row skipped
+    // in a delta waits for the next load's full pull too, not one in this load.
+    if (skipped > 0) fullPullThisLoad.add(userId);
     await db.syncCursors.put({ userId, cursor: changes.cursor, ...(heldBack ? { heldBack } : {}) });
   }
 }

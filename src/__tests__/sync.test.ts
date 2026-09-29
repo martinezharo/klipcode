@@ -867,6 +867,21 @@ describe("fetchCloudWorkspace() incremental pull", () => {
     expect(await db.syncCursors.get(USER)).toEqual({ userId: USER, cursor: cloud.clock + 1, heldBack: true });
   });
 
+  it("does not retry a row skipped in a delta until the next page load", async () => {
+    // Start this "load" fresh, holding a cursor, so the first pull is a delta.
+    vi.resetModules();
+    const reloaded = await import("@/lib/sync");
+    await db.syncCursors.put({ userId: USER, cursor: cloud.clock + 1 });
+
+    pushFromElsewhere([], [{ ...cloudSnippet(makeSnippet()), cryptoVersion: CURRENT_CRYPTO_VERSION + 1 }]);
+    await reloaded.fetchCloudWorkspace(USER);
+    expect(changesCalls.at(-1)?.since).not.toBeNull();
+    expect((await db.syncCursors.get(USER))?.heldBack).toBe(true);
+
+    await reloaded.fetchCloudWorkspace(USER);
+    expect(changesCalls.at(-1)?.since).not.toBeNull();
+  });
+
   it("retries held-back records with one full pull on the next page load, then clears the mark", async () => {
     const snippet = makeSnippet();
     pushFromElsewhere([], [cloudSnippet(snippet)]);
