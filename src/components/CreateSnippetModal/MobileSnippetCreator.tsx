@@ -8,7 +8,7 @@ import { Editor } from "@/components/Editor/Editor";
 import { useSnippetDraft } from "@/components/NewSnippet/useSnippetDraft";
 import type { NewSnippetData } from "@/components/NewSnippet/NewSnippet";
 import { useDialogA11y } from "@/hooks/useDialogA11y";
-import { useVisibleViewportHeight } from "@/hooks/useVisibleViewportHeight";
+import { useVisibleViewport } from "@/hooks/useVisibleViewport";
 import { TOUCH_TARGET_Y } from "@/lib/constants/layout";
 import type { LanguageId } from "@/lib/constants/languages";
 import type { FolderRecord } from "@/lib/types";
@@ -51,16 +51,19 @@ export function MobileSnippetCreator({
   const panelRef = useDialogA11y({ onClose, initialFocusRef: titleRef });
   const headingId = useId();
   // The on-screen keyboard shrinks the visual viewport but not the layout one;
-  // sizing the panel from it keeps the toolbar above the keys.
-  const visibleHeight = useVisibleViewportHeight();
+  // fitting the panel to it keeps the toolbar above the keys.
+  const viewport = useVisibleViewport();
   // The parent closes the creator once the snippet is saved; until then a second
-  // tap must not create a duplicate.
+  // tap must not create a duplicate. A failed save re-arms it so the user can retry.
   const submitted = useRef(false);
 
   function submit(handler: (data: NewSnippetData) => unknown) {
     if (submitted.current) return;
     submitted.current = true;
-    void handler(draft.toData());
+    Promise.resolve(handler(draft.toData())).catch((error: unknown) => {
+      submitted.current = false;
+      console.error("Failed to create snippet", error);
+    });
   }
 
   return (
@@ -70,8 +73,8 @@ export function MobileSnippetCreator({
       role="dialog"
       aria-modal="true"
       aria-labelledby={headingId}
-      className="klipcode-slide-up-animate fixed inset-x-0 top-0 klipcode-z-dialog-sticky flex flex-col bg-surface focus:outline-none"
-      style={{ height: visibleHeight || "100dvh" }}
+      className="klipcode-slide-up-animate fixed inset-x-0 klipcode-z-dialog-sticky flex flex-col bg-surface focus:outline-none"
+      style={{ top: viewport.offsetTop, height: viewport.height || "100dvh" }}
     >
       <header className="flex h-12 shrink-0 items-center gap-1 border-b border-ink/[0.06] px-2">
         <IconButton
