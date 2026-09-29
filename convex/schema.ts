@@ -42,28 +42,6 @@ const syncedFields = {
 export default defineSchema({
   ...authTables,
 
-  // Convex Auth's own `users` table, restated so it can carry one extra field.
-  // Everything but `country` is copied from `authTables.users`; keep it in step
-  // with that definition when upgrading @convex-dev/auth.
-  users: defineTable({
-    name: v.optional(v.string()),
-    image: v.optional(v.string()),
-    email: v.optional(v.string()),
-    emailVerificationTime: v.optional(v.number()),
-    phone: v.optional(v.string()),
-    phoneVerificationTime: v.optional(v.number()),
-    isAnonymous: v.optional(v.boolean()),
-    /**
-     * ISO 3166-1 alpha-2 country the account was first seen from (e.g. "ES"),
-     * as reported by Cloudflare. Set once, never overwritten, and only the
-     * country — the IP address is never stored. Absent for accounts that have
-     * not opened the app since this was introduced.
-     */
-    country: v.optional(v.string()),
-  })
-    .index("email", ["email"])
-    .index("phone", ["phone"]),
-
   folders: defineTable({
     ...syncedFields,
     /** Ciphertext when `cryptoVersion` > 0, plaintext when 0. */
