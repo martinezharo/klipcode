@@ -312,6 +312,52 @@ export async function syncDirtyWorkspace(userId: string): Promise<SyncResult> {
   return { syncedFolderIds, syncedSnippetIds, localSnippetIds };
 }
 
+/** What a pull hands back: see `workspace.changes` in convex/workspace.ts. */
+interface CloudChanges {
+  /** The whole workspace (deletions are reconciled by absence) or only a delta. */
+  full: boolean;
+  folders: CloudFolder[];
+  snippets: CloudSnippet[];
+  deletedFolderIds: string[];
+  deletedSnippetIds: string[];
+  /** Where the next pull resumes; `null` when the result must not be resumed from. */
+  cursor: number | null;
+}
+
+/**
+ * Convex's error when the deployment has no such function: the frontend went
+ * out before the backend that defines `workspace.changes`. Any other failure
+ * (auth, network) is rethrown so it doesn't turn into a second, full read.
+ */
+function isMissingFunction(error: unknown): boolean {
+  return error instanceof Error && /Could not find (public )?function/i.test(error.message);
+}
+
+/**
+ * Ask the cloud for what changed since this device's cursor. With no cursor
+ * (a new device, or after sign-out) the answer is the whole workspace, once;
+ * after that only what other devices wrote, so a pull costs what changed
+ * rather than the size of the workspace.
+ */
+async function readCloudChanges(
+  convex: NonNullable<ReturnType<typeof getConvexBrowserClient>>,
+  userId: string
+): Promise<CloudChanges> {
+  const stored = await db.syncCursors.get(userId);
+
+  try {
+    return await convex.query(api.workspace.changes, { since: stored?.cursor ?? null });
+  } catch (error) {
+    if (!isMissingFunction(error)) throw error;
+
+    // A backend without incremental sync: read everything the old way, and
+    // forget the cursor, since writes made there are not stamped for it.
+    await db.syncCursors.delete(userId);
+    const whole = await convex.query(api.workspace.list, {});
+    return { full: true, ...whole, deletedFolderIds: [], deletedSnippetIds: [], cursor: null };
+  }
+}
+
 export async function fetchCloudWorkspace(userId: string) {
   const convex = getConvexBrowserClient();
 
@@ -319,7 +365,8 @@ export async function fetchCloudWorkspace(userId: string) {
     return;
   }
 
-  const { folders, snippets } = await convex.query(api.workspace.list, {});
+  const changes = await readCloudChanges(convex, userId);
+  const { folders, snippets } = changes;
 
   // A record we deleted locally but whose cloud delete is still pending must not
   // be re-downloaded, or it would resurrect until the queued delete lands.
@@ -343,12 +390,17 @@ export async function fetchCloudWorkspace(userId: string) {
     snippets.some((snippet) => snippet.cryptoVersion !== CRYPTO_VERSION_PLAINTEXT);
   const encryptionKey = hasEncryptedRecords ? await getWorkspaceEncryptionKey(userId) : null;
 
+  // Records this device could not decode. They are left alone, and the cursor
+  // is not advanced past them, so the next pull offers them again.
+  let skipped = 0;
+
   const foldersToPut: FolderRecord[] = [];
   for (const cloudFolder of folders) {
     if (!canDecodeRecord(cloudFolder.cryptoVersion, encryptionKey)) {
       console.warn(
         `Skipping folder ${cloudFolder.clientId}: undecodable cryptoVersion ${cloudFolder.cryptoVersion}`
       );
+      skipped += 1;
       continue;
     }
 
@@ -357,6 +409,7 @@ export async function fetchCloudWorkspace(userId: string) {
       incomingFolder = await mapFolderToLocal(cloudFolder, userId, encryptionKey);
     } catch {
       console.warn(`Skipping folder ${cloudFolder.clientId}: decryption failed`);
+      skipped += 1;
       continue;
     }
 
@@ -379,6 +432,7 @@ export async function fetchCloudWorkspace(userId: string) {
       console.warn(
         `Skipping snippet ${cloudSnippet.clientId}: undecodable cryptoVersion ${cloudSnippet.cryptoVersion}`
       );
+      skipped += 1;
       continue;
     }
 
@@ -387,6 +441,7 @@ export async function fetchCloudWorkspace(userId: string) {
       incomingSnippet = await mapSnippetToLocal(cloudSnippet, userId, encryptionKey);
     } catch {
       console.warn(`Skipping snippet ${cloudSnippet.clientId}: decryption failed`);
+      skipped += 1;
       continue;
     }
 
@@ -411,16 +466,63 @@ export async function fetchCloudWorkspace(userId: string) {
     await db.snippets.bulkPut(snippetsToPut);
   }
 
-  // Reuse the snapshot read above for deletion reconciliation. A record absent
-  // from the cloud is unaffected by the puts (which only touch cloud-present
-  // records), so the pre-put snapshot yields the correct deletion set.
-  await reconcileDeletions(
-    userId,
-    new Set(folders.map((folder) => folder.clientId)),
-    new Set(snippets.map((snippet) => snippet.clientId)),
-    localFolders,
-    localSnippets
-  );
+  const cloudFolderIds = new Set(folders.map((folder) => folder.clientId));
+  const cloudSnippetIds = new Set(snippets.map((snippet) => snippet.clientId));
+
+  if (changes.full) {
+    // Reuse the snapshot read above for deletion reconciliation. A record absent
+    // from the cloud is unaffected by the puts (which only touch cloud-present
+    // records), so the pre-put snapshot yields the correct deletion set.
+    await reconcileDeletions(userId, cloudFolderIds, cloudSnippetIds, localFolders, localSnippets);
+  } else {
+    // A delta lists deletions explicitly. An id that is also among the rows
+    // just received was deleted and then written again, so the row wins.
+    await applyCloudDeletions(
+      userId,
+      new Set(changes.deletedFolderIds.filter((id) => !cloudFolderIds.has(id))),
+      new Set(changes.deletedSnippetIds.filter((id) => !cloudSnippetIds.has(id))),
+      localFolders,
+      localSnippets
+    );
+  }
+
+  if (changes.cursor !== null && skipped === 0) {
+    await db.syncCursors.put({ userId, cursor: changes.cursor });
+  }
+}
+
+/** A local record another device's deletion may remove: ours, clean, uploaded before. */
+function isRemovableByCloud(record: FolderRecord | SnippetRecord, userId: string): boolean {
+  return record.ownerId === userId && !record.dirty && record.lastSyncedAt !== null;
+}
+
+/**
+ * Apply the permanent deletions an incremental pull reported. Same rules as
+ * `reconcileDeletions`: dirty records (unsynced local edits), never-uploaded
+ * placeholders and shared/seeded records are kept.
+ */
+async function applyCloudDeletions(
+  userId: string,
+  deletedFolderIds: Set<string>,
+  deletedSnippetIds: Set<string>,
+  localFolders: FolderRecord[],
+  localSnippets: SnippetRecord[]
+) {
+  const foldersToDelete = localFolders
+    .filter((folder) => deletedFolderIds.has(folder.id) && isRemovableByCloud(folder, userId))
+    .map((folder) => folder.id);
+
+  const snippetsToDelete = localSnippets
+    .filter((snippet) => deletedSnippetIds.has(snippet.id) && isRemovableByCloud(snippet, userId))
+    .map((snippet) => snippet.id);
+
+  if (foldersToDelete.length > 0) {
+    await db.folders.bulkDelete(foldersToDelete);
+  }
+
+  if (snippetsToDelete.length > 0) {
+    await db.snippets.bulkDelete(snippetsToDelete);
+  }
 }
 
 /**
@@ -444,15 +546,12 @@ async function reconcileDeletions(
     ? [localFoldersSnapshot, localSnippetsSnapshot]
     : await Promise.all([db.folders.toArray(), db.snippets.toArray()]);
 
-  const localFolders = allFolders.filter((folder) => folder.ownerId === userId);
-  const localSnippets = allSnippets.filter((snippet) => snippet.ownerId === userId);
-
-  const foldersToDelete = localFolders
-    .filter((folder) => !folder.dirty && folder.lastSyncedAt !== null && !cloudFolderIds.has(folder.id))
+  const foldersToDelete = allFolders
+    .filter((folder) => isRemovableByCloud(folder, userId) && !cloudFolderIds.has(folder.id))
     .map((folder) => folder.id);
 
-  const snippetsToDelete = localSnippets
-    .filter((snippet) => !snippet.dirty && snippet.lastSyncedAt !== null && !cloudSnippetIds.has(snippet.id))
+  const snippetsToDelete = allSnippets
+    .filter((snippet) => isRemovableByCloud(snippet, userId) && !cloudSnippetIds.has(snippet.id))
     .map((snippet) => snippet.id);
 
   if (foldersToDelete.length > 0) {

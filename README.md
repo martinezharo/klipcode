@@ -19,6 +19,8 @@ guest workspace that stays on the device you are using.
 - Sync the library through Convex after GitHub sign-in. Cloud records are
   encrypted per user when the Cloudflare Worker secret `ENCRYPTION_MASTER_KEY`
   is set; without it, records are synced in plaintext (`cryptoVersion 0`).
+  A device downloads the whole library once, then only what changed since its
+  last sync (a server-clock cursor), which keeps Convex database I/O small.
 - Use the app in English or Spanish, in light or dark theme, with keyboard
   shortcuts and a search palette. A service worker caches the app shell so the
   UI still loads offline.

@@ -13,6 +13,8 @@ import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_hierarchy from "../lib/hierarchy.js";
 import type * as lib_sync from "../lib/sync.js";
+import type * as lib_syncCursor from "../lib/syncCursor.js";
+import type * as lib_workspaceWrites from "../lib/workspaceWrites.js";
 import type * as migrations from "../migrations.js";
 import type * as userKeys from "../userKeys.js";
 import type * as users from "../users.js";
@@ -30,6 +32,8 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   "lib/hierarchy": typeof lib_hierarchy;
   "lib/sync": typeof lib_sync;
+  "lib/syncCursor": typeof lib_syncCursor;
+  "lib/workspaceWrites": typeof lib_workspaceWrites;
   migrations: typeof migrations;
   userKeys: typeof userKeys;
   users: typeof users;

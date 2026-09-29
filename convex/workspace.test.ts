@@ -1,10 +1,11 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 import { convexTest } from "convex-test";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { DELETION_RETENTION_MS, SYNC_OVERLAP_MS } from "./lib/syncCursor";
 import schema from "./schema";
 
 // These run the real backend functions against Convex's test harness, so they
@@ -211,5 +212,165 @@ describe("remove", () => {
     await expect(
       as(alice).mutation(api.workspace.remove, { folderIds: ["nope"], snippetIds: ["nope"] })
     ).resolves.not.toThrow();
+  });
+});
+
+describe("push without folders", () => {
+  it("keeps a snippet in a folder that exists and detaches it from one that does not", async () => {
+    await as(alice).mutation(api.workspace.push, { folders: [folder("kept")], snippets: [] });
+
+    // Snippet-only batches look folders up one by one instead of loading the tree.
+    await as(alice).mutation(api.workspace.push, {
+      folders: [],
+      snippets: [snippet("in-kept", { folderId: "kept" }), snippet("in-gone", { folderId: "gone" })],
+    });
+
+    const { snippets } = await as(alice).query(api.workspace.list, {});
+    expect(snippets.find((s) => s.clientId === "in-kept")?.folderId).toBe("kept");
+    expect(snippets.find((s) => s.clientId === "in-gone")?.folderId).toBeNull();
+  });
+
+  it("does not see another account's folder with the same client id", async () => {
+    await as(bob).mutation(api.workspace.push, { folders: [folder("bobs")], snippets: [] });
+    await as(alice).mutation(api.workspace.push, { folders: [], snippets: [snippet("s1", { folderId: "bobs" })] });
+
+    const { snippets } = await as(alice).query(api.workspace.list, {});
+    expect(snippets[0].folderId).toBeNull();
+  });
+});
+
+// ── Incremental sync ────────────────────────────────────────────────────────
+
+describe("changes", () => {
+  let now = Date.UTC(2026, 8, 29, 12);
+  const advance = (ms: number) => {
+    now += ms;
+    vi.setSystemTime(now);
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    now = Date.UTC(2026, 8, 29, 12);
+    vi.setSystemTime(now);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const ids = (records: Array<{ clientId: string }>) => records.map((r) => r.clientId).sort();
+
+  it("rejects an unauthenticated caller", async () => {
+    await expect(t.query(api.workspace.changes, { since: null })).rejects.toThrow("Not authenticated");
+  });
+
+  it("sends the whole workspace, without server bookkeeping, when there is no cursor", async () => {
+    await as(alice).mutation(api.workspace.push, { folders: [folder("f1")], snippets: [snippet("s1")] });
+
+    const result = await as(alice).query(api.workspace.changes, { since: null });
+    expect(result.full).toBe(true);
+    expect(result.cursor).toBe(now);
+    expect(result).toMatchObject({ folders: await as(alice).query(api.workspace.list, {}).then((w) => w.folders) });
+    expect(ids(result.snippets)).toEqual(["s1"]);
+    expect(result.snippets[0]).not.toHaveProperty("serverUpdatedAt");
+    expect(result.snippets[0]).not.toHaveProperty("ownerId");
+  });
+
+  it("afterwards sends only what was written since the cursor", async () => {
+    await as(alice).mutation(api.workspace.push, { folders: [folder("f1")], snippets: [snippet("old")] });
+    advance(SYNC_OVERLAP_MS + 1);
+    const first = await as(alice).query(api.workspace.changes, { since: null });
+
+    advance(SYNC_OVERLAP_MS + 1);
+    await as(alice).mutation(api.workspace.push, {
+      folders: [],
+      snippets: [snippet("new"), snippet("old", { title: "edited", updatedAt: "2024-02-01T00:00:00.000Z" })],
+    });
+    advance(SYNC_OVERLAP_MS + 1);
+    const second = await as(alice).query(api.workspace.changes, { since: first.cursor });
+
+    expect(second.full).toBe(false);
+    expect(ids(second.folders)).toEqual([]);
+    expect(ids(second.snippets)).toEqual(["new", "old"]);
+    expect(second.snippets.find((s) => s.clientId === "old")?.title).toBe("edited");
+
+    advance(SYNC_OVERLAP_MS + 1);
+    const third = await as(alice).query(api.workspace.changes, { since: second.cursor });
+    expect(ids(third.snippets)).toEqual([]);
+  });
+
+  it("re-sends writes from just before the cursor, which may have committed after it", async () => {
+    await as(alice).mutation(api.workspace.push, { folders: [], snippets: [snippet("s1")] });
+    advance(1_000);
+    const result = await as(alice).query(api.workspace.changes, { since: now });
+    expect(ids(result.snippets)).toEqual(["s1"]);
+  });
+
+  it("does not advance a record whose stale update was ignored", async () => {
+    await as(alice).mutation(api.workspace.push, {
+      folders: [],
+      snippets: [snippet("s1", { updatedAt: "2024-06-01T00:00:00.000Z" })],
+    });
+    advance(SYNC_OVERLAP_MS + 1);
+    const cursor = now;
+    await as(alice).mutation(api.workspace.push, {
+      folders: [],
+      snippets: [snippet("s1", { updatedAt: "2024-01-01T00:00:00.000Z" })],
+    });
+    advance(SYNC_OVERLAP_MS + 1);
+
+    const result = await as(alice).query(api.workspace.changes, { since: cursor });
+    expect(ids(result.snippets)).toEqual([]);
+  });
+
+  it("reports permanent deletions, including a folder cascade and the snippets it detached", async () => {
+    await as(alice).mutation(api.workspace.push, {
+      folders: [folder("root"), folder("child", { parentId: "root" })],
+      snippets: [snippet("inside", { folderId: "child" }), snippet("doomed"), snippet("untouched")],
+    });
+    advance(SYNC_OVERLAP_MS + 1);
+    const cursor = now;
+
+    await as(alice).mutation(api.workspace.remove, { folderIds: ["root"], snippetIds: ["doomed"] });
+    advance(SYNC_OVERLAP_MS + 1);
+
+    const result = await as(alice).query(api.workspace.changes, { since: cursor });
+    expect(result.full).toBe(false);
+    expect([...result.deletedFolderIds].sort()).toEqual(["child", "root"]);
+    expect(result.deletedSnippetIds).toEqual(["doomed"]);
+    expect(ids(result.snippets)).toEqual(["inside"]);
+    expect(result.snippets[0].folderId).toBeNull();
+  });
+
+  it("never reports another account's changes or deletions", async () => {
+    await as(alice).mutation(api.workspace.push, { folders: [], snippets: [snippet("s1")] });
+    const cursor = now;
+    advance(1);
+    await as(bob).mutation(api.workspace.push, { folders: [], snippets: [snippet("b1")] });
+    await as(bob).mutation(api.workspace.remove, { folderIds: [], snippetIds: ["b1"] });
+
+    const result = await as(alice).query(api.workspace.changes, { since: cursor });
+    expect(ids(result.snippets)).toEqual(["s1"]);
+    expect(result.deletedSnippetIds).toEqual([]);
+  });
+
+  it("falls back to a full read once the cursor is older than the deletion log", async () => {
+    await as(alice).mutation(api.workspace.push, { folders: [], snippets: [snippet("s1")] });
+    const cursor = now;
+    advance(DELETION_RETENTION_MS + 1);
+
+    const result = await as(alice).query(api.workspace.changes, { since: cursor });
+    expect(result.full).toBe(true);
+    expect(ids(result.snippets)).toEqual(["s1"]);
+  });
+
+  it("prunes deletion entries past the retention window", async () => {
+    await as(alice).mutation(api.workspace.push, { folders: [], snippets: [snippet("a"), snippet("b")] });
+    await as(alice).mutation(api.workspace.remove, { folderIds: [], snippetIds: ["a"] });
+    advance(DELETION_RETENTION_MS + 1);
+    await as(alice).mutation(api.workspace.remove, { folderIds: [], snippetIds: ["b"] });
+
+    const log = await t.run((ctx) => ctx.db.query("deletions").collect());
+    expect(log.map((entry) => entry.clientId)).toEqual(["b"]);
   });
 });

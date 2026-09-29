@@ -13,18 +13,33 @@ import type { CloudFolder, CloudSnippet, FolderRecord, SnippetRecord } from "@/l
 
 const USER = "user-1";
 
-type StoredFolder = CloudFolder & { ownerId: string };
-type StoredSnippet = CloudSnippet & { ownerId: string };
+// `serverUpdatedAt` mirrors the backend's server-clock stamp; here the clock is
+// a counter, so "since the cursor" is exact. Rows planted directly by a test
+// carry no stamp, like rows written before incremental sync existed.
+type StoredFolder = CloudFolder & { ownerId: string; serverUpdatedAt?: number };
+type StoredSnippet = CloudSnippet & { ownerId: string; serverUpdatedAt?: number };
+type Deletion = { ownerId: string; kind: "folder" | "snippet"; clientId: string; deletedAt: number };
 
-const cloud: { folders: StoredFolder[]; snippets: StoredSnippet[] } = { folders: [], snippets: [] };
+const cloud: { folders: StoredFolder[]; snippets: StoredSnippet[]; deletions: Deletion[]; clock: number } = {
+  folders: [],
+  snippets: [],
+  deletions: [],
+  clock: 0,
+};
+
+/** Simulates a frontend deployed ahead of a backend that lacks `workspace.changes`. */
+let backendHasChanges = true;
+/** Every `workspace.changes` call, to assert what the client asked for. */
+const changesCalls: Array<{ since: number | null }> = [];
 
 /** Whom the fake deployment treats the caller as. Convex derives this from the
  *  session; here it is explicit so tests can assert what a record was stored under. */
 let currentUserId = USER;
 
-function stripOwner<T extends { ownerId: string }>(record: T) {
-  const { ownerId, ...rest } = record;
+function stripOwner<T extends { ownerId: string; serverUpdatedAt?: number }>(record: T) {
+  const { ownerId, serverUpdatedAt, ...rest } = record;
   void ownerId;
+  void serverUpdatedAt;
   return rest;
 }
 
@@ -54,7 +69,7 @@ function push({ folders, snippets }: { folders: CloudFolder[]; snippets: CloudSn
     links.set(incoming.clientId, parentId);
     touched.push(incoming.clientId);
 
-    const stored: StoredFolder = { ...incoming, parentId, ownerId: currentUserId };
+    const stored: StoredFolder = { ...incoming, parentId, ownerId: currentUserId, serverUpdatedAt: ++cloud.clock };
     if (index >= 0) cloud.folders[index] = stored;
     else cloud.folders.push(stored);
   }
@@ -71,7 +86,7 @@ function push({ folders, snippets }: { folders: CloudFolder[]; snippets: CloudSn
     if (index >= 0 && cloud.snippets[index].updatedAt > incoming.updatedAt) continue;
 
     const folderId = incoming.folderId !== null && links.has(incoming.folderId) ? incoming.folderId : null;
-    const stored: StoredSnippet = { ...incoming, folderId, ownerId: currentUserId };
+    const stored: StoredSnippet = { ...incoming, folderId, ownerId: currentUserId, serverUpdatedAt: ++cloud.clock };
     if (index >= 0) cloud.snippets[index] = stored;
     else cloud.snippets.push(stored);
   }
@@ -80,22 +95,64 @@ function push({ folders, snippets }: { folders: CloudFolder[]; snippets: CloudSn
 function remove({ folderIds, snippetIds }: { folderIds: string[]; snippetIds: string[] }) {
   const doomedFolders = collectDescendantFolderIds(ownedFolders(), folderIds);
   const doomedSnippets = new Set(snippetIds);
+  const deletedAt = ++cloud.clock;
+  const log = (kind: Deletion["kind"], clientId: string) =>
+    cloud.deletions.push({ ownerId: currentUserId, kind, clientId, deletedAt });
 
-  cloud.snippets = cloud.snippets.filter(
-    (snippet) => !(snippet.ownerId === currentUserId && doomedSnippets.has(snippet.clientId))
-  );
+  cloud.snippets = cloud.snippets.filter((snippet) => {
+    const doomed = snippet.ownerId === currentUserId && doomedSnippets.has(snippet.clientId);
+    if (doomed) log("snippet", snippet.clientId);
+    return !doomed;
+  });
   for (const snippet of cloud.snippets) {
-    if (snippet.folderId !== null && doomedFolders.has(snippet.folderId)) snippet.folderId = null;
+    if (snippet.ownerId === currentUserId && snippet.folderId !== null && doomedFolders.has(snippet.folderId)) {
+      snippet.folderId = null;
+      snippet.serverUpdatedAt = deletedAt;
+    }
   }
-  cloud.folders = cloud.folders.filter(
-    (folder) => !(folder.ownerId === currentUserId && doomedFolders.has(folder.clientId))
-  );
+  cloud.folders = cloud.folders.filter((folder) => {
+    const doomed = folder.ownerId === currentUserId && doomedFolders.has(folder.clientId);
+    if (doomed) log("folder", folder.clientId);
+    return !doomed;
+  });
+}
+
+function changes({ since }: { since: number | null }) {
+  changesCalls.push({ since });
+  if (!backendHasChanges) {
+    throw new Error("[Request ID: x] Server Error\nCould not find public function for 'workspace:changes'");
+  }
+
+  const cursor = cloud.clock + 1;
+  if (since === null) {
+    return {
+      full: true,
+      folders: ownedFolders().map(stripOwner),
+      snippets: ownedSnippets().map(stripOwner),
+      deletedFolderIds: [],
+      deletedSnippetIds: [],
+      cursor,
+    };
+  }
+
+  const changed = <T extends { serverUpdatedAt?: number }>(record: T) => (record.serverUpdatedAt ?? -1) >= since;
+  const deletions = cloud.deletions.filter((entry) => entry.ownerId === currentUserId && entry.deletedAt >= since);
+  return {
+    full: false,
+    folders: ownedFolders().filter(changed).map(stripOwner),
+    snippets: ownedSnippets().filter(changed).map(stripOwner),
+    deletedFolderIds: deletions.filter((entry) => entry.kind === "folder").map((entry) => entry.clientId),
+    deletedSnippetIds: deletions.filter((entry) => entry.kind === "snippet").map((entry) => entry.clientId),
+    cursor,
+  };
 }
 
 const convexClient = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async query(reference: FunctionReference<"query">): Promise<any> {
+  async query(reference: FunctionReference<"query">, args?: never): Promise<any> {
     switch (getFunctionName(reference)) {
+      case "workspace:changes":
+        return changes(args!);
       case "workspace:list":
         return { folders: ownedFolders().map(stripOwner), snippets: ownedSnippets().map(stripOwner) };
       case "workspace:hasContent":
@@ -147,7 +204,7 @@ import {
   generateDekBytes,
   importAesKey,
 } from "@/lib/crypto";
-import { db } from "@/lib/db";
+import { clearOwnedData, db } from "@/lib/db";
 import {
   fetchCloudWorkspace,
   recordDeletions,
@@ -233,8 +290,13 @@ beforeEach(async () => {
   await db.folders.clear();
   await db.snippets.clear();
   await db.tombstones.clear();
+  await db.syncCursors.clear();
   cloud.folders = [];
   cloud.snippets = [];
+  cloud.deletions = [];
+  cloud.clock = 0;
+  backendHasChanges = true;
+  changesCalls.length = 0;
   currentUserId = USER;
   cryptoTestState.key = null;
   cryptoTestState.shouldFail = false;
@@ -703,5 +765,104 @@ describe("reconcileWorkspace() legacy adoption", () => {
     await reconcileWorkspace("user-2");
 
     expect((await db.snippets.get(mine.id))?.ownerId).toBe(USER);
+  });
+});
+
+// ── Incremental pull ───────────────────────────────────────────────────────────
+
+describe("fetchCloudWorkspace() incremental pull", () => {
+  /** A write from another device: straight into the mocked deployment. */
+  function pushFromElsewhere(folders: CloudFolder[], snippets: CloudSnippet[]) {
+    push({ folders, snippets });
+  }
+
+  it("pulls everything once, then resumes from the stored cursor", async () => {
+    const first = makeSnippet();
+    pushFromElsewhere([], [cloudSnippet(first)]);
+
+    await fetchCloudWorkspace(USER);
+    expect(changesCalls).toEqual([{ since: null }]);
+    const stored = await db.syncCursors.get(USER);
+    expect(stored?.cursor).toBe(cloud.clock + 1);
+
+    const second = makeSnippet({ title: "from the other device" });
+    pushFromElsewhere([], [cloudSnippet(second)]);
+    await fetchCloudWorkspace(USER);
+
+    expect(changesCalls[1]).toEqual({ since: stored!.cursor });
+    expect((await db.snippets.get(second.id))?.title).toBe("from the other device");
+    expect(await db.snippets.get(first.id)).toBeDefined();
+  });
+
+  it("applies deletions from a delta, but keeps dirty and never-uploaded records", async () => {
+    const gone = makeSnippet();
+    const editedHere = makeSnippet();
+    const folder = makeFolder();
+    pushFromElsewhere([cloudFolder(folder)], [cloudSnippet(gone), cloudSnippet(editedHere)]);
+    await fetchCloudWorkspace(USER);
+
+    await db.snippets.update(editedHere.id, { dirty: true, updatedAt: "2025-01-01T00:00:00.000Z" });
+    remove({ folderIds: [folder.id], snippetIds: [gone.id, editedHere.id] });
+    await fetchCloudWorkspace(USER);
+
+    expect(await db.snippets.get(gone.id)).toBeUndefined();
+    expect(await db.folders.get(folder.id)).toBeUndefined();
+    expect(await db.snippets.get(editedHere.id)).toBeDefined();
+  });
+
+  it("does not delete a record that was deleted and then written again in the same window", async () => {
+    const snippet = makeSnippet();
+    pushFromElsewhere([], [cloudSnippet(snippet)]);
+    await fetchCloudWorkspace(USER);
+
+    remove({ folderIds: [], snippetIds: [snippet.id] });
+    pushFromElsewhere([], [cloudSnippet({ ...snippet, title: "back", updatedAt: "2025-01-01T00:00:00.000Z" })]);
+    await fetchCloudWorkspace(USER);
+
+    expect((await db.snippets.get(snippet.id))?.title).toBe("back");
+  });
+
+  it("falls back to the full list when the backend has no incremental query yet", async () => {
+    const snippet = makeSnippet();
+    pushFromElsewhere([], [cloudSnippet(snippet)]);
+    await db.syncCursors.put({ userId: USER, cursor: 1 });
+    backendHasChanges = false;
+
+    await fetchCloudWorkspace(USER);
+
+    expect(await db.snippets.get(snippet.id)).toBeDefined();
+    // Writes on that backend are not stamped, so the cursor must not be trusted.
+    expect(await db.syncCursors.get(USER)).toBeUndefined();
+
+    // Deletions still propagate, by absence, exactly as before.
+    cloud.snippets = [];
+    await fetchCloudWorkspace(USER);
+    expect(await db.snippets.get(snippet.id)).toBeUndefined();
+  });
+
+  it("does not turn other failures into a second, full read", async () => {
+    const failing = vi.spyOn(convexClient, "query").mockRejectedValueOnce(new Error("Not authenticated"));
+
+    await expect(fetchCloudWorkspace(USER)).rejects.toThrow("Not authenticated");
+    expect(failing).toHaveBeenCalledTimes(1);
+    failing.mockRestore();
+  });
+
+  it("does not advance the cursor past a record it could not decode", async () => {
+    pushFromElsewhere([], [{ ...cloudSnippet(makeSnippet()), cryptoVersion: CURRENT_CRYPTO_VERSION + 1 }]);
+
+    await fetchCloudWorkspace(USER);
+
+    expect(await db.syncCursors.get(USER)).toBeUndefined();
+  });
+
+  it("forgets the cursor on sign-out together with the records", async () => {
+    pushFromElsewhere([], [cloudSnippet(makeSnippet())]);
+    await fetchCloudWorkspace(USER);
+    expect(await db.syncCursors.get(USER)).toBeDefined();
+
+    await clearOwnedData(USER);
+
+    expect(await db.syncCursors.get(USER)).toBeUndefined();
   });
 });
