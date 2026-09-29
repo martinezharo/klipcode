@@ -1,13 +1,14 @@
 "use client";
 
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef } from "react";
 import type { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { Maximize2, Plus } from "lucide-react";
 import { Editor } from "@/components/Editor/Editor";
 import { LanguageSelect } from "@/ui/LanguageSelect";
 import { FolderSelect } from "@/ui/FolderSelect";
 import { ShortcutHint } from "@/ui/ShortcutHint";
-import { DEFAULT_LANGUAGE, detectLanguageFromTitle, normalizeTitleExtension, type LanguageId } from "@/lib/constants/languages";
+import { DEFAULT_LANGUAGE, type LanguageId } from "@/lib/constants/languages";
+import { useSnippetDraft } from "./useSnippetDraft";
 import type { FolderRecord } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 
@@ -56,10 +57,8 @@ export function NewSnippet({
   // dropdowns must render above the dialog layer instead of the base menu layer.
   const menuZIndex = embedded ? "var(--z-dialog-menu)" : undefined;
 
-  const [title, setTitle] = useState("");
-  const [language, setLanguage] = useState<LanguageId>(defaultLanguage);
-  const [folderId, setFolderId] = useState(defaultFolderId ?? "");
-  const [code, setCode] = useState("");
+  const draft = useSnippetDraft({ defaultLanguage, defaultFolderId });
+  const { title, language, folderId, code } = draft;
 
   // Focus the title when a shortcut requests it (nonce > 0). Tracking the last
   // handled value covers both an in-place bump and a fresh mount after the app
@@ -76,31 +75,6 @@ export function NewSnippet({
     // The ref identity is stable for a given host; only the nonce should re-run this.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusNonce]);
-
-  // Sync the pre-selected folder coming from the aside context menu by adjusting
-  // state during render when the prop changes — no effect needed.
-  const [prevDefaultFolderId, setPrevDefaultFolderId] = useState(defaultFolderId);
-  if (defaultFolderId !== prevDefaultFolderId) {
-    setPrevDefaultFolderId(defaultFolderId);
-    if (defaultFolderId != null) setFolderId(defaultFolderId);
-  }
-
-  // Same pattern for the preferred default language: pick it up when the stored
-  // preference loads (or changes) so the dropdown reflects the user's choice.
-  const [prevDefaultLanguage, setPrevDefaultLanguage] = useState(defaultLanguage);
-  if (defaultLanguage !== prevDefaultLanguage) {
-    setPrevDefaultLanguage(defaultLanguage);
-    setLanguage(defaultLanguage);
-  }
-
-  // Auto-select the language when the title carries a recognizable extension
-  // (e.g. `index.html` → HTML). A manual dropdown choice still wins until the
-  // user types another recognized extension.
-  function handleTitleChange(value: string) {
-    setTitle(value);
-    const detected = detectLanguageFromTitle(value);
-    if (detected) setLanguage(detected);
-  }
 
   // Enter in the title hands focus to the editor so you can type the code right
   // away. Mod+Enter is left alone so the form-level submit shortcut still fires.
@@ -128,17 +102,8 @@ export function NewSnippet({
   // legitimate, and "open in editor" depends on being able to create with no
   // code at all.
   function submit(handler: (data: NewSnippetData) => void) {
-    handler({
-      title: normalizeTitleExtension(title),
-      language,
-      folderId,
-      code,
-    });
-
-    setTitle("");
-    setLanguage(defaultLanguage);
-    setFolderId(defaultFolderId ?? "");
-    setCode("");
+    handler(draft.toData());
+    draft.reset();
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -155,7 +120,7 @@ export function NewSnippet({
             ref={titleRef}
             type="text"
             value={title}
-            onChange={(e) => handleTitleChange(e.target.value)}
+            onChange={(e) => draft.setTitle(e.target.value)}
             onKeyDown={handleTitleKeyDown}
             aria-label={copy.forms.snippetTitlePlaceholder}
             placeholder={copy.forms.snippetNamePlaceholder}
@@ -163,7 +128,7 @@ export function NewSnippet({
           />
           <LanguageSelect
             value={language}
-            onChange={setLanguage}
+            onChange={draft.setLanguage}
             copy={copy.languageSelect}
             menuZIndex={menuZIndex}
           />
@@ -174,7 +139,7 @@ export function NewSnippet({
           <Editor
             editorRef={editorRef}
             value={code}
-            onChange={setCode}
+            onChange={draft.setCode}
             language={language}
             placeholder={copy.forms.snippetCodePlaceholder}
             height="200px"
@@ -198,7 +163,7 @@ export function NewSnippet({
         <div className="flex flex-col gap-2.5 border-t border-ink/[0.06] px-4 py-2.5 lg:flex-row lg:items-center lg:justify-between lg:gap-2">
           <FolderSelect
             value={folderId}
-            onChange={setFolderId}
+            onChange={draft.setFolderId}
             folders={folders}
             rootLabel={copy.workspace.rootOption}
             copy={copy.folderSelect}

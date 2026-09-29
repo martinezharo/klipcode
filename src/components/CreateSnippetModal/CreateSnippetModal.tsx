@@ -10,6 +10,7 @@ import { NewSnippet, type NewSnippetData } from "@/components/NewSnippet/NewSnip
 import type { LanguageId } from "@/lib/constants/languages";
 import type { FolderRecord } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
+import { MobileSnippetCreator } from "./MobileSnippetCreator";
 
 interface CreateSnippetModalProps {
   copy: Dictionary;
@@ -23,6 +24,8 @@ interface CreateSnippetModalProps {
   /** Creates the snippet and hands off to the full editor. */
   onOpenInEditor: (data: NewSnippetData) => void;
   onClose: () => void;
+  /** Below `lg` the modal becomes a full-screen creator built for the keyboard. */
+  touchLayout: boolean;
 }
 
 /**
@@ -30,8 +33,26 @@ interface CreateSnippetModalProps {
  * the aside / folder-view "new snippet" buttons. Lets the user create a snippet
  * without leaving the current view (editor, folder, trash…). Esc and a backdrop
  * click discard any unsaved input without prompting — the user can always reopen.
+ * On the touch layout it renders {@link MobileSnippetCreator} instead.
  */
-export function CreateSnippetModal({
+export function CreateSnippetModal({ touchLayout, ...props }: CreateSnippetModalProps) {
+  return touchLayout ? (
+    <MobileSnippetCreator
+      copy={props.copy}
+      folders={props.folders}
+      defaultFolderId={props.defaultFolderId}
+      defaultLanguage={props.defaultLanguage}
+      codeWrap={props.codeWrap}
+      onCreateSnippet={props.onCreateSnippet}
+      onOpenInEditor={props.onOpenInEditor}
+      onClose={props.onClose}
+    />
+  ) : (
+    <DesktopCreateSnippetModal {...props} />
+  );
+}
+
+function DesktopCreateSnippetModal({
   copy,
   folders,
   defaultFolderId,
@@ -41,7 +62,7 @@ export function CreateSnippetModal({
   onCreateSnippet,
   onOpenInEditor,
   onClose,
-}: CreateSnippetModalProps) {
+}: Omit<CreateSnippetModalProps, "touchLayout">) {
   // Claim the title field as the initial focus target. Without it the trap
   // falls back to the first focusable in the panel — the close button — and
   // since the parent's mount effect runs after NewSnippet's own focusNonce

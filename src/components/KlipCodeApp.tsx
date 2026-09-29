@@ -616,6 +616,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
 
     {createModalOpen && (
       <CreateSnippetModal
+        touchLayout={isMobile}
         copy={copy}
         folders={folders}
         defaultFolderId={createModalFolderId}
