@@ -3,7 +3,7 @@
 import { api } from "@convex/_generated/api";
 import { ConvexAuthProvider, useAuthActions, useAuthToken } from "@convex-dev/auth/react";
 import { useConvexAuth, useQuery } from "convex/react";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { CloudSessionContext, type CloudSession } from "@/hooks/useCloudSession";
 import { setAuthToken } from "@/lib/authToken";
@@ -27,6 +27,25 @@ function CloudSessionBridge({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setAuthToken(token ?? null);
   }, [token]);
+
+  // Accounts that predate country tracking, and new ones, report it once: the
+  // Worker reads it from Cloudflare and Convex keeps the first value. Failures
+  // are ignored — this is bookkeeping and the next visit simply asks again.
+  const hasCountry = useQuery(api.users.hasCountry, isAuthenticated ? {} : "skip");
+  const countryAskedFor = useRef<string | null>(null);
+  useEffect(() => {
+    const userId = viewer?.id;
+    if (!token || !userId || hasCountry !== false || countryAskedFor.current === userId) {
+      return;
+    }
+    countryAskedFor.current = userId;
+    void fetch("/api/account/country", {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}` },
+    }).catch(() => {
+      countryAskedFor.current = null;
+    });
+  }, [hasCountry, token, viewer?.id]);
 
   const handleSignIn = useCallback(async () => {
     await signIn("github", { redirectTo: window.location.href });
