@@ -185,3 +185,33 @@ test("a deep link to a folder opens it in the feed", async ({ page }) => {
   await expectSelected(page, "My Space");
   await expect(folderHeader(page)).toHaveAttribute("aria-expanded", "true");
 });
+
+test("creates a snippet from the full-screen creator", async ({ page }) => {
+  await gotoMobileApp(page);
+
+  await page.getByRole("button", { name: "New snippet" }).click();
+  const creator = page.getByRole("dialog");
+  await expect(creator).toBeVisible();
+
+  // The title takes focus on open, and a ".js" extension pins the language.
+  await creator.getByRole("textbox", { name: "Snippet title" }).fill("greeting.js");
+  await creator
+    .getByRole("textbox", { name: "Write or paste your code here..." })
+    .fill("console.log('hello from mobile');");
+  await creator.getByRole("button", { name: "Create", exact: true }).click();
+
+  await expect(creator).toBeHidden();
+  await expect(panel(page).getByRole("button", { name: "greeting.js", exact: true })).toBeVisible();
+});
+
+test("the full-screen creator closes without saving", async ({ page }) => {
+  await gotoMobileApp(page);
+
+  await page.getByRole("button", { name: "New snippet" }).click();
+  const creator = page.getByRole("dialog");
+  await creator.getByRole("textbox", { name: "Snippet title" }).fill("discarded.js");
+  await creator.getByRole("button", { name: "Close" }).click();
+
+  await expect(creator).toBeHidden();
+  await expect(page.getByRole("button", { name: "discarded.js", exact: true })).toHaveCount(0);
+});

@@ -984,3 +984,12 @@ body {
 :root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-selector-id,
 :root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-selector-class { color: #0070c1; }
 :root[data-theme="light"] :is(.klipcode-md, .klipcode-code-preview) .hljs-deletion { color: #a31515; }
+
+@keyframes klipcode-slide-up-in {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.klipcode-slide-up-animate {
+  animation: klipcode-slide-up-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
