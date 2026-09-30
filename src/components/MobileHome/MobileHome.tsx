@@ -18,6 +18,7 @@ import { ContextMenu, type ContextMenuGroup } from "@/components/ContextMenu/Con
 import type { MenuTarget } from "@/components/Aside/types";
 import { useContextMenuGroups } from "@/components/Aside/useContextMenuGroups";
 import { sortByPinThenAlpha } from "@/components/Aside/utils";
+import type { PressPoint } from "@/hooks/useLongPress";
 import { useSwipeTabs } from "@/hooks/useSwipeTabs";
 import { TOUCH_TARGET } from "@/lib/constants/layout";
 import { SWIPE_GROUP, SWIPE_PAGE_TRANSITION } from "@/lib/tabSwipe";
@@ -45,9 +46,10 @@ import { FEED_TABS, type FeedTab, type MobileFeedState } from "./useMobileFeedSt
  *
  * Deliberately absent: drag & drop and multi-selection. Both are pointer
  * gestures (HTML5 drag, ⌘/Shift-click) that no finger can perform, so the tree's
- * machinery for them bought this screen nothing. Everything else a row can do
- * still comes from the shared {@link useContextMenuGroups} builder, so the two
- * shells can never drift on what "delete" or "pin" means.
+ * machinery for them bought this screen nothing — moving goes through the
+ * menu's "Move to…" instead. Everything else a row can do still comes from the
+ * shared {@link useContextMenuGroups} builder, so the two shells can never drift
+ * on what "delete" or "pin" means. A row's menu opens on a long press.
  *
  * Deliberately present instead: a horizontal drag anywhere across the list
  * moves between the two tabs (see {@link useSwipeTabs}). Reaching a 44px pill
@@ -249,12 +251,8 @@ export function MobileHome({
     setAccountMenu({ x: rect.left, y: rect.bottom + 6 });
   }
 
-  /** Both lists hang the same menu off a card's ⋯, anchored under the button. */
-  function openSnippetMenu(e: React.MouseEvent, id: string) {
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    setMenuTarget({ type: "snippet", id, x: rect.left, y: rect.bottom + 4 });
+  function openSnippetMenu(id: string, point: PressPoint) {
+    setMenuTarget({ type: "snippet", id, ...point });
   }
 
   function openRootMenu(e: React.MouseEvent<HTMLButtonElement>) {
@@ -461,7 +459,7 @@ export function MobileHome({
                         isActive={tree.selectedSnippetId === snippet.id}
                         isRenaming={renamingId === snippet.id}
                         onOpen={() => tree.onSelectSnippet(snippet.id)}
-                        onMore={(e) => openSnippetMenu(e, snippet.id)}
+                        onOpenMenu={(point) => openSnippetMenu(snippet.id, point)}
                         onSubmitRename={(value) => ctxValue.submitSnippetRename(snippet.id, value)}
                         onCancelRename={ctxValue.cancelRename}
                       />
@@ -492,7 +490,7 @@ export function MobileHome({
                             isActive={tree.selectedSnippetId === snippet.id}
                             isRenaming={renamingId === snippet.id}
                             onOpen={() => tree.onSelectSnippet(snippet.id)}
-                            onMore={(e) => openSnippetMenu(e, snippet.id)}
+                            onOpenMenu={(point) => openSnippetMenu(snippet.id, point)}
                             onSubmitRename={(value) =>
                               ctxValue.submitSnippetRename(snippet.id, value)
                             }

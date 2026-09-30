@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { ChevronDown, ChevronRight, Folder, MoreHorizontal, Pin } from "lucide-react";
 
 import { sortByPinThenAlpha } from "@/components/Aside/utils";
+import { useLongPress } from "@/hooks/useLongPress";
 import { TOUCH_TARGET } from "@/lib/constants/layout";
 import type { FolderRecord } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,9 @@ import { useFeedCtx } from "./FeedContext";
  * Tapping the header expands it, because on this screen browsing is what a
  * folder is for. Touch layouts have no separate folder view: whatever links to
  * a folder expands it here instead (see `useMobileFeedState`).
+ *
+ * Its actions open the way a snippet card's do: hold the header, or — with a
+ * mouse — use the ⋯ or right-click (see {@link FeedCard}).
  */
 export function FolderGroup({ folder, depth }: { folder: FolderRecord; depth: number }) {
   const ctx = useFeedCtx();
@@ -57,16 +61,25 @@ export function FolderGroup({ folder, depth }: { folder: FolderRecord; depth: nu
     clearScrollTarget();
   }, [isScrollTarget, clearScrollTarget]);
 
-  function openMoreMenu(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  const longPress = useLongPress(
+    (point) => ctx.openMenu({ type: "folder", id: folder.id, ...point }),
+    { enabled: !isRenaming },
+  );
+
+  function openMoreMenu(e: React.MouseEvent<HTMLButtonElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
     ctx.openMenu({ type: "folder", id: folder.id, x: rect.left, y: rect.bottom + 4 });
   }
 
   return (
     <section ref={sectionRef} style={{ paddingLeft: depth * 12 }}>
-      <div className="flex items-center gap-1">
+      <div
+        {...longPress}
+        className={cn(
+          "flex items-center gap-1",
+          !isRenaming && "select-none [-webkit-touch-callout:none]",
+        )}
+      >
         {isRenaming ? (
           <span className="flex h-11 min-w-0 flex-1 items-center gap-2 px-1">
             <Folder size={15} className="shrink-0 text-ink/40" />
@@ -112,7 +125,7 @@ export function FolderGroup({ folder, depth }: { folder: FolderRecord; depth: nu
           onClick={openMoreMenu}
           aria-label={ctx.copy.contextMenu.moreOptions}
           className={cn(
-            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink/35 transition-colors active:bg-ink/8",
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink/35 transition-colors active:bg-ink/8 pointer-coarse:sr-only",
             TOUCH_TARGET,
           )}
         >
@@ -139,12 +152,7 @@ export function FolderGroup({ folder, depth }: { folder: FolderRecord; depth: nu
               isActive={ctx.selectedSnippetId === snippet.id}
               isRenaming={ctx.renamingId === snippet.id}
               onOpen={() => ctx.openSnippet(snippet.id)}
-              onMore={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                ctx.openMenu({ type: "snippet", id: snippet.id, x: rect.left, y: rect.bottom + 4 });
-              }}
+              onOpenMenu={(point) => ctx.openMenu({ type: "snippet", id: snippet.id, ...point })}
               onSubmitRename={(value) => ctx.submitSnippetRename(snippet.id, value)}
               onCancelRename={ctx.cancelRename}
             />

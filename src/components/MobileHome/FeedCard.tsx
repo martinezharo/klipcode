@@ -7,6 +7,7 @@ import { CodePreview } from "@/components/SnippetCards/snippetPreview";
 import { GeneratingTitle, useIsGeneratingTitle } from "@/components/TitleGeneration";
 import type { Dictionary } from "@/i18n";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
+import { useLongPress, type PressPoint } from "@/hooks/useLongPress";
 import { TOUCH_TARGET } from "@/lib/constants/layout";
 import type { SnippetRecord } from "@/lib/types";
 import {
@@ -28,6 +29,11 @@ import { LanguageIcon } from "@/ui/LanguageIcon";
  * and copy is a first-class control on the row rather than an entry in an
  * overflow menu — copying a snippet's content is the product's first priority,
  * and on touch it used to cost opening the snippet first.
+ *
+ * Everything else lives in the row's menu, opened by pressing and holding the
+ * card — the platform convention on touch, and it leaves copy as the card's one
+ * visible control. A mouse (a narrow desktop window) gets the ⋯ back, since
+ * nothing tells a cursor that holding does anything; right-click works too.
  */
 export function FeedCard({
   snippet,
@@ -36,7 +42,7 @@ export function FeedCard({
   isActive,
   isRenaming,
   onOpen,
-  onMore,
+  onOpenMenu,
   onSubmitRename,
   onCancelRename,
 }: {
@@ -48,11 +54,14 @@ export function FeedCard({
   isActive: boolean;
   isRenaming: boolean;
   onOpen: () => void;
-  onMore: (event: React.MouseEvent) => void;
+  /** Opens the row's actions menu, anchored at viewport coordinates. */
+  onOpenMenu: (point: PressPoint) => void;
   onSubmitRename: (value: string) => void;
   onCancelRename: () => void;
 }) {
   const { copied, copy: copyToClipboard } = useCopyFeedback();
+  // Off while renaming: holding inside the field has to select text.
+  const longPress = useLongPress(onOpenMenu, { enabled: !isRenaming });
   const isGeneratingTitle = useIsGeneratingTitle(snippet.id);
   const displayName = getSnippetDisplayName(
     snippet.title,
@@ -62,8 +71,11 @@ export function FeedCard({
 
   return (
     <article
+      {...longPress}
       className={cn(
         "flex items-center gap-2.5 rounded-2xl border p-3 transition-colors",
+        // No text selection or iOS callout on hold: the hold opens the menu.
+        !isRenaming && "select-none [-webkit-touch-callout:none]",
         isActive
           ? "border-ink/25 bg-ink/[0.05]"
           : "border-ink/8 bg-surface active:bg-surface-hover",
@@ -122,12 +134,17 @@ export function FeedCard({
       {/* 36px boxes with a 12px gap: their invisible 44px targets tile instead
           of stealing each other's taps (see TOUCH_TARGET). */}
       <span className="flex shrink-0 flex-col items-center gap-1.5 self-center">
+        {/* Only for a mouse — a finger holds the card instead. Hidden visually
+            rather than removed, so screen readers, which can't hold, keep it. */}
         <button
           type="button"
-          onClick={onMore}
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            onOpenMenu({ x: rect.left, y: rect.bottom + 4 });
+          }}
           aria-label={copy.contextMenu.moreOptions}
           className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-lg text-ink/35 transition-colors active:bg-ink/8",
+            "flex h-8 w-8 items-center justify-center rounded-lg text-ink/35 transition-colors active:bg-ink/8 pointer-coarse:sr-only",
             TOUCH_TARGET,
           )}
         >
@@ -138,7 +155,7 @@ export function FeedCard({
           onClick={() => void copyToClipboard(snippet.code)}
           aria-label={copy.contextMenu.copyContent}
           className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-lg border border-ink/8 bg-ink/[0.03] transition-colors active:bg-ink/10",
+            "flex h-8 w-8 items-center justify-center rounded-lg transition-colors active:bg-ink/8",
             copied ? "text-foreground" : "text-ink/45",
             TOUCH_TARGET,
           )}
