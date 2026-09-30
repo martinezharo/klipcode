@@ -75,7 +75,7 @@ export function useLongPress(
     const release = () => {
       clearTimeout(lingering);
       for (const type of SWALLOWED) window.removeEventListener(type, swallow, true);
-      window.removeEventListener("pointerdown", release, true);
+      window.removeEventListener("pointerdown", releaseOnNewGesture, true);
       window.removeEventListener("touchend", releaseSoon, true);
       window.removeEventListener("touchcancel", releaseSoon, true);
       releaseGuard.current = null;
@@ -88,9 +88,12 @@ export function useLongPress(
       lingering = setTimeout(release, GUARD_LINGER_MS);
     };
     for (const type of SWALLOWED) window.addEventListener(type, swallow, true);
-    // A new gesture always starts with a pointerdown, and nothing this touch
-    // sends comes after one.
-    window.addEventListener("pointerdown", release, true);
+    // A new gesture always starts with a primary pointerdown, and nothing this
+    // touch sends comes after one. A second finger joining this touch isn't one.
+    const releaseOnNewGesture = (e: globalThis.PointerEvent) => {
+      if (e.isPrimary) release();
+    };
+    window.addEventListener("pointerdown", releaseOnNewGesture, true);
     window.addEventListener("touchend", releaseSoon, true);
     window.addEventListener("touchcancel", releaseSoon, true);
     releaseGuard.current = release;

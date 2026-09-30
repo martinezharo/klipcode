@@ -93,6 +93,25 @@ describe("useLongPress", () => {
     expect(onOpen).toHaveBeenCalledOnce();
   });
 
+  it("keeps guarding when a second finger lands during the press", () => {
+    const { onOpen, button } = setup();
+    fireEvent.pointerDown(button, touch);
+    act(() => vi.advanceTimersByTime(LONG_PRESS_MS));
+    fireEvent.pointerDown(window, { pointerType: "touch", isPrimary: false, pointerId: 2 });
+    fireEvent.click(button);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("lets clicks through again after the touch is cancelled", () => {
+    const { onOpen, button } = setup();
+    fireEvent.pointerDown(button, touch);
+    act(() => vi.advanceTimersByTime(LONG_PRESS_MS));
+    fireEvent.touchCancel(window);
+    act(() => vi.advanceTimersByTime(1000));
+    fireEvent.click(button);
+    expect(onOpen).toHaveBeenCalledOnce();
+  });
+
   it("gives up when the finger drifts, since that is a scroll or a swipe", () => {
     const { onLongPress, button } = setup();
     fireEvent.pointerDown(button, { ...touch, clientX: 0, clientY: 0 });
