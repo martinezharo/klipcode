@@ -160,6 +160,7 @@ export const en = {
     copy: "Copy",
     paste: "Paste",
     delete: "Delete",
+    moveTo: "Move to\u2026",
     copyContent: "Copy content",
     openInNewTab: "Open in new tab",
     moreOptions: "More options",
@@ -169,6 +170,10 @@ export const en = {
   languageSelect: {
     searchPlaceholder: "Search language...",
     noResults: "No results",
+  },
+  moveDialog: {
+    title: "Move to",
+    itemCount: (n: number) => (n === 1 ? "1 item" : `${n} items`),
   },
   folderSelect: {
     noFolders: "No folders",

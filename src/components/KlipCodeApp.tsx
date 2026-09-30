@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { readTrash } from "@/lib/db";
 import { readInitialWorkspace } from "@/lib/seed";
-import type { ClipboardEntry, SnippetRecord, WorkspaceSnapshot } from "@/lib/types";
+import type { ClipboardEntry, SelectedItem, SnippetRecord, WorkspaceSnapshot } from "@/lib/types";
 import { getDictionary } from "@/i18n";
 import { localeHref, LOCALE_COOKIE, type Locale } from "@/lib/locale";
 import { SPACE_ROOT_ID, TRASH_ROOT_ID } from "@/lib/navigation";
@@ -29,6 +29,7 @@ import type { WorkspaceShellProps } from "@/components/Aside/types";
 import { MobileHome } from "@/components/MobileHome/MobileHome";
 import { useMobileFeedState } from "@/components/MobileHome/useMobileFeedState";
 import { ConfirmDialog } from "@/components/ConfirmDialog/ConfirmDialog";
+import { MoveDialog } from "@/components/MoveDialog/MoveDialog";
 import { CreateSnippetModal } from "@/components/CreateSnippetModal/CreateSnippetModal";
 import { CreatedSnippetToast } from "@/components/CreatedSnippetToast/CreatedSnippetToast";
 import { DragProvider } from "@/components/DragContext";
@@ -138,6 +139,8 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
   const [copyNonce, setCopyNonce] = useState(0);
   const [undoNonce, setUndoNonce] = useState(0);
   const [pendingEmptyTrash, setPendingEmptyTrash] = useState(false);
+  /** Items waiting on a destination in the "Move to…" dialog. */
+  const [pendingMove, setPendingMove] = useState<SelectedItem[] | null>(null);
 
   /* ── AI title generation state ────────────────────────────────────────────
      Snippets whose name Workers AI is currently inferring in the background, so
@@ -292,7 +295,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
       });
     },
     hasOpenSnippet: !!selectedSnippet,
-    overlayOpen: searchOpen || helpOpen || prefsOpen || pendingEmptyTrash || createModalOpen,
+    overlayOpen: searchOpen || helpOpen || prefsOpen || pendingEmptyTrash || createModalOpen || !!pendingMove,
   });
 
   /**
@@ -347,6 +350,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
     onCut: setClipboard,
     onCopy: (entry) => setClipboard({ ...entry, type: "copy" }),
     onPaste: mutations.handlePaste,
+    onMove: setPendingMove,
     onOpenSearch: () => setSearchOpen(true),
     onOpenPreferences: () => setPrefsOpen(true),
     onSignIn: auth.handleGitHubSignIn,
@@ -646,6 +650,17 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
       copy={copy}
       onOpen={(id) => navigate(`${base}?snippet=${id}`)}
     />
+
+    {pendingMove && (
+      <MoveDialog
+        copy={copy}
+        folders={folders}
+        snippets={snippets}
+        items={pendingMove}
+        onMove={(targetFolderId) => void mutations.handleMoveMany(pendingMove, targetFolderId)}
+        onClose={() => setPendingMove(null)}
+      />
+    )}
 
     {pendingEmptyTrash && (
       <ConfirmDialog

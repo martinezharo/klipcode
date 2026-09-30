@@ -4,6 +4,7 @@ import {
   Copy,
   ExternalLink,
   FilePlus,
+  FolderInput,
   FolderPlus,
   PenLine,
   Pin,
@@ -32,6 +33,8 @@ interface UseContextMenuGroupsArgs {
   onDeleteMany: (items: SelectedItem[]) => Promise<void>;
   onCut: (entry: ClipboardEntry) => void;
   onCopy: (entry: ClipboardEntry) => void;
+  /** Open the "Move to…" picker for these items. */
+  onMove: (items: SelectedItem[]) => void;
   setRenamingId: (id: string | null) => void;
   setCreatingFolderParentId: (id: string | null | undefined) => void;
   onOpenCreateModal: (folderId: string | null) => void;
@@ -57,6 +60,7 @@ export function useContextMenuGroups({
   onDeleteMany,
   onCut,
   onCopy,
+  onMove,
   setRenamingId,
   setCreatingFolderParentId,
   onOpenCreateModal,
@@ -74,8 +78,9 @@ export function useContextMenuGroups({
        * keyboard shortcuts and drag-move. (selectForMenu has already collapsed
        * the selection to this row if it was clicked from outside the set.) */
       const batchActive = !!id && selectedIds.has(id) && selectedIds.size > 1;
+      const targetItems = (fallback: SelectedItem) => (batchActive ? getSelectedItems() : [fallback]);
       const clipboardItems = (fallback: SelectedItem) =>
-        (batchActive ? getSelectedItems() : [fallback]).map((i) => ({ itemType: i.type, id: i.id }));
+        targetItems(fallback).map((i) => ({ itemType: i.type, id: i.id }));
       const deleteSelection = () => {
         const items = getSelectedItems();
         clearSelection();
@@ -158,6 +163,7 @@ export function useContextMenuGroups({
           },
           {
             items: [
+              { id: "move", label: cm.moveTo, Icon: FolderInput, onClick: () => onMove(targetItems({ id, type: "folder" })) },
               { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  items: clipboardItems({ id, type: "folder" }) }) },
               { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", items: clipboardItems({ id, type: "folder" }) }) },
               ...(clipboard ? [{ id: "paste", label: cm.paste, Icon: Clipboard, onClick: () => void onPaste(id) }] : []),
@@ -215,6 +221,7 @@ export function useContextMenuGroups({
           },
           {
             items: [
+              { id: "move", label: cm.moveTo, Icon: FolderInput, onClick: () => onMove(targetItems({ id, type: "snippet" })) },
               { id: "cut",  label: cm.cut,  Icon: Scissors, onClick: () => onCut({ type: "cut",  items: clipboardItems({ id, type: "snippet" }) }) },
               { id: "copy", label: cm.copy, Icon: Copy,     onClick: () => onCopy({ type: "copy", items: clipboardItems({ id, type: "snippet" }) }) },
               ...(clipboard ? [{ id: "paste", label: cm.paste, Icon: Clipboard, onClick: () => void onPaste(snippet.folderId) }] : []),
@@ -234,6 +241,6 @@ export function useContextMenuGroups({
 
       return [];
     },
-    [clipboard, copy.contextMenu, folders, snippets, onPaste, onPinFolder, onPinSnippet, onDeleteFolder, onDeleteSnippet, onDeleteMany, onCut, onCopy, setRenamingId, setCreatingFolderParentId, onOpenCreateModal, selectedIds, getSelectedItems, clearSelection],
+    [clipboard, copy.contextMenu, folders, snippets, onPaste, onPinFolder, onPinSnippet, onDeleteFolder, onDeleteSnippet, onDeleteMany, onCut, onCopy, onMove, setRenamingId, setCreatingFolderParentId, onOpenCreateModal, selectedIds, getSelectedItems, clearSelection],
   );
 }
