@@ -3,6 +3,7 @@ import Dexie, { type Table } from "dexie";
 import type {
   FolderRecord,
   SnippetRecord,
+  SyncCursorRecord,
   TombstoneRecord,
   WorkspaceSnapshot,
 } from "@/lib/types";
@@ -19,6 +20,7 @@ class KlipCodeDatabase extends Dexie {
   folders!: Table<FolderRecord, string>;
   snippets!: Table<SnippetRecord, string>;
   tombstones!: Table<TombstoneRecord, string>;
+  syncCursors!: Table<SyncCursorRecord, string>;
 
   constructor() {
     super("klipcode");
@@ -134,6 +136,15 @@ class KlipCodeDatabase extends Dexie {
           }),
         ]);
       });
+
+    // v7 adds the per-account incremental sync cursor. New store only: with no
+    // cursor a device simply does one full pull first.
+    this.version(7).stores({
+      folders: "id, ownerId, parentId, dirty, updatedAt, isPinnedAside, isPinnedHome, deletedAt",
+      snippets: "id, ownerId, folderId, dirty, updatedAt, isPinnedAside, isPinnedHome, deletedAt",
+      tombstones: "id, ownerId",
+      syncCursors: "userId",
+    });
   }
 }
 
@@ -250,7 +261,9 @@ export async function getPendingTombstones(
 }
 
 /**
- * Remove every local record owned by a user, plus any queued deletions. Used on
+ * Remove every local record owned by a user, plus any queued deletions and the
+ * sync cursor (without its records a cursor would make the next pull skip
+ * everything). Used on
  * sign-out so personal data doesn't linger in IndexedDB on a shared machine.
  * Anonymous/seeded records (`ownerId === null`) are left untouched. Cloud-synced
  * data is recovered from the cloud on the next sign-in.
@@ -260,5 +273,6 @@ export async function clearOwnedData(userId: string): Promise<void> {
     db.folders.where("ownerId").equals(userId).delete(),
     db.snippets.where("ownerId").equals(userId).delete(),
     db.tombstones.where("ownerId").equals(userId).delete(),
+    db.syncCursors.delete(userId),
   ]);
 }

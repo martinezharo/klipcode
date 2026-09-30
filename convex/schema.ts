@@ -37,6 +37,14 @@ const syncedFields = {
    * the current version, so a record is re-encoded when created or edited.
    */
   cryptoVersion: v.number(),
+  /**
+   * Server clock (ms) of the last write, stamped by the backend on every insert
+   * and patch. This, not the client-authored `updatedAt`, is the incremental
+   * sync cursor: it only moves forward, whatever the device clocks say. Absent
+   * on rows last written before incremental sync existed; those are delivered
+   * by the full pull every device does once before it holds a cursor.
+   */
+  serverUpdatedAt: v.optional(v.number()),
 };
 
 export default defineSchema({
@@ -51,7 +59,9 @@ export default defineSchema({
   })
     .index("by_owner", ["ownerId"])
     .index("by_owner_client", ["ownerId", "clientId"])
-    .index("by_owner_parent", ["ownerId", "parentId"]),
+    .index("by_owner_parent", ["ownerId", "parentId"])
+    .index("by_owner_server_updated", ["ownerId", "serverUpdatedAt"])
+    .index("by_server_updated", ["serverUpdatedAt"]),
 
   snippets: defineTable({
     ...syncedFields,
@@ -66,7 +76,25 @@ export default defineSchema({
   })
     .index("by_owner", ["ownerId"])
     .index("by_owner_client", ["ownerId", "clientId"])
-    .index("by_owner_folder", ["ownerId", "folderId"]),
+    .index("by_owner_folder", ["ownerId", "folderId"])
+    .index("by_owner_server_updated", ["ownerId", "serverUpdatedAt"])
+    .index("by_server_updated", ["serverUpdatedAt"]),
+
+  // Permanent deletions, so an incremental pull can tell devices what to drop:
+  // a deleted row is gone and would otherwise simply stop appearing. Kept for
+  // `DELETION_RETENTION_MS` (convex/lib/syncCursor.ts); a device whose cursor
+  // is older than that falls back to a full pull, which needs no log.
+  deletions: defineTable({
+    ownerId: v.id("users"),
+    kind: v.union(v.literal("folder"), v.literal("snippet")),
+    clientId: v.string(),
+    /** Convex id of the deleted row, so analytics can drop its anonymised copy. */
+    docId: v.string(),
+    /** Server clock (ms), comparable with `serverUpdatedAt`. */
+    deletedAt: v.number(),
+  })
+    .index("by_owner_deleted", ["ownerId", "deletedAt"])
+    .index("by_deleted", ["deletedAt"]),
 
   // Per-user data-encryption key, stored ALWAYS wrapped (AES-256-GCM) by the
   // master key `ENCRYPTION_MASTER_KEY`, which lives only as a Cloudflare Worker

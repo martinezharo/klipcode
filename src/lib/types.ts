@@ -57,6 +57,24 @@ export interface TombstoneRecord {
   deletedAt: string;
 }
 
+/**
+ * Where this device's incremental pull resumes for an account: the server
+ * clock cursor `workspace.changes` returned with the last result that was
+ * fully applied. Lives in IndexedDB next to the records it describes, so the
+ * two can never be cleared independently (losing the records but keeping the
+ * cursor would make the next pull skip everything).
+ */
+export interface SyncCursorRecord {
+  userId: string;
+  cursor: number;
+  /**
+   * Set while a pulled record could not be decoded here (a newer
+   * `cryptoVersion`, or no key). The next page load starts with a full pull so
+   * those records are offered again; incremental pulls would not repeat them.
+   */
+  heldBack?: boolean;
+}
+
 export interface WorkspaceSnapshot {
   folders: FolderRecord[];
   snippets: SnippetRecord[];

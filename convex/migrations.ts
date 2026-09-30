@@ -1,9 +1,8 @@
 import { v } from "convex/values";
 
-import type { Doc, Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
 import { internalMutation, type MutationCtx } from "./_generated/server";
-import { assertNoFolderCycles, type ParentLink } from "./lib/hierarchy";
-import { assertUniqueClientIds } from "./lib/sync";
+import { applyWorkspaceBatch, folderInput, snippetInput } from "./lib/workspaceWrites";
 
 // ── One-off import from the Supabase backend ────────────────────────────────
 //
@@ -26,32 +25,6 @@ import { assertUniqueClientIds } from "./lib/sync";
 //
 // Idempotent: re-running upserts by `(ownerId, clientId)` with last-write-wins,
 // so an interrupted run is simply resumed.
-
-const importedFolder = v.object({
-  clientId: v.string(),
-  name: v.string(),
-  parentId: v.union(v.string(), v.null()),
-  isPinnedAside: v.boolean(),
-  isPinnedHome: v.boolean(),
-  createdAt: v.string(),
-  updatedAt: v.string(),
-  deletedAt: v.union(v.string(), v.null()),
-  cryptoVersion: v.number(),
-});
-
-const importedSnippet = v.object({
-  clientId: v.string(),
-  folderId: v.union(v.string(), v.null()),
-  title: v.string(),
-  code: v.string(),
-  language: v.string(),
-  isPinnedAside: v.boolean(),
-  isPinnedHome: v.boolean(),
-  createdAt: v.string(),
-  updatedAt: v.string(),
-  deletedAt: v.union(v.string(), v.null()),
-  cryptoVersion: v.number(),
-});
 
 async function resolveUserId(
   ctx: MutationCtx,
@@ -96,13 +69,10 @@ export const importAccount = internalMutation({
     image: v.union(v.string(), v.null()),
     /** The account's `wrapped_dek` row from Supabase, or null if it had none. */
     wrappedDek: v.union(v.string(), v.null()),
-    folders: v.array(importedFolder),
-    snippets: v.array(importedSnippet),
+    folders: v.array(folderInput),
+    snippets: v.array(snippetInput),
   },
   handler: async (ctx, args) => {
-    assertUniqueClientIds(args.folders, "folder");
-    assertUniqueClientIds(args.snippets, "snippet");
-
     const { userId, created } = await resolveUserId(ctx, args);
 
     const existingKey = await ctx.db
@@ -129,73 +99,14 @@ export const importAccount = internalMutation({
       await ctx.db.insert("userKeys", { userId, wrappedDek: args.wrappedDek });
     }
 
-    const storedFolders = await ctx.db
-      .query("folders")
-      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
-      .collect();
-    const folderByClientId = new Map(storedFolders.map((f) => [f.clientId, f]));
+    const written = await applyWorkspaceBatch(ctx, userId, args);
 
-    const links = new Map<string, string | null>(
-      storedFolders.map((folder) => [folder.clientId, folder.parentId])
-    );
-    for (const folder of args.folders) {
-      const existing = folderByClientId.get(folder.clientId);
-      if (!existing || existing.updatedAt <= folder.updatedAt) {
-        links.set(folder.clientId, folder.parentId);
-      }
-    }
-
-    const resolveParent = (parentId: string | null) =>
-      parentId !== null && links.has(parentId) ? parentId : null;
-
-    let importedFolders = 0;
-    const touched: string[] = [];
-
-    for (const incoming of args.folders) {
-      const existing = folderByClientId.get(incoming.clientId);
-      if (existing && existing.updatedAt > incoming.updatedAt) continue;
-
-      const parentId = resolveParent(incoming.parentId);
-      links.set(incoming.clientId, parentId);
-      touched.push(incoming.clientId);
-      importedFolders += 1;
-
-      if (existing) {
-        await ctx.db.patch(existing._id, { ...incoming, parentId });
-      } else {
-        await ctx.db.insert("folders", { ...incoming, parentId, ownerId: userId });
-      }
-    }
-
-    const parentLinks: ParentLink[] = [...links].map(([clientId, parentId]) => ({
-      clientId,
-      parentId,
-    }));
-    assertNoFolderCycles(parentLinks, touched);
-
-    const storedSnippets: Doc<"snippets">[] = await ctx.db
-      .query("snippets")
-      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
-      .collect();
-    const snippetByClientId = new Map(storedSnippets.map((s) => [s.clientId, s]));
-
-    let importedSnippets = 0;
-
-    for (const incoming of args.snippets) {
-      const existing = snippetByClientId.get(incoming.clientId);
-      if (existing && existing.updatedAt > incoming.updatedAt) continue;
-
-      const folderId =
-        incoming.folderId !== null && links.has(incoming.folderId) ? incoming.folderId : null;
-      importedSnippets += 1;
-
-      if (existing) {
-        await ctx.db.patch(existing._id, { ...incoming, folderId });
-      } else {
-        await ctx.db.insert("snippets", { ...incoming, folderId, ownerId: userId });
-      }
-    }
-
-    return { userId, created, importedFolders, importedSnippets, skipped: null };
+    return {
+      userId,
+      created,
+      importedFolders: written.folders,
+      importedSnippets: written.snippets,
+      skipped: null,
+    };
   },
 });
