@@ -65,6 +65,34 @@ describe("useLongPress", () => {
     expect(onOpen).toHaveBeenCalledOnce();
   });
 
+  it("keeps the menu open when the platform's own long press lands on its backdrop", () => {
+    const { button } = setup();
+    // Stands in for the menu's backdrop, which closes it on any contextmenu.
+    const onBackdropContextMenu = vi.fn();
+    const backdrop = document.createElement("div");
+    backdrop.addEventListener("contextmenu", onBackdropContextMenu);
+    document.body.appendChild(backdrop);
+
+    fireEvent.pointerDown(button, touch);
+    act(() => vi.advanceTimersByTime(LONG_PRESS_MS));
+    // Android fires its native contextmenu ~500ms in, hit-tested at the finger.
+    const handled = fireEvent.contextMenu(backdrop);
+    expect(handled).toBe(false);
+    expect(onBackdropContextMenu).not.toHaveBeenCalled();
+    backdrop.remove();
+  });
+
+  it("lets clicks through again shortly after the finger lifts", () => {
+    const { onOpen, button } = setup();
+    fireEvent.pointerDown(button, touch);
+    act(() => vi.advanceTimersByTime(LONG_PRESS_MS));
+    fireEvent.touchEnd(window);
+    act(() => vi.advanceTimersByTime(1000));
+    // e.g. a keyboard or screen reader, which sends no pointerdown first.
+    fireEvent.click(button);
+    expect(onOpen).toHaveBeenCalledOnce();
+  });
+
   it("gives up when the finger drifts, since that is a scroll or a swipe", () => {
     const { onLongPress, button } = setup();
     fireEvent.pointerDown(button, { ...touch, clientX: 0, clientY: 0 });

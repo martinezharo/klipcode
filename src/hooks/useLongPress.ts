@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { MouseEvent, PointerEvent, TouchEvent } from "react";
+import type { MouseEvent, PointerEvent } from "react";
 
 import { useLatestRef } from "./useLatestRef";
 
@@ -9,6 +9,10 @@ import { useLatestRef } from "./useLatestRef";
 export const LONG_PRESS_MS = 450;
 /** How far it may drift meanwhile — any further and it is a scroll or a swipe. */
 const LONG_PRESS_SLOP = 10;
+/** What a touch still sends after the press fired, all of it hit-tested. */
+const SWALLOWED = ["contextmenu", "mousedown", "mouseup", "click"] as const;
+/** How long after the finger lifts those can still arrive. */
+const GUARD_LINGER_MS = 400;
 
 /** Viewport coordinates a menu opened by the gesture should anchor at. */
 export interface PressPoint {
@@ -28,9 +32,7 @@ export interface LongPressHandlers {
   onPointerMove: (e: PointerEvent<HTMLElement>) => void;
   onPointerUp: () => void;
   onPointerCancel: () => void;
-  onTouchEnd: (e: TouchEvent<HTMLElement>) => void;
   onContextMenu: (e: MouseEvent<HTMLElement>) => void;
-  onClickCapture: (e: MouseEvent<HTMLElement>) => void;
 }
 
 /**
@@ -43,18 +45,56 @@ export interface LongPressHandlers {
  * that beats the timer just fires it early — whichever comes first opens the
  * menu, exactly once.
  *
- * Once the press has fired, the rest of that touch belongs to it: the click
- * that would open the row is swallowed, and so are the emulated mouse events
- * that would otherwise land on the menu's backdrop and close it on release.
+ * Once the press has fired, the rest of that touch belongs to it, so every
+ * mouse-flavoured event the platform still sends for it is swallowed: Android's
+ * own `contextmenu` arriving just after our timer, iOS's emulated mousedown and
+ * click on release. The menu's backdrop is under the finger by then, so any of
+ * them would close the menu the moment it opened (or the click would open the
+ * row). They are hit-tested and land on the backdrop, not the row — which is
+ * why the guard sits on the window rather than on the element.
  */
 export function useLongPress(
   onLongPress: (point: PressPoint) => void,
   { enabled = true }: { enabled?: boolean } = {},
 ): LongPressHandlers | Record<string, never> {
   const pending = useRef<PendingPress | null>(null);
-  /** The current touch already opened the menu. */
+  /** The current touch already opened the menu (it is only sliding off now). */
   const fired = useRef(false);
   const callback = useLatestRef(onLongPress);
+  /** Lifts the window-level guard installed by a touch press. */
+  const releaseGuard = useRef<(() => void) | null>(null);
+
+  /** Swallow the rest of this touch's mouse events, until the next gesture. */
+  function guardRestOfTouch() {
+    releaseGuard.current?.();
+    const swallow = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    let lingering: ReturnType<typeof setTimeout> | undefined;
+    const release = () => {
+      clearTimeout(lingering);
+      for (const type of SWALLOWED) window.removeEventListener(type, swallow, true);
+      window.removeEventListener("pointerdown", release, true);
+      window.removeEventListener("touchend", releaseSoon, true);
+      window.removeEventListener("touchcancel", releaseSoon, true);
+      releaseGuard.current = null;
+    };
+    // iOS sends its emulated mouse events right after the finger lifts; past
+    // that, a click is a real one — a keyboard or screen reader picking an item
+    // needs no pointerdown to get through.
+    const releaseSoon = () => {
+      clearTimeout(lingering);
+      lingering = setTimeout(release, GUARD_LINGER_MS);
+    };
+    for (const type of SWALLOWED) window.addEventListener(type, swallow, true);
+    // A new gesture always starts with a pointerdown, and nothing this touch
+    // sends comes after one.
+    window.addEventListener("pointerdown", release, true);
+    window.addEventListener("touchend", releaseSoon, true);
+    window.addEventListener("touchcancel", releaseSoon, true);
+    releaseGuard.current = release;
+  }
 
   function clear() {
     if (!pending.current) return;
@@ -67,7 +107,10 @@ export function useLongPress(
   function fire(point: PressPoint, byTouch: boolean) {
     clear();
     fired.current = byTouch;
-    if (byTouch) navigator.vibrate?.(10);
+    if (byTouch) {
+      guardRestOfTouch();
+      navigator.vibrate?.(10);
+    }
     callback.current(point);
   }
 
@@ -75,6 +118,7 @@ export function useLongPress(
   useEffect(
     () => () => {
       if (pending.current) clearTimeout(pending.current.timer);
+      releaseGuard.current?.();
     },
     [],
   );
@@ -110,9 +154,6 @@ export function useLongPress(
     // stops a slow scroll from ever counting as a hold.
     onPointerUp: clear,
     onPointerCancel: clear,
-    onTouchEnd(e) {
-      if (fired.current) e.preventDefault();
-    },
     onContextMenu(e) {
       e.preventDefault();
       e.stopPropagation();
@@ -129,12 +170,6 @@ export function useLongPress(
         return;
       }
       fire({ x: e.clientX, y: e.clientY }, false);
-    },
-    onClickCapture(e) {
-      if (!fired.current) return;
-      fired.current = false;
-      e.preventDefault();
-      e.stopPropagation();
     },
   };
 }
