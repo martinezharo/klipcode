@@ -36,4 +36,6 @@ export interface WorkspaceTreeProps {
   onCut: (entry: ClipboardEntry) => void;
   onCopy: (entry: ClipboardEntry) => void;
   onPaste: (targetFolderId: string | null) => Promise<void>;
+  /** Open the "Move to…" folder picker for these items. */
+  onMove: (items: SelectedItem[]) => void;
 }

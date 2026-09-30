@@ -51,6 +51,7 @@ export function WorkspaceTree({
   onCut,
   onCopy,
   onPaste,
+  onMove,
 }: WorkspaceTreeProps) {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [creatingFolderParentId, setCreatingFolderParentId] = useState<
@@ -133,6 +134,7 @@ export function WorkspaceTree({
     onDeleteMany,
     onCut,
     onCopy,
+    onMove,
     setRenamingId,
     setCreatingFolderParentId,
     onOpenCreateModal,

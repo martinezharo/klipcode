@@ -157,6 +157,7 @@ export const es = {
     copy: "Copiar",
     paste: "Pegar",
     delete: "Eliminar",
+    moveTo: "Mover a\u2026",
     copyContent: "Copiar contenido",
     openInNewTab: "Abrir en nueva pestaña",
     moreOptions: "Más opciones",
@@ -166,6 +167,10 @@ export const es = {
   languageSelect: {
     searchPlaceholder: "Buscar lenguaje...",
     noResults: "Sin resultados",
+  },
+  moveDialog: {
+    title: "Mover a",
+    itemCount: (n: number) => (n === 1 ? "1 elemento" : `${n} elementos`),
   },
   folderSelect: {
     noFolders: "Sin carpetas",
