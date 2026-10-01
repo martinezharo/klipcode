@@ -15,16 +15,7 @@ export interface CloudSession {
   signOut: () => Promise<void>;
 }
 
-/**
- * The default is the fully-local workspace: no deployment configured, so there
- * is no session to wait for and the auth actions are inert.
- *
- * This is why the session is a context rather than a hook that calls Convex
- * directly. `ConvexAuthProvider` can only mount when a deployment URL exists, so
- * a hook reading Convex state would have to be called conditionally — instead
- * the bridge inside the provider publishes the session when it is there, and
- * everything downstream reads one unconditional context either way.
- */
+/** Local-only fallback for components rendered without the session provider. */
 const LOCAL_ONLY_SESSION: CloudSession = {
   user: null,
   ready: true,

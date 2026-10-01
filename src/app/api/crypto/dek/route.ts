@@ -1,5 +1,3 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { api } from "@convex/_generated/api";
 import {
   base64ToBytes,
   bytesToBase64,
@@ -9,96 +7,50 @@ import {
   generateDekBytes,
   importAesKey,
 } from "@/lib/crypto";
-import { getConvexClientForToken, readBearerToken } from "@/lib/convexServer";
+import { backendEnv } from "@/server/env";
+import { readSessionUser } from "@/server/auth";
 
-/**
- * Hands the signed-in user their data-encryption key (DEK).
- *
- * The DEK is stored in Convex ONLY wrapped (encrypted) by the master key (KEK),
- * which lives exclusively as the `ENCRYPTION_MASTER_KEY` Worker secret — so the
- * database alone can never decrypt anything, and this route is the only place
- * the two ever meet. Keeping it here on Cloudflare rather than moving it into a
- * Convex action is deliberate: it is what stops the encrypted records and the
- * key that opens them from living with the same provider.
- *
- * On a user's first call the DEK is generated here; losing a race against
- * another device is resolved by `userKeys.create`, which returns the key that
- * won rather than overwriting it.
- *
- * A 503 means "encryption not configured" and tells the client to sync in
- * plaintext; any other failure is transient and the client must retry rather
- * than downgrade.
- */
-
-function getMasterKeyBase64(): string | null {
-  let secret: string | undefined;
-  try {
-    // Cast because the secret isn't in wrangler.jsonc (it's set with
-    // `wrangler secret put`), so `wrangler types` can't know about it.
-    secret = (getCloudflareContext().env as unknown as Record<string, string | undefined>)
-      .ENCRYPTION_MASTER_KEY;
-  } catch {
-    // Outside the Workers runtime (plain `next dev`, tests): fall through.
-  }
-  return secret ?? process.env.ENCRYPTION_MASTER_KEY ?? null;
-}
-
-function json(body: unknown, status = 200) {
-  return Response.json(body, { status, headers: { "cache-control": "no-store" } });
-}
-
+const json = (body: unknown, status = 200) =>
+  Response.json(body, {
+    status,
+    headers: { "cache-control": "private, no-store" },
+  });
+/** Keys stay wrapped in D1; the existing master key remains a Worker secret. */
 export async function GET(request: Request) {
-  const token = readBearerToken(request);
-  if (!token) {
-    return json({ error: "unauthorized" }, 401);
-  }
-
-  // The caller's own token drives every call, so the identity checks in
-  // `convex/userKeys.ts` scope access to their record — this route holds no
-  // admin key and can reach nothing the caller could not reach themselves.
-  const convex = getConvexClientForToken(token);
-  if (!convex) {
-    return json({ error: "encryption not configured" }, 503);
-  }
-
-  const masterKeyBase64 = getMasterKeyBase64();
-  if (!masterKeyBase64) {
-    return json({ error: "encryption not configured" }, 503);
-  }
-
-  let kek: CryptoKey;
   try {
-    const kekBytes = base64ToBytes(masterKeyBase64.trim());
-    if (kekBytes.length !== DEK_BYTES) {
-      throw new Error("master key must decode to 32 bytes");
+    const env = await backendEnv();
+    const user = await readSessionUser(request, env.DB);
+    if (!user) return json({ error: "Unauthorized" }, 401);
+    // Fail closed: a missing/broken secret must never downgrade uploads to plaintext.
+    const master = base64ToBytes(env.ENCRYPTION_MASTER_KEY?.trim() ?? "");
+    if (master.length !== DEK_BYTES)
+      throw new Error("Invalid encryption configuration");
+    const kek = await importAesKey(master);
+    let row = await env.DB.prepare(
+      "SELECT wrapped_dek FROM user_keys WHERE user_id=?",
+    )
+      .bind(user.id)
+      .first<{ wrapped_dek: string }>();
+    if (!row) {
+      const wrapped = await encryptString(
+        kek,
+        bytesToBase64(generateDekBytes()),
+      );
+      const results = await env.DB.batch([
+        env.DB.prepare(
+          "INSERT INTO user_keys(user_id,wrapped_dek) VALUES(?,?) ON CONFLICT(user_id) DO NOTHING",
+        ).bind(user.id, wrapped),
+        env.DB.prepare(
+          "SELECT wrapped_dek FROM user_keys WHERE user_id=?",
+        ).bind(user.id),
+      ]);
+      row = results[1].results[0] as { wrapped_dek: string };
     }
-    kek = await importAesKey(kekBytes);
+    return json({
+      dek: await decryptString(kek, row.wrapped_dek),
+      userId: user.id,
+    });
   } catch {
-    // A present-but-broken secret is a deployment mistake; surface it as
-    // "not configured" so clients keep working (in plaintext) instead of
-    // erroring forever.
-    return json({ error: "encryption not configured" }, 503);
-  }
-
-  let userId: string;
-  let wrappedDek: string | null;
-  try {
-    ({ userId, wrappedDek } = await convex.query(api.userKeys.mine, {}));
-  } catch {
-    return json({ error: "unauthorized" }, 401);
-  }
-
-  try {
-    if (wrappedDek === null) {
-      const candidate = bytesToBase64(generateDekBytes());
-      const stored = await convex.mutation(api.userKeys.create, {
-        wrappedDek: await encryptString(kek, candidate),
-      });
-      wrappedDek = stored.wrappedDek;
-    }
-
-    return json({ dek: await decryptString(kek, wrappedDek), userId });
-  } catch {
-    return json({ error: "key retrieval failed" }, 500);
+    return json({ error: "Key retrieval temporarily unavailable" }, 500);
   }
 }

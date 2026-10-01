@@ -1,6 +1,5 @@
 // fake-indexeddb/auto is loaded via vitest setupFiles (vitest.config.ts).
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { getFunctionName, type FunctionReference } from "convex/server";
 import { assertNoFolderCycles, collectDescendantFolderIds } from "@convex/lib/hierarchy";
 import type { CloudFolder, CloudSnippet, FolderRecord, SnippetRecord } from "@/lib/types";
 
@@ -147,36 +146,13 @@ function changes({ since }: { since: number | null }) {
   };
 }
 
-const convexClient = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async query(reference: FunctionReference<"query">, args?: never): Promise<any> {
-    switch (getFunctionName(reference)) {
-      case "workspace:changes":
-        return changes(args!);
-      case "workspace:list":
-        return { folders: ownedFolders().map(stripOwner), snippets: ownedSnippets().map(stripOwner) };
-      case "workspace:hasContent":
-        return ownedFolders().length > 0 || ownedSnippets().length > 0;
-      default:
-        throw new Error(`Unexpected query ${getFunctionName(reference)}`);
-    }
-  },
-  async mutation(reference: FunctionReference<"mutation">, args: never) {
-    switch (getFunctionName(reference)) {
-      case "workspace:push":
-        return push(args);
-      case "workspace:remove":
-        return remove(args);
-      default:
-        throw new Error(`Unexpected mutation ${getFunctionName(reference)}`);
-    }
-  },
+const cloudClient = {
+  changes: async (since: number | null) => changes({since}),
+  push: async (body: {folders: CloudFolder[]; snippets:CloudSnippet[]}) => push(body),
+  remove: async (body: {folderIds:string[];snippetIds:string[]}) => remove(body),
+  hasContent: async () => ownedFolders().length>0 || ownedSnippets().length>0,
 };
-
-vi.mock("@/lib/convex", () => ({
-  isConvexConfigured: () => true,
-  getConvexBrowserClient: () => convexClient,
-}));
+vi.mock("@/lib/cloud", () => ({cloud:{changes:(since:number|null)=>cloudClient.changes(since),push:(body:{folders:CloudFolder[];snippets:CloudSnippet[]})=>cloudClient.push(body),remove:(body:{folderIds:string[];snippetIds:string[]})=>cloudClient.remove(body),hasContent:()=>cloudClient.hasContent()}}));
 
 // ── Mocked encryption key ──────────────────────────────────────────────────────
 // `null` (the default) runs sync in plaintext mode, matching the pre-encryption
@@ -441,6 +417,16 @@ describe("syncDirtyWorkspace() batching", () => {
     const order = cloud.folders.map((row) => row.clientId);
     expect(order.indexOf(root.id)).toBeLessThan(order.indexOf(child.id));
     expect(order.indexOf(child.id)).toBeLessThan(order.indexOf(grandchild.id));
+  });
+
+  it("bounds the combined folder/snippet payload, not just each list", async () => {
+    await db.folders.bulkAdd([makeFolder({dirty:true,name:'f'.repeat(1200000)}),makeFolder({dirty:true,name:'g'.repeat(1200000)})]);
+    await db.snippets.bulkAdd([makeSnippet({dirty:true,code:'a'.repeat(1200000)}),makeSnippet({dirty:true,code:'b'.repeat(1200000)})]);
+    const calls=vi.spyOn(cloudClient,'push');
+    await syncDirtyWorkspace(USER);
+    expect(calls).toHaveBeenCalledTimes(2);
+    for (const [body] of calls.mock.calls) expect(new TextEncoder().encode(JSON.stringify(body)).length).toBeLessThanOrEqual(4000000);
+    calls.mockRestore();
   });
 
   it("fails clearly instead of sending an oversized record forever", async () => {
@@ -822,26 +808,8 @@ describe("fetchCloudWorkspace() incremental pull", () => {
     expect((await db.snippets.get(snippet.id))?.title).toBe("back");
   });
 
-  it("falls back to the full list when the backend has no incremental query yet", async () => {
-    const snippet = makeSnippet();
-    pushFromElsewhere([], [cloudSnippet(snippet)]);
-    await db.syncCursors.put({ userId: USER, cursor: 1 });
-    backendHasChanges = false;
-
-    await fetchCloudWorkspace(USER);
-
-    expect(await db.snippets.get(snippet.id)).toBeDefined();
-    // Writes on that backend are not stamped, so the cursor must not be trusted.
-    expect(await db.syncCursors.get(USER)).toBeUndefined();
-
-    // Deletions still propagate, by absence, exactly as before.
-    cloud.snippets = [];
-    await fetchCloudWorkspace(USER);
-    expect(await db.snippets.get(snippet.id)).toBeUndefined();
-  });
-
   it("does not turn other failures into a second, full read", async () => {
-    const failing = vi.spyOn(convexClient, "query").mockRejectedValueOnce(new Error("Not authenticated"));
+    const failing = vi.spyOn(cloudClient, "changes").mockRejectedValueOnce(new Error("Not authenticated"));
 
     await expect(fetchCloudWorkspace(USER)).rejects.toThrow("Not authenticated");
     expect(failing).toHaveBeenCalledTimes(1);

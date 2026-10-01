@@ -78,7 +78,9 @@ test("a swipe that falls short springs back", async ({ page }) => {
 test("a short flick still commits", async ({ page }) => {
   await gotoMobileApp(page);
 
-  await dragHorizontally(page, panel(page), { dx: -60 });
+  // One native move keeps the flick fast even on a loaded CI/VPS host; eight
+  // separate protocol round trips can accidentally turn it into a slow drag.
+  await dragHorizontally(page, panel(page), { dx: -60, steps: 1 });
   await expectSelected(page, "My Space");
 });
 

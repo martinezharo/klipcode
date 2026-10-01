@@ -13,6 +13,9 @@ type AuthCtx = { auth: { getUserIdentity: () => Promise<{ subject: string } | nu
  * only the first segment identifies the account.
  */
 export async function requireUserId(ctx: AuthCtx): Promise<Id<"users">> {
+  if (process.env.KLIPCODE_MIGRATED === "true") {
+    throw new Error("KlipCode has moved. Reload the app and sign in again; unsynced changes remain on this device.");
+  }
   const identity = await ctx.auth.getUserIdentity();
 
   if (!identity) {

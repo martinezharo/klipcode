@@ -102,7 +102,7 @@ export interface AccountUser {
  * A folder as it crosses to the cloud. Identical in shape to the local record
  * minus the device-local bookkeeping (`ownerId`, `dirty`, `lastSyncedAt`) —
  * ownership is taken from the authenticated identity server-side, never sent.
- * The local `id` travels as `clientId`, which is the real key in Convex too.
+ * The local `id` travels as `clientId`, which is the scoped primary key in D1 too.
  */
 export interface CloudFolder {
   clientId: string;

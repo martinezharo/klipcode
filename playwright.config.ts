@@ -5,11 +5,13 @@ import { defineConfig, devices } from "@playwright/test";
  *
  * Cloud-sync behaviour is covered where it actually lives rather than through
  * the browser: `src/__tests__/sync.test.ts` drives the client sync engine
- * against an in-memory deployment, and `convex/workspace.test.ts` runs the real
+ * against an in-memory deployment, and `src/server/workspace.test.ts` runs the real
  * backend functions (ownership, last-write-wins, cycle rejection, delete
- * cascade) on Convex's test harness. Both run in CI with no Docker and no live
+ * cascade) on local D1. Both run in CI with no Docker and no live
  * deployment — which the previous Supabase-backed sync suite could not do.
  */
+const testPort = Number(process.env.KLIPCODE_TEST_PORT ?? 3000);
+
 export default defineConfig({
   testDir: "e2e",
   fullyParallel: true,
@@ -17,7 +19,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: `http://127.0.0.1:${testPort}`,
     trace: "on-first-retry",
   },
   projects: [
@@ -34,8 +36,8 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "pnpm dev",
-      url: "http://localhost:3000",
+      command: `pnpm exec next dev --hostname 127.0.0.1 --port ${testPort}`,
+      url: `http://127.0.0.1:${testPort}`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },

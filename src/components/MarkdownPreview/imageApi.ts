@@ -1,4 +1,3 @@
-import { getAuthToken } from "@/lib/authToken";
 import {
   IMAGE_MAX_UPLOAD_BYTES,
   isAcceptedImageType,
@@ -78,20 +77,12 @@ export async function uploadSnippetImage(file: File): Promise<UploadedImage> {
     throw new ImageUploadError("too-large");
   }
 
-  // Uploads are for signed-in users only — a guest workspace never leaves the
-  // device, so there is no account to store the image against.
-  const accessToken = getAuthToken();
-  if (!accessToken) {
-    throw new ImageUploadError("unauthorized");
-  }
-
   let response: Response;
   try {
     response = await fetch("/api/images", {
       method: "POST",
       headers: {
         "Content-Type": file.type,
-        Authorization: `Bearer ${accessToken}`,
       },
       body: file,
       signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS),
