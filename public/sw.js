@@ -13,7 +13,7 @@
  *
  * Bump CACHE_VERSION to invalidate previously cached responses.
  */
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE_NAME = `klipcode-${CACHE_VERSION}`;
 const APP_SHELL = "/app";
 

@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { readViewerId } from "@/lib/convexServer";
+import { readViewerId } from "@/server/auth";
 import { readBodyWithinLimit } from "@/lib/requestBody";
 import { truncateCodeForTitlePrompt } from "@/lib/utils";
 

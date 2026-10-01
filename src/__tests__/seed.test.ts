@@ -19,10 +19,10 @@ function makeClient() {
   };
 }
 
-vi.mock("@/lib/convex", () => ({
-  isConvexConfigured: () => mockClient !== null,
-  getConvexBrowserClient: () => mockClient,
-}));
+vi.mock("@/lib/cloud", () => ({cloud:{hasContent: async()=> {
+ if (!mockClient || !mockSignedIn) throw new Error("Not authenticated");
+ return mockCloud.folders>0 || mockCloud.snippets>0;
+}}}));
 
 import { db } from "@/lib/db";
 import { readInitialWorkspace, seedWelcomeContent } from "@/lib/seed";

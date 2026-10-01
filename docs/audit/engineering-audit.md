@@ -1,5 +1,8 @@
 # Engineering Audit
 
+> Historical audit of the Convex architecture. The current D1 architecture and
+> provider-separation change are documented in [D1 migration](../d1-migration.md).
+
 **Audit date:** 2026-08-07  
 **Scope:** application code, Convex functions, local persistence, cloud sync, authentication, API routes, dependency graph, accessibility-sensitive UI paths, and a production-style browser smoke test.
 

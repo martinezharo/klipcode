@@ -29,6 +29,9 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Test migration importer
+        run: python3 scripts/test-migrate-convex-to-d1.py
+
       - name: Build
         run: pnpm build
 

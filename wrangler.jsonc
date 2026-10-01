@@ -3,43 +3,49 @@
   "main": ".open-next/worker.js",
   "name": "klipcode",
   "compatibility_date": "2026-04-10",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": ".open-next/assets",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "klipcode",
+      "database_id": "e020c5ca-c506-4590-b617-038f95aa2f17",
+      "migrations_dir": "migrations",
+    },
+  ],
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "klipcode"
-    }
+      "service": "klipcode",
+    },
   ],
   "r2_buckets": [
     {
       "binding": "NEXT_INC_CACHE_R2_BUCKET",
-      "bucket_name": "klipcode-opennext-cache"
+      "bucket_name": "klipcode-opennext-cache",
     },
     // Images embedded in Markdown snippets, stored as WebP under an
     // unguessable per-user key. See src/app/api/images/route.ts.
     {
       "binding": "SNIPPET_IMAGES",
-      "bucket_name": "klipcode-images"
-    }
+      "bucket_name": "klipcode-images",
+    },
   ],
   // Cloudflare Images transformations: every upload is re-encoded to WebP here
   // before it reaches R2. Remote in local dev — like Workers AI, there is no
   // local emulation of the transformation engine.
   "images": {
     "binding": "IMAGES",
-    "remote": true
+    "remote": true,
   },
   "ai": {
     "binding": "AI",
-    "remote": true
+    "remote": true,
   },
   "observability": {
-    "enabled": true
-  }
+    "enabled": true,
+  },
 }

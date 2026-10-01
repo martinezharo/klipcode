@@ -11,6 +11,9 @@ importers:
       '@auth/core':
         specifier: 0.41.3
         version: 0.41.3
+      '@auth/d1-adapter':
+        specifier: ^1.11.3
+        version: 1.11.3
       '@codemirror/autocomplete':
         specifier: ^6.20.3
         version: 6.20.3
@@ -59,9 +62,6 @@ importers:
       '@codemirror/state':
         specifier: ^6.6.0
         version: 6.6.0
-      '@convex-dev/auth':
-        specifier: ^0.0.94
-        version: 0.0.94(@auth/core@0.41.3)(convex@1.43.0(react@19.2.4))(react@19.2.4)
       '@lezer/highlight':
         specifier: ^1.2.3
         version: 1.2.3
@@ -125,9 +125,6 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      convex:
-        specifier: ^1.43.0
-        version: 1.43.0(react@19.2.4)
       dexie:
         specifier: ^4.3.0
         version: 4.3.0
@@ -159,6 +156,9 @@ importers:
         specifier: ^0.9.0
         version: 0.9.0(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))
     devDependencies:
+      '@convex-dev/auth':
+        specifier: ^0.0.94
+        version: 0.0.94(@auth/core@0.41.3)(convex@1.43.0(react@19.2.4))(react@19.2.4)
       '@edge-runtime/vm':
         specifier: ^5.0.0
         version: 5.0.0
@@ -183,6 +183,9 @@ importers:
       babel-plugin-react-compiler:
         specifier: 1.0.0
         version: 1.0.0
+      convex:
+        specifier: ^1.43.0
+        version: 1.43.0(react@19.2.4)
       convex-test:
         specifier: ^0.0.54
         version: 0.0.54(convex@1.43.0(react@19.2.4))
@@ -201,6 +204,9 @@ importers:
       jsdom:
         specifier: ^30.0.1
         version: 30.0.1(@noble/hashes@1.8.0)
+      miniflare:
+        specifier: 4.20260708.1
+        version: 4.20260708.1
       tailwindcss:
         specifier: ^4
         version: 4.2.2
@@ -302,6 +308,9 @@ packages:
         optional: true
       nodemailer:
         optional: true
+
+  '@auth/d1-adapter@1.11.3':
+    resolution: {integrity: sha512-F71eQVTJzP0igCaPMFqE7EUp62sea6COGQs+6rF7kN1998KBRKy+I0xennOz00gnL/dMOM82PP0GvE5Vtpjm7g==}
 
   '@aws-crypto/sha1-browser@5.2.0':
     resolution: {integrity: sha512-OH6lveCFfcDjX4dbAvCFSYUjJZjDr/3XJ3xHtjn3Oj5b9RjojQo8npoLeA/bNwkOkrSQ0wgrHzXk4tDRxGKJeg==}
@@ -5087,6 +5096,14 @@ snapshots:
       oauth4webapi: 3.8.6
       preact: 10.24.3
       preact-render-to-string: 6.5.11(preact@10.24.3)
+
+  '@auth/d1-adapter@1.11.3':
+    dependencies:
+      '@auth/core': 0.41.3
+    transitivePeerDependencies:
+      - '@simplewebauthn/browser'
+      - '@simplewebauthn/server'
+      - nodemailer
 
   '@aws-crypto/sha1-browser@5.2.0':
     dependencies:

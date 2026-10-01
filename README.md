@@ -16,11 +16,11 @@ guest workspace that stays on the device you are using.
 - Write and preview Markdown documents in a rich TipTap editor.
 - Generate a name for an untitled snippet with Workers AI (Llama 3.2 3B
   Instruct) when signed in.
-- Sync the library through Convex after GitHub sign-in. Cloud records are
-  encrypted per user when the Cloudflare Worker secret `ENCRYPTION_MASTER_KEY`
-  is set; without it, records are synced in plaintext (`cryptoVersion 0`).
+- Sync the library through Cloudflare D1 after GitHub sign-in. Cloud records
+  are encrypted per user using the existing `ENCRYPTION_MASTER_KEY` Worker
+  secret. Missing keys fail closed rather than uploading plaintext.
   A device downloads the whole library once, then only what changed since its
-  last sync (a server-clock cursor), which keeps Convex database I/O small.
+  last sync (a server-clock cursor), which keeps D1 database I/O small.
 - Use the app in English or Spanish, in light or dark theme, with keyboard
   shortcuts and a search palette. A service worker caches the app shell so the
   UI still loads offline.
@@ -28,8 +28,9 @@ guest workspace that stays on the device you are using.
 ## Tech stack
 
 Next.js 16 (App Router, React 19) and Tailwind CSS 4, deployed as a Cloudflare
-Worker through OpenNext. Convex provides the backend, the database, and GitHub
-authentication; local snippet storage uses IndexedDB via Dexie.
+Worker through OpenNext. D1 stores the workspace and Auth.js database sessions;
+GitHub provides authentication. Local snippet storage uses IndexedDB via Dexie.
+The private analytics console uses the same D1 database without a VPS.
 
 ## Requirements
 
@@ -47,23 +48,25 @@ pnpm dev
 
 Open <http://localhost:3000>. This is enough to work on the guest workspace.
 
-To develop cloud sync and authentication, run the Convex development backend in
-a second terminal before starting the app:
+To develop cloud sync, copy [.dev.vars.example](.dev.vars.example) to
+`.dev.vars`, fill in a development OAuth app and encryption key, then run:
 
 ```bash
 pnpm dev:backend
 pnpm dev
 ```
 
-`pnpm dev:backend` writes the development deployment values to `.env.local`.
-For encrypted cloud records, copy [.env.example](.env.example) to `.env` and set
-`ENCRYPTION_MASTER_KEY`. GitHub sign-in also requires a GitHub OAuth app and
-these Convex environment variables:
+`pnpm dev:backend` applies D1 migrations locally. The GitHub callback is
+`http://localhost:3000/api/auth/callback/github` for development and
+`https://klipcode.com/api/auth/callback/github` for production. Use separate
+OAuth applications for these environments. Missing OAuth credentials leave
+the guest workspace available.
 
-```bash
-pnpm exec convex env set AUTH_GITHUB_ID <client-id>
-pnpm exec convex env set AUTH_GITHUB_SECRET <client-secret>
-```
+Production uses `DB` as a D1 binding and Worker secrets `AUTH_SECRET`,
+`AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `AUTH_URL` and
+`ENCRYPTION_MASTER_KEY`. Never replace the production master key: existing
+wrapped keys and ciphertext depend on it. `pnpm deploy` applies versioned D1
+migrations before building and deploying the Worker.
 
 ## Checks and scripts
 
@@ -82,7 +85,8 @@ CI runs all of the above on every push to `main` and on every pull request.
 ## Further reading
 
 - [Engineering audit](docs/audit/engineering-audit.md)
-- [Convex backend](convex/)
+- [D1 backend](src/server/)
+- [Migration and rollback](docs/d1-migration.md)
 - [Environment example](.env.example)
 
 KlipCode is released under the [MIT License](LICENSE).

@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import type { AccountUser } from "@/lib/types";
 import { db, matchesOwner, readAllWorkspaceRecords, readTrash } from "@/lib/db";
 import { recordDeletions } from "@/lib/sync";
-import { getAuthToken } from "@/lib/authToken";
 import { newId } from "@/lib/crypto";
 import type { ClipboardEntry, FolderRecord, SelectedItem, SnippetRecord, SyncStatus } from "@/lib/types";
 import { isDescendantOrSelf } from "@/components/Aside/utils";
@@ -118,12 +117,9 @@ export function useWorkspaceMutations({
     // "Untitled"), the `finally` covers every give-up path.
     let title: string | undefined;
     try {
-      const accessToken = getAuthToken();
-      if (!accessToken) return;
-
       const response = await fetch("/api/generate-title", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: truncateCodeForTitlePrompt(code), language }),
         signal: AbortSignal.timeout(15_000),
       });

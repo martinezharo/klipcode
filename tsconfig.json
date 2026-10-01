@@ -27,7 +27,7 @@
         "./src/*"
       ],
       "@convex/*": [
-        "./convex/*"
+        "./legacy/convex/*"
       ]
     }
   },

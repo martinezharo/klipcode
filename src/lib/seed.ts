@@ -1,7 +1,6 @@
 import { db, readWorkspace } from "@/lib/db";
 import { newId } from "@/lib/crypto";
-import { api } from "@convex/_generated/api";
-import { getConvexBrowserClient } from "@/lib/convex";
+import { cloud } from "@/lib/cloud";
 import type { WorkspaceSnapshot } from "@/lib/types";
 import type { Dictionary } from "@/i18n";
 
@@ -9,7 +8,7 @@ const SEEDED_KEY = "klipcode.seeded";
 
 /**
  * Whether the user already has a workspace — locally (IndexedDB) or in the cloud
- * (Convex, when signed in). Used to avoid seeding welcome content on top of
+ * (when signed in). Used to avoid seeding welcome content on top of
  * real data: e.g. a fresh device that's about to claim an account which already
  * has snippets, or a returning user whose `klipcode.seeded` flag was cleared.
  */
@@ -23,18 +22,12 @@ async function hasExistingContent(): Promise<boolean> {
     return true;
   }
 
-  const convex = getConvexBrowserClient();
-
-  if (!convex) {
-    return false;
-  }
-
   // Only the signed-in user's own records count; an anonymous visitor has no
   // cloud workspace to protect, and `hasContent` rejects an unauthenticated
   // caller. A network failure shouldn't block first-visit seeding either, so any
   // thrown error is treated as "no known cloud content".
   try {
-    return await convex.query(api.workspace.hasContent, {});
+    return await cloud.hasContent();
   } catch {
     return false;
   }
