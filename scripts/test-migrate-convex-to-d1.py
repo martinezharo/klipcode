@@ -46,4 +46,14 @@ class PreparedImportTest(unittest.TestCase):
   self.db.execute("INSERT INTO sessions(id,sessionToken,userId,expires) VALUES('session','hash','u1','2026-10-01T00:00:00.000Z')")
   with self.assertRaisesRegex(RuntimeError,'login sessions'): self.run_import()
   self.assertEqual(self.writes,0)
+ def test_missing_required_table_stops_before_any_mutation(self):
+  for name in list(self.data):
+   with self.subTest(table=name):
+    rows=self.data.pop(name)
+    try:
+     with self.assertRaisesRegex(ValueError,'Missing '+name+'/documents.jsonl'):
+      self.run_import()
+     self.assertEqual(self.writes,0)
+    finally:
+     self.data[name]=rows
 if __name__=='__main__': unittest.main()

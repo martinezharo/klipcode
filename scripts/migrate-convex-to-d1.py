@@ -31,7 +31,8 @@ args = parser.parse_args()
 archive = zipfile.ZipFile(args.export)
 def table(name):
     try: return [json.loads(line) for line in archive.read(name+'/documents.jsonl').splitlines() if line]
-    except KeyError: return []
+    except KeyError:
+        raise ValueError(f'Missing {name}/documents.jsonl in export; refusing to reconcile data') from None
 def quote(value):
     if value is None: return 'NULL'
     if isinstance(value, (int,float)): return str(round(value))
