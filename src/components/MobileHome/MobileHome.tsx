@@ -20,7 +20,7 @@ import { useContextMenuGroups } from "@/components/Aside/useContextMenuGroups";
 import { sortByPinThenAlpha } from "@/components/Aside/utils";
 import type { PressPoint } from "@/hooks/useLongPress";
 import { useSwipeTabs } from "@/hooks/useSwipeTabs";
-import { TOUCH_TARGET } from "@/lib/constants/layout";
+import { TOUCH_ICON_FEEDBACK, TOUCH_TARGET } from "@/lib/constants/layout";
 import { SWIPE_GROUP, SWIPE_PAGE_TRANSITION } from "@/lib/tabSwipe";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/ui/Spinner";
@@ -334,15 +334,17 @@ export function MobileHome({
             aria-haspopup="menu"
             aria-expanded={accountMenu !== null}
             aria-label={accountLabel}
-            className={cn("flex items-center justify-center rounded-full", TOUCH_TARGET)}
+            className={cn("group flex items-center justify-center rounded-full", TOUCH_TARGET)}
           >
             <span
               className={cn(
-                "flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full",
+                "flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full transition-colors",
                 /* The filled disc reads as "an identity lives here". Signed out
                    there is none, so the button sheds the avatar chrome and sits
                    as a sibling of the icons to its right. */
-                !authReady || user ? "bg-ink/8 ring-1 ring-ink/10" : "text-ink/45",
+                !authReady || user
+                  ? "bg-ink/8 ring-1 ring-ink/10 group-hover:ring-ink/25"
+                  : "text-ink/45 group-hover:bg-ink/8 group-hover:text-ink/70 group-active:bg-ink/8",
               )}
             >
               {!authReady ? (
@@ -386,7 +388,8 @@ export function MobileHome({
               onClick={onOpenSearch}
               aria-label={copy.aside.search}
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full text-ink/45 transition-colors active:bg-ink/8",
+                "flex h-8 w-8 items-center justify-center rounded-full text-ink/45",
+                TOUCH_ICON_FEEDBACK,
                 TOUCH_TARGET,
               )}
             >
@@ -398,7 +401,8 @@ export function MobileHome({
               aria-haspopup="menu"
               aria-label={copy.contextMenu.moreOptions}
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full text-ink/45 transition-colors active:bg-ink/8",
+                "flex h-8 w-8 items-center justify-center rounded-full text-ink/45",
+                TOUCH_ICON_FEEDBACK,
                 TOUCH_TARGET,
               )}
             >
@@ -519,7 +523,7 @@ export function MobileHome({
             type="button"
             onClick={() => tree.onOpenCreateModal(null)}
             aria-label={copy.aside.addSnippet}
-            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-foreground text-background shadow-xl shadow-ink/20 transition-opacity active:opacity-85"
+            className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-foreground text-background shadow-xl shadow-ink/20 transition-opacity hover:opacity-90 active:opacity-85"
           >
             <FilePlus size={22} aria-hidden="true" />
           </button>

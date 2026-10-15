@@ -50,7 +50,17 @@ export function FeedTabs<T extends string>({
   onSelect: (id: T) => void;
 }) {
   return (
-    <div role="tablist" className="relative h-11 overflow-hidden rounded-full bg-ink/[0.06]">
+    <div
+      role="tablist"
+      className={cn(
+        "relative h-11 overflow-hidden rounded-full bg-ink/[0.06] transition-colors",
+        /* Hovering the idle tab tints the whole track rather than the button:
+           everything the opaque pill doesn't cover is that tab's half plus the
+           slivers around the pill's rounded end, so this fills both exactly.
+           Gated on `(hover: hover)` like Tailwind's own `hover:`. */
+        "[@media(hover:hover)]:has-[[aria-selected=false]:hover]:bg-ink/[0.1]",
+      )}
+    >
       <div aria-hidden="true" className={cn(ROW, "absolute inset-0")}>
         {tabs.map((t) => (
           <span key={t.id} className={cn(CELL, "text-faint")}>

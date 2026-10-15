@@ -8,7 +8,7 @@ import { GeneratingTitle, useIsGeneratingTitle } from "@/components/TitleGenerat
 import type { Dictionary } from "@/i18n";
 import { useCopyFeedback } from "@/hooks/useCopyFeedback";
 import { useLongPress, type PressPoint } from "@/hooks/useLongPress";
-import { TOUCH_TARGET } from "@/lib/constants/layout";
+import { TOUCH_ICON_FEEDBACK, TOUCH_TARGET } from "@/lib/constants/layout";
 import type { SnippetRecord } from "@/lib/types";
 import {
   cn,
@@ -78,7 +78,7 @@ export function FeedCard({
         !isRenaming && "select-none [-webkit-touch-callout:none]",
         isActive
           ? "border-ink/25 bg-ink/[0.05]"
-          : "border-ink/8 bg-surface active:bg-surface-hover",
+          : "border-ink/8 bg-surface hover:bg-surface-hover active:bg-surface-hover",
       )}
     >
       {isRenaming ? (
@@ -144,7 +144,8 @@ export function FeedCard({
           }}
           aria-label={copy.contextMenu.moreOptions}
           className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-lg text-ink/35 transition-colors active:bg-ink/8 pointer-coarse:sr-only",
+            "flex h-8 w-8 items-center justify-center rounded-lg text-ink/35 pointer-coarse:sr-only",
+            TOUCH_ICON_FEEDBACK,
             TOUCH_TARGET,
           )}
         >
@@ -155,8 +156,9 @@ export function FeedCard({
           onClick={() => void copyToClipboard(snippet.code)}
           aria-label={copy.contextMenu.copyContent}
           className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-lg transition-colors active:bg-ink/8",
-            copied ? "text-foreground" : "text-ink/45",
+            "flex h-8 w-8 items-center justify-center rounded-lg",
+            TOUCH_ICON_FEEDBACK,
+            copied ? "text-foreground hover:text-foreground" : "text-ink/45",
             TOUCH_TARGET,
           )}
         >

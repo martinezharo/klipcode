@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight, Folder, MoreHorizontal, Pin } from "lucide-r
 
 import { sortByPinThenAlpha } from "@/components/Aside/utils";
 import { useLongPress } from "@/hooks/useLongPress";
-import { TOUCH_TARGET } from "@/lib/constants/layout";
+import { TOUCH_ICON_FEEDBACK, TOUCH_TARGET } from "@/lib/constants/layout";
 import type { FolderRecord } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { InlineNameInput } from "@/ui/InlineNameInput";
@@ -96,7 +96,7 @@ export function FolderGroup({ folder, depth }: { folder: FolderRecord; depth: nu
             aria-expanded={isOpen}
             onClick={() => ctx.setFolderExpanded(folder.id, !isOpen)}
             className={cn(
-              "flex h-11 min-w-0 flex-1 items-center gap-2 rounded-lg px-1 text-left transition-colors active:bg-ink/6",
+              "flex h-11 min-w-0 flex-1 items-center gap-2 rounded-lg px-1 text-left transition-colors hover:bg-ink/6 active:bg-ink/6",
               ctx.selectedFolderId === folder.id && "text-foreground",
             )}
           >
@@ -125,7 +125,8 @@ export function FolderGroup({ folder, depth }: { folder: FolderRecord; depth: nu
           onClick={openMoreMenu}
           aria-label={ctx.copy.contextMenu.moreOptions}
           className={cn(
-            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink/35 transition-colors active:bg-ink/8 pointer-coarse:sr-only",
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink/35 pointer-coarse:sr-only",
+            TOUCH_ICON_FEEDBACK,
             TOUCH_TARGET,
           )}
         >

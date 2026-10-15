@@ -308,7 +308,7 @@ export default function KlipCodeApp({ locale }: { locale: "en" | "es" }) {
       type="button"
       aria-label={copy.aside.mySpace}
       onClick={() => navigate(base)}
-      className="-ml-1.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-ink/50 transition-colors active:bg-ink/6"
+      className="-ml-1.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-ink/50 transition-colors hover:bg-ink/6 hover:text-ink/70 active:bg-ink/6"
     >
       <ArrowLeft size={19} />
     </button>

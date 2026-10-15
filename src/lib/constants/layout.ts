@@ -78,3 +78,15 @@ export const TOUCH_TARGET =
 export const TOUCH_TARGET_Y =
   "relative max-lg:after:absolute max-lg:after:inset-x-0 max-lg:after:top-1/2 " +
   "max-lg:after:h-11 max-lg:after:-translate-y-1/2 max-lg:after:content-['']";
+
+/**
+ * Hover and press feedback for the touch layout's icon controls.
+ *
+ * The touch layout is chosen by viewport width, not by input device, so it also
+ * renders for a mouse — a desktop window snapped to half the screen, say. Those
+ * users need hover like anywhere else. Tailwind v4 compiles `hover:` inside
+ * `@media (hover: hover)`, so pairing it with `active:` is safe: a finger gets
+ * the press tint and never a hover state stuck after the tap.
+ */
+export const TOUCH_ICON_FEEDBACK =
+  "transition-colors hover:bg-ink/8 hover:text-ink/70 active:bg-ink/8";
