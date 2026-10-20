@@ -3,9 +3,11 @@ import { readViewerId } from "@/server/auth";
 import { readBodyWithinLimit } from "@/lib/requestBody";
 import { truncateCodeForTitlePrompt } from "@/lib/utils";
 
-// Small, fast, multilingual instruct model — a title is a handful of words,
-// so there's no reason to reach for a bigger (slower, costlier) one.
-const TITLE_MODEL = "@cf/meta/llama-3.2-3b-instruct";
+// A title is a handful of words, but a bigger model names far better than the
+// 3B Llama we used before (e.g. "UserCard" vs "UserCardComponent", "retryWithBackoff"
+// vs "retryFunction", "github-actions-ci" vs "ci-deploy"). Gemma 4 26B-A4B only
+// activates ~4B params, so it stays cheap: ~$0.00004 per title.
+const TITLE_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 
 const SYSTEM_PROMPT = `You are a filename generator embedded in a code-snippet manager. You will be shown the language and the first lines of a code snippet. Reply with ONLY a short name for it: 2 to 3 words, no spaces, no file extension, no quotes, no punctuation, no markdown. Infer the purpose from function/class/variable names, comments, imports, or overall structure — name what the code DOES, never a prose description.
 
@@ -35,6 +37,17 @@ function sanitizeTitle(raw: string): string {
     .replace(/^[-_]+|[-_]+$/g, "")
     .slice(0, MAX_TITLE_CHARS)
     .replace(/[-_]+$/g, "");
+}
+
+// Workers AI returns either `{ response }` or an OpenAI-style `choices` payload
+// depending on the model; the title model uses the latter.
+function readCompletion(result: unknown): string {
+  const { response, choices } = (result ?? {}) as {
+    response?: unknown;
+    choices?: { message?: { content?: unknown } }[];
+  };
+  const text = choices?.[0]?.message?.content ?? response;
+  return typeof text === "string" ? text : "";
 }
 
 export async function POST(request: Request) {
@@ -83,12 +96,15 @@ export async function POST(request: Request) {
       ],
       max_tokens: 24,
       temperature: 0.3,
+      // Gemma reasons by default and would spend the whole 24-token budget
+      // thinking, returning an empty answer.
+      chat_template_kwargs: { enable_thinking: false },
     });
 
     // The prompt forbids "untitled"/blank, so these should be rare — a safety net
     // for a stubborn model. When it trips, the caller keeps the "Untitled"
     // placeholder rather than displaying a literal "untitled" title.
-    const title = sanitizeTitle(result.response ?? "");
+    const title = sanitizeTitle(readCompletion(result));
     if (!title || /^untitled$/i.test(title)) {
       return Response.json({ error: "no title" }, { status: 422 });
     }
