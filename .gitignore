@@ -58,6 +58,6 @@ update-check
 !.env.production
 cloudflare-env.d.ts
 
-# Leftover Postgres migrations from the pre-Convex backend. Never tracked;
-# safe to delete once the Supabase project is retired.
+# Historical database migration artifacts. Keep local copies out of Git;
+# the application uses the versioned D1 migrations in /migrations.
 .sb-migrations/

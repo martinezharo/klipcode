@@ -3,12 +3,11 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { assertNoFolderCycles, collectDescendantFolderIds } from "@convex/lib/hierarchy";
 import type { CloudFolder, CloudSnippet, FolderRecord, SnippetRecord } from "@/lib/types";
 
-// ── Mocked Convex deployment ───────────────────────────────────────────────────
-// A tiny in-memory stand-in for the deployment: it dispatches on the function
-// name, so the sync engine talks to it exactly as it talks to the real client.
-// The integrity rules (last-write-wins, reparenting, delete cascade) are the
-// real ones — `convex/lib/hierarchy.ts` is imported rather than reimplemented —
-// so a batch the production backend would reject is rejected here too.
+// ── Mocked cloud API ──────────────────────────────────────────────────────────
+// An in-memory implementation of the cloud API used by the sync engine.
+// It models last-write-wins, reparenting and delete behaviour, reusing the
+// archived hierarchy helpers. The D1 backend has its own integration tests in
+// `src/server/workspace.test.ts`.
 
 const USER = "user-1";
 
@@ -31,7 +30,7 @@ let backendHasChanges = true;
 /** Every `workspace.changes` call, to assert what the client asked for. */
 const changesCalls: Array<{ since: number | null }> = [];
 
-/** Whom the fake deployment treats the caller as. Convex derives this from the
+/** Whom the fake API treats the caller as. The backend derives this from the
  *  session; here it is explicit so tests can assert what a record was stored under. */
 let currentUserId = USER;
 
@@ -677,9 +676,9 @@ describe("cloud encryption", () => {
 // ── Adoption of records from the previous backend ───────────────────────────────
 
 describe("reconcileWorkspace() legacy adoption", () => {
-  // The old Supabase account id: neither null nor the current Convex user, so
+  // The old account id: neither null nor the current user, so
   // every read and the dirty scan filter these records out until they're adopted.
-  const LEGACY_OWNER = "supabase-uuid-abc";
+  const LEGACY_OWNER = "legacy-user-abc";
 
   function installLocalStorage() {
     const store = new Map<string, string>();

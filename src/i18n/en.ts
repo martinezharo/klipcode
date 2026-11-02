@@ -57,7 +57,7 @@ export const en = {
     signOut: "Sign Out",
     guestMode: "Guest workspace. Changes are saved only on this device.",
     notConfigured:
-      "Cloud storage is unavailable until NEXT_PUBLIC_CONVEX_URL is configured. Changes remain on this device.",
+      "Cloud storage is currently unavailable. Changes remain saved on this device.",
     syncingSession:
       "Uploading this device's snippets and downloading your cloud library.",
     syncedSession: "Session synced with the cloud.",

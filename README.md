@@ -32,6 +32,10 @@ Worker through OpenNext. D1 stores the workspace and Auth.js database sessions;
 GitHub provides authentication. Local snippet storage uses IndexedDB via Dexie.
 The private analytics console uses the same D1 database without a VPS.
 
+Supabase and Convex are no longer runtime dependencies. Archived backends and
+one-off import tools are documented in [legacy/README.md](legacy/README.md);
+their credentials are not needed for development or deployment.
+
 ## Requirements
 
 - Node.js 22 (the version CI uses).

@@ -57,7 +57,7 @@ export const es = {
     signOut: "Cerrar sesión",
     guestMode: "Espacio de invitado. Los cambios se guardan solo en este dispositivo.",
     notConfigured:
-      "El almacenamiento en la nube no está disponible hasta configurar NEXT_PUBLIC_CONVEX_URL. Los cambios permanecen en este dispositivo.",
+      "El almacenamiento en la nube no está disponible en este momento. Los cambios siguen guardados en este dispositivo.",
     syncingSession:
       "Subiendo los snippets de este dispositivo y descargando tu biblioteca de la nube.",
     syncedSession: "Sesión sincronizada con la nube.",

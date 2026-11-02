@@ -8,7 +8,7 @@ import { defineConfig, devices } from "@playwright/test";
  * against an in-memory deployment, and `src/server/workspace.test.ts` runs the real
  * backend functions (ownership, last-write-wins, cycle rejection, delete
  * cascade) on local D1. Both run in CI with no Docker and no live
- * deployment — which the previous Supabase-backed sync suite could not do.
+ * deployment credentials.
  */
 const testPort = Number(process.env.KLIPCODE_TEST_PORT ?? 3000);
 

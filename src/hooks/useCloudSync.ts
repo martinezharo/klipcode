@@ -196,7 +196,7 @@ export function useCloudSync({
   // known. Without this the loop is driven only by user edits and by
   // focus/online events, so a page that is loaded and simply left alone keeps
   // its pending work forever — which is exactly what stranded the records
-  // adopted from the pre-Convex backend, since adoption marks them dirty
+  // adopted from a legacy backend, since adoption marks them dirty
   // without the user touching anything.
   useEffect(() => {
     if (!user || !cloudConfigured) return;

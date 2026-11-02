@@ -2,11 +2,11 @@
  * KlipCode service worker.
  *
  * Snippet data is persisted separately in IndexedDB, so this worker only makes
- * the app shell available offline — it never caches API or Convex requests.
+ * the app shell available offline — it never caches API requests.
  *
  * Strategy:
- *  - Only same-origin GET requests are handled; everything else (POST, the
- *    Convex cross-origin traffic) falls through to the network.
+ *  - Only same-origin GET requests are handled; other methods and cross-origin
+ *    requests fall through to the network.
  *  - Immutable build assets (/_next/static/*) and icons: cache-first.
  *  - Page navigations: network-first, falling back to the cached page and then
  *    to the cached /app shell when offline.

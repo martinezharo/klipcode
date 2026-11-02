@@ -9,7 +9,7 @@ import { applyWorkspaceBatch, folderInput, snippetInput } from "./lib/workspaceW
 // Internal only: it writes on behalf of accounts that have never signed in, so
 // it must never be reachable from a client. Run it with
 // `npx convex run --prod migrations:importAccount '<json>'`, which authenticates
-// with a deploy key. `scripts/migrate-supabase-to-convex.mjs` drives it.
+// with a deploy key. `legacy/scripts/migrate-supabase-to-convex.mjs` drives it.
 //
 // Two things make this a copy rather than a re-encryption:
 //
