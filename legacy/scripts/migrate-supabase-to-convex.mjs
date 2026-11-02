@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
- * One-off import of the old Supabase backend into Convex.
+ * Archived one-off import of the old Supabase backend into Convex.
+ * The migration is complete. This script is retained for historical reference;
+ * it is not part of development, CI, deployment or the current D1 backend.
  *
  * Copies, never re-encrypts. The master key that wraps each per-user DEK never
  * moved (it is still the Cloudflare Worker secret), so a user's `wrapped_dek`
@@ -13,8 +15,8 @@
  * lands on the user that already owns their imported records.
  *
  * Usage:
- *   node scripts/migrate-supabase-to-convex.mjs --dry-run
- *   node scripts/migrate-supabase-to-convex.mjs
+ *   node legacy/scripts/migrate-supabase-to-convex.mjs --dry-run
+ *   node legacy/scripts/migrate-supabase-to-convex.mjs
  *
  * Reads SECRET_KEY (Supabase secret/service_role key) and SUPABASE_URL from the
  * environment. Idempotent: re-running upserts, so an interrupted run resumes.

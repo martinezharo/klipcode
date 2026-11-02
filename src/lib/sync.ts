@@ -804,12 +804,11 @@ async function claimAnonymousRecords(userId: string): Promise<void> {
  * One-time takeover of records left behind by the previous backend.
  *
  * Records carry the `ownerId` of the account that created them, and every read
- * filters on it (`matchesOwner` in `src/lib/db.ts`). The accounts from the old
- * Supabase backend have different ids from the Convex ones, so after the
- * migration those records match neither the signed-in user nor the anonymous
- * case: they stay in IndexedDB, intact, but invisible — and `getDirtyWorkspace`
- * skips them too, so they never upload either. Re-owning them to the current
- * account restores both.
+ * filters on it (`matchesOwner` in `src/lib/db.ts`). Accounts from the legacy
+ * backend used different ids, so after migration those records match neither
+ * the signed-in user nor the anonymous case: they stay in IndexedDB, intact,
+ * but invisible — and `getDirtyWorkspace` skips them too, so they never upload
+ * either. Re-owning them to the current account restores both.
  *
  * `dirty` is set so the push that follows uploads them. `lastSyncedAt` is left
  * alone: clearing it would make an adopted-but-empty snippet look like a
@@ -818,7 +817,7 @@ async function claimAnonymousRecords(userId: string): Promise<void> {
  *
  * Guarded by a flag so it runs at most once per device. Without that guard a
  * second account signing in on the same machine would seize the first one's
- * records; after this has run once, every record already carries a Convex id
+ * records; after this has run once, every record carries the current account id
  * and normal per-account isolation applies.
  */
 const LEGACY_ADOPTION_KEY = "klipcode.adoptedLegacyRecords";

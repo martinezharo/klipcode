@@ -8,17 +8,17 @@
 /sw.js
   Cache-Control: public,max-age=0,must-revalidate
 
-# Security headers for every route. These apply to the deployed app only
-# (Cloudflare static assets), so local `pnpm dev` is unaffected.
+# Security headers for Cloudflare static asset responses. Responses generated
+# by the Worker are not covered by this file; local `pnpm dev` is unaffected.
 #
 # CSP notes:
 # - script-src/style-src need 'unsafe-inline' because Next.js injects inline
 #   bootstrap scripts and styles without a nonce on this deploy target.
-# - connect-src is limited to self + Supabase (REST/Auth over https, Realtime
-#   over wss). GitHub OAuth is a top-level navigation, so it needs no entry.
-# - img-src allows https: for GitHub/Supabase avatars.
+# - connect-src is limited to self: cloud requests use same-origin API routes.
+#   GitHub OAuth is a top-level navigation, so it needs no entry.
+# - img-src allows https: for GitHub avatars and external Markdown images.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

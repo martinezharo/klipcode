@@ -1,10 +1,17 @@
 # D1 migration
 
 The application and analytics console use Cloudflare Workers and the `klipcode`
-D1 database. Production request paths have no Convex calls or VPS dependency.
+D1 database. Production request paths have no Supabase or Convex calls, or VPS
+dependency. Images use R2; GitHub authentication and sessions use Auth.js with
+D1. Per-user encryption keys are stored in D1 and the master key is a Worker
+secret. No Supabase credentials are required for development or deployment.
 GitHub accounts retain their existing user ids, so IndexedDB ownership and R2
 image paths remain valid. Ciphertext and wrapped DEKs are copied without
 re-encryption. The master key stays the existing `klipcode` Worker secret.
+
+The earlier Supabase to Convex migration and its importer are documented in
+[the legacy archive](../legacy/README.md). Their remaining provider references
+describe migration history and recovery tooling.
 
 ## Data and sessions
 
@@ -79,6 +86,11 @@ rollback. It is not part of the deployed app backend. Remove the legacy project
 and credentials only after the backup retention window and explicit approval.
 
 ## Production cutover on 2026-09-30
+
+This section records the cutover procedure and configuration at that time;
+the temporary upload-only build instructions below are historical. The migration
+was merged in PR #37 on 2026-10-01. Current deployment instructions are in the
+[README](../README.md#development).
 
 The verified final export contains 14 users, 14 GitHub identities, 13 wrapped
 keys, 43 folders and 302 snippets. App version

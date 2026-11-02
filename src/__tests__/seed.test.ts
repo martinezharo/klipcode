@@ -1,7 +1,7 @@
 // fake-indexeddb/auto is loaded via vitest setupFiles (vitest.config.ts).
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-// ── Configurable Convex stand-in ───────────────────────────────────────────────
+// ── Configurable cloud stand-in ────────────────────────────────────────────────
 // `seedWelcomeContent` consults the cloud only when a deployment is configured.
 // `workspace.hasContent` rejects an anonymous caller, so signed out the query
 // throws — which is exactly the "no known cloud content" path. Tests flip these

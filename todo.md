@@ -1,6 +1,10 @@
 # KlipCode — Review TODO
 
-Findings from a full project review (2026-06-11). Organized by area; file references point to the relevant code.
+Findings from a full project review (2026-06-11). Completed findings preserve
+the original Supabase-era context; their provider names, configuration and file
+references are historical. The current backend uses Cloudflare D1 and R2; see
+[README.md](README.md) and [the migration archive](legacy/README.md).
+Unchecked items remain product ideas to reassess against the current app.
 
 ## 🐛 Bugs
 

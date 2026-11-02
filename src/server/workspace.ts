@@ -25,7 +25,7 @@ function nullableId(value: unknown): string | null {
 }
 function date(value: unknown): string {
   const s = text(value, 40);
-  // Imported Supabase records retain ISO offsets and variable fractional
+  // Imported legacy records retain ISO offsets and variable fractional
   // precision. Preserve their timestamps while accepting both UTC spellings.
   if (
     !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(s) ||
