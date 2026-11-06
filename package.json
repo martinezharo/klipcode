@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "prepare": "husky",
+    "prepare": "[ -n \"$(git config --global core.hooksPath)\" ] || husky",
     "postinstall": "pnpm cf-typegen",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "pnpm db:migrate && opennextjs-cloudflare build && opennextjs-cloudflare deploy",
